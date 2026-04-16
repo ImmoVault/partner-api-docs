@@ -24,10 +24,15 @@ info:
     2. ERP redirects the browser to `/oauth/authorize` with
        `response_type=code`, `code_challenge_method=S256`, `scope`,
        `client_id`, `redirect_uri`, `state`.
-    3. Landlord authenticates and consents on messpunkt.io.
-    4. Browser is redirected back with an authorization code.
-    5. ERP exchanges the code at `/oauth/token` with the PKCE verifier.
-    6. ERP receives an access token (≤1 h, DPoP-bound) and a rotating refresh token.
+    3. Landlord authenticates on messpunkt.io.
+    4. **Consent screen** asks the landlord to (a) confirm the requested
+       scopes and (b) **pick the Properties** the ERP is allowed to see
+       (see *Authorization & Property scope* below). No Property is
+       pre-selected — the landlord must explicitly choose.
+    5. Browser is redirected back with an authorization code.
+    6. ERP exchanges the code at `/oauth/token` with the PKCE verifier.
+    7. ERP receives an access token (≤1 h, DPoP-bound, carrying the
+       Property whitelist) and a rotating refresh token.
 
     Every request to the API carries:
 
@@ -74,6 +79,58 @@ info:
     Every `UsageUnit` also carries a lightweight `property` summary
     (`id`, `name`, short address) so a single `/usage-units` call is
     self-describing for small Tenants.
+
+    **Important:** the endpoints above are additionally filtered by the
+    token's `property_scope` — see the next section.
+
+    # Authorization & Property scope
+
+    Authentication (OAuth 2.1) proves *who* is calling. **Authorization**
+    decides *what data* the caller is allowed to see within the Tenant.
+    Because a Tenant often owns Properties that should not all be
+    exposed to every ERP (different management mandates, pilot rollouts,
+    data-protection boundaries), the API supports a **Property whitelist
+    per connection**.
+
+    ## How it works
+
+    - **At consent time** the landlord picks one or more Properties from
+      the Tenant's portfolio. Default is *nothing selected* — the landlord
+      must actively choose.
+    - The resulting access token carries a `property_scope` claim — either
+      the literal string `"all"` (landlord chose to expose everything) or
+      a list of Property UUIDs.
+    - **Every API response is filtered** server-side against this
+      whitelist. Endpoints that target a single Property, UsageUnit,
+      MeasuringPoint, Device or MeterReading return **`404 Not Found`**
+      if the resource is outside the whitelist — we deliberately do **not**
+      return `403 Forbidden`, so the existence of out-of-scope Properties
+      is not leaked to the ERP.
+    - `GET /whoami` exposes the current `property_scope` so an ERP can
+      display "you have access to N Properties" before issuing queries.
+
+    ## Changing the scope later
+
+    The landlord can edit the Property whitelist for an existing
+    connection in the messpunkt.io dashboard **without re-consent**.
+    Changes take effect on the next token refresh (at most within the
+    access-token lifetime, ~1 h). In particular:
+
+    - **Reducing** the whitelist is effective immediately for new tokens
+      and at the latest within ~1 h for existing tokens.
+    - **Extending** the whitelist follows the same path; there is no
+      re-consent step, but the dashboard clearly shows which ERP is
+      affected and logs the change in the audit trail.
+
+    ## Implications for ERP clients
+
+    - Always call `GET /whoami` after obtaining or refreshing a token and
+      reconcile the local Property list.
+    - Treat `404` on previously-known Property or UsageUnit IDs as a
+      signal that access was revoked — surface a user-friendly message
+      to the landlord and prompt a refresh of the picker.
+    - Do not cache Property-level data across token refreshes without
+      re-checking `property_scope`.
 
     # Meter identifiers (OBIS)
 
@@ -235,6 +292,9 @@ paths:
                 tenant_name: "Hausverwaltung Müller GmbH"
                 client_id: "erp-client-01"
                 granted_scopes: ["read:units", "read:devices", "read:readings"]
+                property_scope:
+                  - "718e092d-8626-4975-b800-252a7746ad08"
+                  - "6d8be330-8f9d-4f75-b798-05a67c0074be"
                 token_expires_at: "2026-04-16T21:30:00Z"
         "401": { $ref: "#/components/responses/Unauthorized" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
@@ -816,7 +876,7 @@ components:
 
     WhoAmI:
       type: object
-      required: [tenant_id, tenant_name, client_id, granted_scopes]
+      required: [tenant_id, tenant_name, client_id, granted_scopes, property_scope]
       properties:
         tenant_id:      { type: string, format: uuid }
         tenant_name:    { type: string, example: "Hausverwaltung Müller GmbH" }
@@ -825,6 +885,18 @@ components:
           type: array
           items: { type: string }
           example: ["read:units", "read:readings"]
+        property_scope:
+          description: |
+            Property-level authorization. Either the literal string `"all"`
+            if the landlord exposed every Property in the Tenant, or an
+            array of Property UUIDs the ERP is permitted to access. See
+            *Authorization & Property scope* in the API overview.
+          oneOf:
+            - type: string
+              enum: ["all"]
+            - type: array
+              items: { type: string, format: uuid }
+          example: ["718e092d-8626-4975-b800-252a7746ad08", "6d8be330-8f9d-4f75-b798-05a67c0074be"]
         token_expires_at: { type: string, format: date-time }
 
     Page:
