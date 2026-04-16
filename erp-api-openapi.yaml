@@ -625,7 +625,7 @@ components:
 
         | Value | German meter type | Typical OBIS | Unit |
         | --- | --- | --- | --- |
-        | `heat` | Wärmezähler (WMZ) | `6-1:1.0.0` | `kWh` (`MWh`) |
+        | `heat` | Wärmezähler (WMZ) | `6-1:1.0.0` | `kWh` |
         | `hca` | Heizkostenverteiler (HKV) | `4-1:1.0.0` | `unit` |
         | `water_cold` | Kaltwasserzähler | `8-1:1.0.0` | `m3` |
         | `water_warm` | Warmwasserzähler | `9-1:1.0.0` | `m3` |
@@ -644,12 +644,18 @@ components:
 
     MetricUnit:
       type: string
-      description: Physical unit of the reading's `value`.
+      description: |
+        Physical unit of the reading's `value`. Normalised on the server side —
+        every `Metric` resolves to exactly one `MetricUnit`, so ERPs do not
+        need to perform unit conversion:
+
+        - `kWh` — energy (`heat`, `electricity`)
+        - `m3`  — volume (`water_cold`, `water_warm`, `gas`)
+        - `unit` — dimensionless HKV-Einheiten (`hca`)
       enum:
         - kWh
-        - MWh
-        - m3        # Wasser, Gas
-        - unit      # Dimensionslose HKV-Einheiten
+        - m3
+        - unit
 
     Problem:
       description: RFC 7807 problem document.
