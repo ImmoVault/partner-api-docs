@@ -53,9 +53,27 @@ info:
                                              → MeterReading
     ```
 
-    `UsageUnit` is the ERP-facing resource. `MeasuringPoint` is stable across
-    device replacements. `Device` segments carry installation windows so meter
-    replacement is explicit in the schema.
+    `UsageUnit` is the ERP-facing resource for billing and meter-reading
+    queries. `MeasuringPoint` is stable across device replacements.
+    `Device` segments carry installation windows so meter replacement is
+    explicit in the schema.
+
+    ## Multi-Property Tenants
+
+    A single Tenant (Hausverwaltung / property-management organisation)
+    typically owns multiple `Property` records (Liegenschaften), each with
+    its own address(es) and many UsageUnits. The API exposes both levels:
+
+    - `GET /properties` — enumerate Properties in the Tenant
+      (use this to populate a two-step picker in the ERP UI:
+      *first pick the Liegenschaft, then the Wohneinheit*)
+    - `GET /usage-units?property_id=…` — list units filtered to one Property
+    - `GET /usage-units` (no filter) — flat list of all units in the Tenant
+      (fine for Tenants with one Property, or ERPs that don't need grouping)
+
+    Every `UsageUnit` also carries a lightweight `property` summary
+    (`id`, `name`, short address) so a single `/usage-units` call is
+    self-describing for small Tenants.
 
     # Meter identifiers (OBIS)
 
@@ -175,6 +193,8 @@ security:
 
 tags:
   - name: Introspection
+  - name: Properties
+    description: Liegenschaften — top-level grouping of UsageUnits under a Tenant.
   - name: Units
   - name: Measuring points
 
@@ -198,6 +218,68 @@ paths:
               schema:
                 $ref: "#/components/schemas/WhoAmI"
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+
+  /properties:
+    get:
+      tags: [Properties]
+      summary: List Properties (Liegenschaften) in the current Tenant
+      description: |
+        Paginated list of `Property` resources (Liegenschaften) accessible
+        under the current token. Use this to populate the first step of a
+        two-step picker in the ERP UI (*pick the Liegenschaft, then the
+        Wohneinheit*). For small Tenants, ERPs may skip this and query
+        `/usage-units` directly.
+      operationId: listProperties
+      security:
+        - OAuth2: [read:units]
+      parameters:
+        - $ref: "#/components/parameters/PageCursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: external_ref
+          in: query
+          description: Filter by the ERP's own reference (exact match).
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Page"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/Property" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+
+  /properties/{id}:
+    parameters:
+      - $ref: "#/components/parameters/PropertyId"
+    get:
+      tags: [Properties]
+      summary: Get a single Property (Liegenschaft)
+      description: |
+        Returns Property metadata including its addresses and a unit count.
+        The list of UsageUnits for this Property is available via
+        `GET /usage-units?property_id={id}` (paginated).
+      operationId: getProperty
+      security:
+        - OAuth2: [read:units]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Property" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
 
   /usage-units:
@@ -443,6 +525,12 @@ components:
         minimum: 1
         maximum: 200
         default: 100
+    PropertyId:
+      name: id
+      in: path
+      required: true
+      description: Property ID (UUID).
+      schema: { type: string, format: uuid }
     UsageUnitId:
       name: id
       in: path
@@ -513,13 +601,56 @@ components:
           type: [string, "null"]
           description: Opaque cursor for the previous page. `null` on first page.
 
+    Property:
+      type: object
+      required: [id, tenant_id, name, addresses]
+      description: |
+        A Liegenschaft — top-level grouping of UsageUnits under a Tenant.
+        A Tenant typically owns multiple Properties, each with one or
+        more addresses (Strassenzüge) and many UsageUnits.
+      properties:
+        id:             { type: string, format: uuid }
+        tenant_id:      { type: string, format: uuid }
+        external_ref:
+          type: [string, "null"]
+          description: Optional ERP-side identifier linked to this Property.
+        name:
+          type: string
+          description: Landlord-facing Liegenschafts-Name.
+          example: "Reichenstraße 12-14"
+        addresses:
+          type: array
+          description: One or more addresses belonging to this Property.
+          items: { $ref: "#/components/schemas/Address" }
+        usage_unit_count:
+          type: [integer, "null"]
+          description: Number of UsageUnits in this Property at query time. May be null if not computed.
+          example: 8
+
+    PropertySummary:
+      type: object
+      required: [id, name]
+      description: |
+        Compact Property reference embedded inside a UsageUnit so a single
+        `/usage-units` response is self-describing without a second call.
+      properties:
+        id:              { type: string, format: uuid }
+        name:            { type: string, example: "Reichenstraße 12-14" }
+        address_line:
+          type: [string, "null"]
+          description: One-line rendering of the primary Property address for UI display.
+          example: "Reichenstraße 12, 10999 Berlin"
+        external_ref:    { type: [string, "null"] }
+
     UsageUnit:
       type: object
-      required: [id, tenant_id, property_id, address, name]
+      required: [id, tenant_id, property_id, property, address, name]
       properties:
         id:             { type: string, format: uuid }
         tenant_id:      { type: string, format: uuid }
         property_id:    { type: string, format: uuid }
+        property:
+          $ref: "#/components/schemas/PropertySummary"
         external_ref:
           type: [string, "null"]
           description: Optional ERP-side identifier linked to this unit.
