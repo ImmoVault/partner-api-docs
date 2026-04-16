@@ -1,0 +1,604 @@
+openapi: 3.1.0
+info:
+  title: messpunkt.io ERP API
+  version: "0.1.0-draft"
+  summary: |
+    Partner-facing read API for consumption and meter data.
+    Companion to docs/ERP_INTEGRATION_CONCEPT.md.
+  description: |
+    # Overview
+
+    This API lets property-management ERPs (Immodio, Vermieter1.de, dotega and
+    future partners) read consumption and meter-reading data from messpunkt.io
+    on behalf of a landlord (Tenant).
+
+    **Status:** draft concept, not yet implemented. Shared for partner review.
+
+    # Authentication
+
+    All endpoints require **OAuth 2.1 Authorization Code + PKCE** with a
+    **DPoP-bound** bearer token (RFC 9449). Tokens are scoped per Tenant.
+
+    Connect flow:
+
+    1. Landlord clicks "Connect messpunkt.io" inside the ERP.
+    2. ERP redirects the browser to `/oauth/authorize` with
+       `response_type=code`, `code_challenge_method=S256`, `scope`,
+       `client_id`, `redirect_uri`, `state`.
+    3. Landlord authenticates and consents on messpunkt.io.
+    4. Browser is redirected back with an authorization code.
+    5. ERP exchanges the code at `/oauth/token` with the PKCE verifier.
+    6. ERP receives an access token (≤1 h, DPoP-bound) and a rotating refresh token.
+
+    Every request to the API carries:
+
+    - `Authorization: DPoP <access_token>`
+    - `DPoP: <dpop-proof JWT>` — a signed proof-of-possession token
+      per RFC 9449.
+
+    # Conventions
+
+    - Media type: `application/json`; errors use `application/problem+json` (RFC 7807).
+    - Timestamps: ISO 8601 UTC.
+    - IDs: UUID v4.
+    - Pagination: cursor-based (`page_cursor`, `next_cursor`, `prev_cursor`).
+    - Versioning: `/v1` path prefix; deprecations signalled with `Sunset` header + 6 months overlap.
+    - Rate limits: per `client_id`. `429` with `Retry-After` on exceedance.
+
+    # Canonical model
+
+    ```
+    Tenant → Property → Address → UsageUnit → Sector
+                                     → MeasuringPoint
+                                         → Device (installation windows)
+                                             → MeterReading
+    ```
+
+    `UsageUnit` is the ERP-facing resource. `MeasuringPoint` is stable across
+    device replacements. `Device` segments carry installation windows so meter
+    replacement is explicit in the schema.
+  contact:
+    name: messpunkt.io Integrations
+    url: https://messpunkt.io
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://api.messpunkt.io/v1
+    description: Production (V1)
+  - url: https://api.sandbox.messpunkt.io/v1
+    description: Sandbox
+
+security:
+  - OAuth2: [read:units, read:devices, read:readings]
+
+tags:
+  - name: Introspection
+  - name: Units
+  - name: Measuring points
+
+paths:
+  /whoami:
+    get:
+      tags: [Introspection]
+      summary: Return identity and scopes of the current token
+      description: |
+        Lightweight token-introspection endpoint. ERPs should call this once
+        after obtaining a token to verify the tenant and granted scopes
+        before deeper queries.
+      operationId: whoami
+      security:
+        - OAuth2: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhoAmI"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+
+  /usage-units:
+    get:
+      tags: [Units]
+      summary: List usage units in the current Tenant
+      description: |
+        Paginated list of `UsageUnit` resources accessible under the current
+        token. Used by the ERP to present a picker for linking
+        (step 4–6 of the Henning↔Dominik flow).
+      operationId: listUsageUnits
+      security:
+        - OAuth2: [read:units]
+      parameters:
+        - $ref: "#/components/parameters/PageCursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: external_ref
+          in: query
+          description: Filter by the ERP's own reference (exact match).
+          required: false
+          schema: { type: string }
+        - name: property_id
+          in: query
+          description: Limit to units in a single Property.
+          required: false
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Page"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/UsageUnit" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+
+  /usage-units/{id}:
+    parameters:
+      - $ref: "#/components/parameters/UsageUnitId"
+    get:
+      tags: [Units]
+      summary: Get a single usage unit
+      operationId: getUsageUnit
+      security:
+        - OAuth2: [read:units]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UsageUnit" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+
+  /usage-units/{id}/consumption:
+    parameters:
+      - $ref: "#/components/parameters/UsageUnitId"
+    get:
+      tags: [Units]
+      summary: Consumption for a usage unit over a date range
+      description: |
+        **Primary read endpoint** — step 7 of the Henning↔Dominik flow.
+
+        Returns every meter reading for the unit in `[from, to]`, grouped by
+        MeasuringPoint and segmented by device installation window. Meter
+        replacements appear as separate segments, so the ERP never has to diff
+        serials to detect a swap.
+
+        `status` on each reading distinguishes `measured` vs `substituted`
+        (interpolated / forward-filled) vs `calculated` vs `missing`. A
+        MeasuringPoint with an uncovered period returns a segment with
+        `readings: []` and `data_gap: true` — never silent omission.
+      operationId: getUsageUnitConsumption
+      security:
+        - OAuth2: [read:readings]
+      parameters:
+        - name: from
+          in: query
+          required: true
+          description: Inclusive start of the query range (ISO 8601 date).
+          schema: { type: string, format: date, example: "2026-01-01" }
+        - name: to
+          in: query
+          required: true
+          description: Inclusive end of the query range (ISO 8601 date).
+          schema: { type: string, format: date, example: "2026-12-31" }
+        - name: metric
+          in: query
+          description: Optional filter. Omit to return all metrics.
+          required: false
+          schema:
+            type: array
+            items: { $ref: "#/components/schemas/Metric" }
+          style: form
+          explode: false
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UnitConsumption" }
+              example:
+                usage_unit_id: "b2c3d4e5-6789-4abc-9def-0123456789ab"
+                external_ref: "immodio-unit-0815"
+                from: "2026-01-01"
+                to: "2026-12-31"
+                measuring_points:
+                  - measuring_point_id: "a1b2c3d4-5678-4abc-9def-0123456789ab"
+                    metric: "water_warm"
+                    obis: "8.0.0.0.0.255"
+                    unit: "m3"
+                    data_gap: false
+                    segments:
+                      - device_id: "d1111111-1111-4111-9111-111111111111"
+                        serial: "12345"
+                        manufacturer: "SON"
+                        installed_at: "2025-07-01"
+                        deinstalled_at: "2026-06-30"
+                        replacement_reason: "EndOfLife"
+                        readings:
+                          - { at: "2026-01-01", value: 0.0,   status: "measured" }
+                          - { at: "2026-06-30", value: 700.0, status: "substituted", substitution_method: "linear_interpolation" }
+                      - device_id: "d2222222-2222-4222-9222-222222222222"
+                        serial: "12347"
+                        manufacturer: "SON"
+                        installed_at: "2026-07-01"
+                        deinstalled_at: null
+                        readings:
+                          - { at: "2026-07-01", value: 1.0,   status: "measured" }
+                          - { at: "2026-12-31", value: 550.0, status: "measured" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+
+  /measuring-points/{id}:
+    parameters:
+      - $ref: "#/components/parameters/MeasuringPointId"
+    get:
+      tags: [Measuring points]
+      summary: Get a measuring point with its current device
+      operationId: getMeasuringPoint
+      security:
+        - OAuth2: [read:devices]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MeasuringPoint" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+
+  /measuring-points/{id}/readings:
+    parameters:
+      - $ref: "#/components/parameters/MeasuringPointId"
+    get:
+      tags: [Measuring points]
+      summary: Readings for a single measuring point
+      description: |
+        Lower-level drill-down. Returns the same segmented structure as the
+        unit-level endpoint but for one MeasuringPoint only.
+      operationId: getMeasuringPointReadings
+      security:
+        - OAuth2: [read:readings]
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MeasuringPointConsumption" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+
+components:
+
+  securitySchemes:
+    OAuth2:
+      type: oauth2
+      description: |
+        OAuth 2.1 with PKCE (S256) required. Access tokens are DPoP-bound
+        (RFC 9449); callers must include a `DPoP` header with every request.
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.messpunkt.io/oauth/authorize
+          tokenUrl: https://auth.messpunkt.io/oauth/token
+          refreshUrl: https://auth.messpunkt.io/oauth/token
+          scopes:
+            "read:units":    Read UsageUnits, Addresses and structural metadata.
+            "read:devices":  Read MeasuringPoints and Device lifecycle.
+            "read:readings": Read MeterReadings and consumption details.
+
+  parameters:
+    PageCursor:
+      name: page_cursor
+      in: query
+      required: false
+      description: Opaque cursor returned by a previous response. Omit for first page.
+      schema: { type: string }
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Max items per page.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 100
+    UsageUnitId:
+      name: id
+      in: path
+      required: true
+      description: UsageUnit ID (UUID).
+      schema: { type: string, format: uuid }
+    MeasuringPointId:
+      name: id
+      in: path
+      required: true
+      description: MeasuringPoint ID (UUID).
+      schema: { type: string, format: uuid }
+
+  responses:
+    BadRequest:
+      description: Malformed request.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Unauthorized:
+      description: Missing or invalid token.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Forbidden:
+      description: Token valid but scope insufficient or resource out of tenant.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    NotFound:
+      description: Resource not found in this Tenant.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    TooManyRequests:
+      description: Rate limit exceeded. Retry after the period in `Retry-After`.
+      headers:
+        Retry-After:
+          description: Seconds until the client may retry.
+          schema: { type: integer }
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+
+  schemas:
+
+    WhoAmI:
+      type: object
+      required: [tenant_id, tenant_name, client_id, granted_scopes]
+      properties:
+        tenant_id:      { type: string, format: uuid }
+        tenant_name:    { type: string, example: "Hausverwaltung Müller GmbH" }
+        client_id:      { type: string, description: "ID of the ERP client holding the token." }
+        granted_scopes:
+          type: array
+          items: { type: string }
+          example: ["read:units", "read:readings"]
+        token_expires_at: { type: string, format: date-time }
+
+    Page:
+      type: object
+      required: [next_cursor, prev_cursor]
+      properties:
+        next_cursor:
+          type: [string, "null"]
+          description: Opaque cursor for the next page. `null` when no more.
+        prev_cursor:
+          type: [string, "null"]
+          description: Opaque cursor for the previous page. `null` on first page.
+
+    UsageUnit:
+      type: object
+      required: [id, tenant_id, property_id, address, name]
+      properties:
+        id:             { type: string, format: uuid }
+        tenant_id:      { type: string, format: uuid }
+        property_id:    { type: string, format: uuid }
+        external_ref:
+          type: [string, "null"]
+          description: Optional ERP-side identifier linked to this unit.
+        name:
+          type: string
+          description: Landlord-facing name, e.g. "WE 03, Müller".
+          example: "WE 03, Müller"
+        floor:          { type: [string, "null"], example: "2" }
+        position:       { type: [string, "null"], example: "links" }
+        unit_type:
+          $ref: "#/components/schemas/UnitType"
+        area_heated_m2: { type: [number, "null"], example: 72.4 }
+        area_ww_m2:     { type: [number, "null"], example: 72.4 }
+        address:        { $ref: "#/components/schemas/Address" }
+        measuring_points:
+          type: array
+          description: Summary of MPs allocated to this unit. Use the drill-down endpoints for readings.
+          items: { $ref: "#/components/schemas/MeasuringPointSummary" }
+
+    UnitType:
+      type: string
+      description: |
+        `residential` — Wohneinheit · `commercial` — Gewerbeeinheit ·
+        `technical` — Heizzentrale etc. · `traffic` — Allgemeinflächen.
+      enum: [residential, commercial, technical, traffic]
+
+    Address:
+      type: object
+      required: [street, house_number, postal_code, city, country_code]
+      properties:
+        street:             { type: string, example: "Reichenstraße" }
+        house_number:       { type: string, example: "12" }
+        house_number_addition: { type: [string, "null"], example: "A" }
+        postal_code:        { type: string, example: "10999" }
+        city:               { type: string, example: "Berlin" }
+        country_code:       { type: string, example: "DE", description: "ISO 3166-1 alpha-2" }
+
+    MeasuringPointSummary:
+      type: object
+      required: [measuring_point_id, metric, unit]
+      properties:
+        measuring_point_id: { type: string, format: uuid }
+        metric: { $ref: "#/components/schemas/Metric" }
+        obis:   { type: [string, "null"], example: "8.0.0.0.0.255" }
+        unit:   { $ref: "#/components/schemas/MetricUnit" }
+        active_device_serial: { type: [string, "null"] }
+
+    MeasuringPoint:
+      type: object
+      required: [id, usage_unit_id, metric, unit, active_device]
+      properties:
+        id:            { type: string, format: uuid }
+        usage_unit_id: { type: string, format: uuid }
+        metric:        { $ref: "#/components/schemas/Metric" }
+        obis:          { type: [string, "null"], example: "8.0.0.0.0.255" }
+        unit:          { $ref: "#/components/schemas/MetricUnit" }
+        localization:
+          type: [string, "null"]
+          description: Free-text mount info, e.g. "Badezimmer Steigstrang".
+        active_device: { $ref: "#/components/schemas/Device" }
+
+    Device:
+      type: object
+      required: [id, serial, manufacturer, installed_at]
+      properties:
+        id:              { type: string, format: uuid }
+        serial:          { type: string, example: "12345" }
+        manufacturer:    { type: string, example: "SON" }
+        device_type:     { type: string, example: "WarmWaterMeter" }
+        installed_at:    { type: string, format: date }
+        deinstalled_at:  { type: [string, "null"], format: date }
+        replacement_reason:
+          type: [string, "null"]
+          enum: [null, EndOfLife, Defect, PeriodEnd, DeviceRemoval, Other]
+
+    UnitConsumption:
+      type: object
+      required: [usage_unit_id, from, to, measuring_points]
+      properties:
+        usage_unit_id:   { type: string, format: uuid }
+        external_ref:    { type: [string, "null"] }
+        from:            { type: string, format: date }
+        to:              { type: string, format: date }
+        measuring_points:
+          type: array
+          items: { $ref: "#/components/schemas/MeasuringPointConsumption" }
+
+    MeasuringPointConsumption:
+      type: object
+      required: [measuring_point_id, metric, unit, segments]
+      properties:
+        measuring_point_id: { type: string, format: uuid }
+        metric:             { $ref: "#/components/schemas/Metric" }
+        obis:               { type: [string, "null"], example: "8.0.0.0.0.255" }
+        unit:               { $ref: "#/components/schemas/MetricUnit" }
+        data_gap:
+          type: boolean
+          default: false
+          description: True when the range has no coverage at all (empty segments).
+        segments:
+          type: array
+          description: |
+            One entry per continuous device installation window within the
+            queried range. A meter replacement produces two segments.
+          items: { $ref: "#/components/schemas/DeviceSegment" }
+
+    DeviceSegment:
+      type: object
+      required: [device_id, serial, manufacturer, installed_at, readings]
+      properties:
+        device_id:        { type: string, format: uuid }
+        serial:           { type: string }
+        manufacturer:     { type: string }
+        installed_at:     { type: string, format: date }
+        deinstalled_at:   { type: [string, "null"], format: date }
+        replacement_reason:
+          type: [string, "null"]
+          enum: [null, EndOfLife, Defect, PeriodEnd, DeviceRemoval, Other]
+        readings:
+          type: array
+          items: { $ref: "#/components/schemas/MeterReading" }
+
+    MeterReading:
+      type: object
+      required: [at, value, status]
+      properties:
+        at:    { type: string, format: date-time, description: "Reading timestamp (UTC)." }
+        value: { type: number, example: 1234.567 }
+        status:              { $ref: "#/components/schemas/ReadingStatus" }
+        substitution_method: { $ref: "#/components/schemas/SubstitutionMethod" }
+
+    ReadingStatus:
+      type: string
+      description: |
+        Reading quality. Maps 1:1 to the internal `ValueType`.
+        - `measured` — actual meter value from the device
+        - `substituted` — interpolated or forward-filled to the queried boundary
+        - `calculated` — derived (e.g. sum of sub-meters)
+        - `missing` — no data available at this timestamp
+      enum: [measured, substituted, calculated, missing]
+
+    SubstitutionMethod:
+      type: [string, "null"]
+      description: |
+        Present when `status = substituted`.
+        - `linear_interpolation` — day-proportional, used for water / electricity / gas
+        - `degree_day_weighted` — VDI 2067 monthly degree-day weighting, used for heat
+        - `last_value_forward` — last known value carried forward
+      enum: [null, linear_interpolation, degree_day_weighted, last_value_forward]
+
+    Metric:
+      type: string
+      description: High-level metric family.
+      enum:
+        - heat                 # Wärmemenge (Wärmezähler / WMZ)
+        - hca                  # HKV-Einheiten (Heizkostenverteiler)
+        - water_cold           # Kaltwasser
+        - water_warm           # Warmwasser
+        - electricity          # Stromzähler
+        - gas                  # Gaszähler
+
+    MetricUnit:
+      type: string
+      description: Physical unit of the reading's `value`.
+      enum:
+        - kWh
+        - MWh
+        - m3        # Wasser, Gas
+        - unit      # Dimensionslose HKV-Einheiten
+
+    Problem:
+      description: RFC 7807 problem document.
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+          example: "https://api.messpunkt.io/errors/invalid-date-range"
+        title:
+          type: string
+          example: "Invalid date range"
+        status:
+          type: integer
+          example: 400
+        detail:
+          type: string
+          example: "`to` must be on or after `from`."
+        instance:
+          type: string
+          format: uri
+        trace_id:
+          type: string
+          description: Correlate with server logs when opening a support ticket.
+          example: "01HZ7K2XS9QJ0NB6K3GH7WN8XA"
