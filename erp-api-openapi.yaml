@@ -138,34 +138,24 @@ info:
     - `status` — `measured` · `substituted` · `calculated` · `missing`
     - `substitution_method` — present when `status = substituted`
 
-    ## Precision & accuracy
+    ## Precision
 
-    The precision and accuracy of a `value` depend on the physical meter
-    that produced it, not on the API. Two device-level fields expose this:
-
-    - **`resolution`** — the smallest increment the meter can report
-      (e.g. `0.001` m³ = 1 litre for a typical residential water meter;
-      `1` kWh for a heat meter; `1` HKV unit for an allocator).
-      Partners should **display / store values at no finer precision than
-      `resolution`**. The API may emit trailing zeros beyond the
-      resolution for interpolated (`substituted`) values.
-    - **`accuracy_class`** — the MID / EN / IEC conformity class of the
-      device, as declared on its type-approval plate. Typical values:
-
-      | Meter type | Standard | Typical class |
-      | --- | --- | --- |
-      | Wärmezähler | EN 1434 | `EN 1434 Class 2` (residential) |
-      | Wasserzähler | MID 2014/32/EU | `MID Class 2 R160` (residential) |
-      | Stromzähler | IEC 62053 | `IEC 62053 Class 1` |
-      | HKV (Heizkostenverteiler) | VDI 2170 / EN 834 | `EN 834` |
-
-      The field is a free-form string so that actual plate text can round-trip.
+    Every `DeviceSegment` carries a `resolution` field — the smallest
+    increment the meter can report (e.g. `0.001` m³ = 1 litre for a
+    typical residential water meter; `1` kWh for a heat meter;
+    `1` HKV unit for an allocator). Partners should **display or store
+    values at no finer precision than `resolution`** — the API may
+    emit trailing zeros beyond the resolution on interpolated
+    (`substituted`) values.
 
     When `status = substituted`, the returned value is an **interpolation
-    of measured boundaries**, not a raw meter output. It is reported at
-    the same `resolution` as measured values but its real uncertainty is
-    governed by `substitution_method` (see `SubstitutionMethod`), not by
-    `accuracy_class`.
+    of measured boundaries**, not a raw meter output. Its real uncertainty
+    is governed by `substitution_method` (see `SubstitutionMethod`).
+
+    MID / EN / IEC accuracy classes (e.g. `MID Class 2 R160`) are **not**
+    exposed in V1 — they are valuable for eichrechtliche Nachweise
+    but not for day-to-day billing logic. They may be added in a later
+    version if a partner needs them.
 
     **References**
     - IEC 62056-6-1 Edition 4.0 (2023): https://webstore.iec.ch/publication/64347
@@ -555,7 +545,6 @@ paths:
                         deinstalled_at: "2026-06-30"
                         replacement_reason: "EndOfLife"
                         resolution: 0.001
-                        accuracy_class: "MID Class 2 R160"
                         readings:
                           - { at: "2026-01-01", value: 0.0,   status: "measured" }
                           - { at: "2026-06-30", value: 700.0, status: "substituted", substitution_method: "linear_interpolation" }
@@ -565,7 +554,6 @@ paths:
                         installed_at: "2026-07-01"
                         deinstalled_at: null
                         resolution: 0.001
-                        accuracy_class: "MID Class 2 R160"
                         readings:
                           - { at: "2026-07-01", value: 1.0,   status: "measured" }
                           - { at: "2026-12-31", value: 550.0, status: "measured" }
@@ -606,7 +594,6 @@ paths:
                   deinstalled_at: null
                   replacement_reason: null
                   resolution: 0.001
-                  accuracy_class: "MID Class 2 R160"
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -626,8 +613,7 @@ paths:
         MeasuringPoint. Each reading carries `at`, `value`, `status`
         (`measured` · `substituted` · `calculated` · `missing`) and, when
         applicable, `substitution_method`. Each device segment also carries
-        `resolution` and `accuracy_class` — see *Precision & accuracy* in
-        the API overview.
+        `resolution` — see *Precision* in the API overview.
       operationId: getMeasuringPointReadings
       security:
         - OAuth2: [read:readings]
@@ -663,7 +649,6 @@ paths:
                         deinstalled_at: "2026-06-30"
                         replacement_reason: "EndOfLife"
                         resolution: 0.001
-                        accuracy_class: "MID Class 2 R160"
                         readings:
                           - { at: "2026-01-01T00:00:00Z", value: 0.000,   status: "measured" }
                           - { at: "2026-03-31T23:59:59Z", value: 342.180, status: "measured" }
@@ -675,7 +660,6 @@ paths:
                         deinstalled_at: null
                         replacement_reason: null
                         resolution: 0.001
-                        accuracy_class: "MID Class 2 R160"
                         readings:
                           - { at: "2026-07-01T00:00:00Z", value: 1.000,   status: "measured" }
                           - { at: "2026-09-30T23:59:59Z", value: 284.500, status: "measured" }
@@ -696,7 +680,6 @@ paths:
                         deinstalled_at: null
                         replacement_reason: null
                         resolution: 1
-                        accuracy_class: "EN 1434 Class 2"
                         readings:
                           - { at: "2026-01-01T00:00:00Z", value: 12480, status: "measured" }
                           - { at: "2026-02-01T00:00:00Z", value: 13120, status: "measured" }
@@ -718,7 +701,6 @@ paths:
                         deinstalled_at: null
                         replacement_reason: null
                         resolution: 1
-                        accuracy_class: "EN 834"
                         readings: []
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -972,16 +954,8 @@ components:
           description: |
             Smallest increment the meter can report, in the same unit as
             the reading `value`. Partners should not display or bill at
-            finer precision than this. See *Precision & accuracy* in the
-            API overview.
+            finer precision than this. See *Precision* in the API overview.
           example: 0.001
-        accuracy_class:
-          type: [string, "null"]
-          description: |
-            MID / EN / IEC conformity class of the device as declared on
-            its type-approval plate. Free-form string so actual plate
-            labelling can round-trip unchanged.
-          example: "MID Class 2 R160"
 
     UnitConsumption:
       type: object
@@ -1037,10 +1011,6 @@ components:
           type: [number, "null"]
           description: Smallest increment the device can report, in the unit of `value`. See `Device.resolution`.
           example: 0.001
-        accuracy_class:
-          type: [string, "null"]
-          description: MID / EN / IEC conformity class as printed on the type-approval plate. See `Device.accuracy_class`.
-          example: "MID Class 2 R160"
         readings:
           type: array
           description: Ablesungen (readouts) for this device within its installation window.
