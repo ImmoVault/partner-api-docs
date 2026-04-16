@@ -217,6 +217,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/WhoAmI"
+              example:
+                tenant_id: "9bb2c1ee-39c9-4eca-a83c-522e43c7be27"
+                tenant_name: "Hausverwaltung Müller GmbH"
+                client_id: "erp-client-01"
+                granted_scopes: ["read:units", "read:devices", "read:readings"]
+                token_expires_at: "2026-04-16T21:30:00Z"
         "401": { $ref: "#/components/responses/Unauthorized" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
 
@@ -254,6 +260,37 @@ paths:
                       data:
                         type: array
                         items: { $ref: "#/components/schemas/Property" }
+              example:
+                next_cursor: null
+                prev_cursor: null
+                data:
+                  - id: "718e092d-8626-4975-b800-252a7746ad08"
+                    tenant_id: "9bb2c1ee-39c9-4eca-a83c-522e43c7be27"
+                    external_ref: "erp-property-0815"
+                    name: "Reichenstraße 12-14"
+                    addresses:
+                      - street: "Reichenstraße"
+                        house_number: "12"
+                        postal_code: "10999"
+                        city: "Berlin"
+                        country_code: "DE"
+                      - street: "Reichenstraße"
+                        house_number: "14"
+                        postal_code: "10999"
+                        city: "Berlin"
+                        country_code: "DE"
+                    usage_unit_count: 16
+                  - id: "6d8be330-8f9d-4f75-b798-05a67c0074be"
+                    tenant_id: "9bb2c1ee-39c9-4eca-a83c-522e43c7be27"
+                    external_ref: null
+                    name: "Forgerstraße 4"
+                    addresses:
+                      - street: "Forgerstraße"
+                        house_number: "4"
+                        postal_code: "12053"
+                        city: "Berlin"
+                        country_code: "DE"
+                    usage_unit_count: 8
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
@@ -277,6 +314,23 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Property" }
+              example:
+                id: "718e092d-8626-4975-b800-252a7746ad08"
+                tenant_id: "9bb2c1ee-39c9-4eca-a83c-522e43c7be27"
+                external_ref: "erp-property-0815"
+                name: "Reichenstraße 12-14"
+                addresses:
+                  - street: "Reichenstraße"
+                    house_number: "12"
+                    postal_code: "10999"
+                    city: "Berlin"
+                    country_code: "DE"
+                  - street: "Reichenstraße"
+                    house_number: "14"
+                    postal_code: "10999"
+                    city: "Berlin"
+                    country_code: "DE"
+                usage_unit_count: 16
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -288,9 +342,9 @@ paths:
       summary: List usage units in the current Tenant
       description: |
         Paginated list of `UsageUnit` resources accessible under the current
-        token. Used by the ERP to present a picker for linking
-        Used by the ERP to present a picker for linking a messpunkt.io unit
-        to the ERP's own unit record (with prefilled address, floor and position).
+        token. Used by the ERP to present a picker for linking a
+        messpunkt.io unit to the ERP's own unit record (with prefilled
+        address, floor and position).
       operationId: listUsageUnits
       security:
         - OAuth2: [read:units]
@@ -320,6 +374,64 @@ paths:
                       data:
                         type: array
                         items: { $ref: "#/components/schemas/UsageUnit" }
+              example:
+                next_cursor: null
+                prev_cursor: null
+                data:
+                  - id: "08d23bb4-0001-40f3-bd99-40bf33931365"
+                    tenant_id: "9bb2c1ee-39c9-4eca-a83c-522e43c7be27"
+                    property_id: "718e092d-8626-4975-b800-252a7746ad08"
+                    property:
+                      id: "718e092d-8626-4975-b800-252a7746ad08"
+                      name: "Reichenstraße 12-14"
+                      address_line: "Reichenstraße 12, 10999 Berlin"
+                      external_ref: "erp-property-0815"
+                    external_ref: "erp-unit-0815"
+                    name: "WE 03, Müller"
+                    floor: "2"
+                    position: "links"
+                    unit_type: "residential"
+                    area_heated_m2: 72.4
+                    area_ww_m2: 72.4
+                    address:
+                      street: "Reichenstraße"
+                      house_number: "12"
+                      postal_code: "10999"
+                      city: "Berlin"
+                      country_code: "DE"
+                    measuring_points:
+                      - measuring_point_id: "a45f8b4a-d595-49e0-8217-dd0b1c4a600f"
+                        metric: "water_warm"
+                        obis: "9-1:1.0.0"
+                        unit: "m3"
+                        active_device_serial: "12347"
+                      - measuring_point_id: "b1359209-f047-4d7d-9f64-a3a4c43fba30"
+                        metric: "heat"
+                        obis: "6-1:1.0.0"
+                        unit: "kWh"
+                        active_device_serial: "HZ-0815-42"
+                  - id: "c6699e51-c145-498a-8222-f84e6547d5dc"
+                    tenant_id: "9bb2c1ee-39c9-4eca-a83c-522e43c7be27"
+                    property_id: "718e092d-8626-4975-b800-252a7746ad08"
+                    property:
+                      id: "718e092d-8626-4975-b800-252a7746ad08"
+                      name: "Reichenstraße 12-14"
+                      address_line: "Reichenstraße 14, 10999 Berlin"
+                      external_ref: "erp-property-0815"
+                    external_ref: null
+                    name: "WE 04, Schmidt"
+                    floor: "2"
+                    position: "rechts"
+                    unit_type: "residential"
+                    area_heated_m2: 68.1
+                    area_ww_m2: 68.1
+                    address:
+                      street: "Reichenstraße"
+                      house_number: "14"
+                      postal_code: "10999"
+                      city: "Berlin"
+                      country_code: "DE"
+                    measuring_points: []
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
@@ -339,6 +451,39 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/UsageUnit" }
+              example:
+                id: "08d23bb4-0001-40f3-bd99-40bf33931365"
+                tenant_id: "9bb2c1ee-39c9-4eca-a83c-522e43c7be27"
+                property_id: "718e092d-8626-4975-b800-252a7746ad08"
+                property:
+                  id: "718e092d-8626-4975-b800-252a7746ad08"
+                  name: "Reichenstraße 12-14"
+                  address_line: "Reichenstraße 12, 10999 Berlin"
+                  external_ref: "erp-property-0815"
+                external_ref: "erp-unit-0815"
+                name: "WE 03, Müller"
+                floor: "2"
+                position: "links"
+                unit_type: "residential"
+                area_heated_m2: 72.4
+                area_ww_m2: 72.4
+                address:
+                  street: "Reichenstraße"
+                  house_number: "12"
+                  postal_code: "10999"
+                  city: "Berlin"
+                  country_code: "DE"
+                measuring_points:
+                  - measuring_point_id: "a45f8b4a-d595-49e0-8217-dd0b1c4a600f"
+                    metric: "water_warm"
+                    obis: "9-1:1.0.0"
+                    unit: "m3"
+                    active_device_serial: "12347"
+                  - measuring_point_id: "b1359209-f047-4d7d-9f64-a3a4c43fba30"
+                    metric: "heat"
+                    obis: "6-1:1.0.0"
+                    unit: "kWh"
+                    active_device_serial: "HZ-0815-42"
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -392,18 +537,18 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/UnitConsumption" }
               example:
-                usage_unit_id: "b2c3d4e5-6789-4abc-9def-0123456789ab"
-                external_ref: "immodio-unit-0815"
+                usage_unit_id: "08d23bb4-0001-40f3-bd99-40bf33931365"
+                external_ref: "erp-unit-0815"
                 from: "2026-01-01"
                 to: "2026-12-31"
                 measuring_points:
-                  - measuring_point_id: "a1b2c3d4-5678-4abc-9def-0123456789ab"
+                  - measuring_point_id: "a45f8b4a-d595-49e0-8217-dd0b1c4a600f"
                     metric: "water_warm"
                     obis: "9-1:1.0.0"
                     unit: "m3"
                     data_gap: false
                     segments:
-                      - device_id: "d1111111-1111-4111-9111-111111111111"
+                      - device_id: "613ee53e-e9dc-415f-a9d5-772422cedd23"
                         serial: "12345"
                         manufacturer: "SON"
                         installed_at: "2025-07-01"
@@ -414,7 +559,7 @@ paths:
                         readings:
                           - { at: "2026-01-01", value: 0.0,   status: "measured" }
                           - { at: "2026-06-30", value: 700.0, status: "substituted", substitution_method: "linear_interpolation" }
-                      - device_id: "d2222222-2222-4222-9222-222222222222"
+                      - device_id: "a263c9ee-8efa-4760-8be0-b6782e0f73d6"
                         serial: "12347"
                         manufacturer: "SON"
                         installed_at: "2026-07-01"
@@ -445,6 +590,23 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/MeasuringPoint" }
+              example:
+                id: "a45f8b4a-d595-49e0-8217-dd0b1c4a600f"
+                usage_unit_id: "08d23bb4-0001-40f3-bd99-40bf33931365"
+                metric: "water_warm"
+                obis: "9-1:1.0.0"
+                unit: "m3"
+                localization: "Badezimmer Steigstrang"
+                active_device:
+                  id: "a263c9ee-8efa-4760-8be0-b6782e0f73d6"
+                  serial: "12347"
+                  manufacturer: "SON"
+                  device_type: "WarmWaterMeter"
+                  installed_at: "2026-07-01"
+                  deinstalled_at: null
+                  replacement_reason: null
+                  resolution: 0.001
+                  accuracy_class: "MID Class 2 R160"
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -484,6 +646,80 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/MeasuringPointConsumption" }
+              examples:
+                warmwater_with_replacement:
+                  summary: Warmwater MeasuringPoint with a meter replacement mid-year
+                  value:
+                    measuring_point_id: "a45f8b4a-d595-49e0-8217-dd0b1c4a600f"
+                    metric: "water_warm"
+                    obis: "9-1:1.0.0"
+                    unit: "m3"
+                    data_gap: false
+                    segments:
+                      - device_id: "613ee53e-e9dc-415f-a9d5-772422cedd23"
+                        serial: "12345"
+                        manufacturer: "SON"
+                        installed_at: "2025-07-01"
+                        deinstalled_at: "2026-06-30"
+                        replacement_reason: "EndOfLife"
+                        resolution: 0.001
+                        accuracy_class: "MID Class 2 R160"
+                        readings:
+                          - { at: "2026-01-01T00:00:00Z", value: 0.000,   status: "measured" }
+                          - { at: "2026-03-31T23:59:59Z", value: 342.180, status: "measured" }
+                          - { at: "2026-06-30T23:59:59Z", value: 700.000, status: "substituted", substitution_method: "linear_interpolation" }
+                      - device_id: "a263c9ee-8efa-4760-8be0-b6782e0f73d6"
+                        serial: "12347"
+                        manufacturer: "SON"
+                        installed_at: "2026-07-01"
+                        deinstalled_at: null
+                        replacement_reason: null
+                        resolution: 0.001
+                        accuracy_class: "MID Class 2 R160"
+                        readings:
+                          - { at: "2026-07-01T00:00:00Z", value: 1.000,   status: "measured" }
+                          - { at: "2026-09-30T23:59:59Z", value: 284.500, status: "measured" }
+                          - { at: "2026-12-31T23:59:59Z", value: 550.000, status: "measured" }
+                heat_meter_continuous:
+                  summary: Heat meter, no replacement, monthly readings
+                  value:
+                    measuring_point_id: "08d23bb4-0001-40f3-bd99-40bf33931365"
+                    metric: "heat"
+                    obis: "6-1:1.0.0"
+                    unit: "kWh"
+                    data_gap: false
+                    segments:
+                      - device_id: "34adf046-8bdb-434e-b6c1-d41ad2bb2079"
+                        serial: "HZ-0815-42"
+                        manufacturer: "KAM"
+                        installed_at: "2024-01-15"
+                        deinstalled_at: null
+                        replacement_reason: null
+                        resolution: 1
+                        accuracy_class: "EN 1434 Class 2"
+                        readings:
+                          - { at: "2026-01-01T00:00:00Z", value: 12480, status: "measured" }
+                          - { at: "2026-02-01T00:00:00Z", value: 13120, status: "measured" }
+                          - { at: "2026-03-01T00:00:00Z", value: 13680, status: "measured" }
+                          - { at: "2026-04-01T00:00:00Z", value: 14070, status: "substituted", substitution_method: "degree_day_weighted" }
+                hca_with_gap:
+                  summary: Heat cost allocator with a data gap (device offline)
+                  value:
+                    measuring_point_id: "800332a8-30d7-445f-89ec-9a3a4606f451"
+                    metric: "hca"
+                    obis: "4-1:1.0.0"
+                    unit: "unit"
+                    data_gap: true
+                    segments:
+                      - device_id: "798f338c-6a3e-4b43-9960-ffe45d943904"
+                        serial: "HKV-2024-0777"
+                        manufacturer: "TECH"
+                        installed_at: "2024-10-01"
+                        deinstalled_at: null
+                        replacement_reason: null
+                        resolution: 1
+                        accuracy_class: "EN 834"
+                        readings: []
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
