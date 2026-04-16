@@ -105,7 +105,8 @@ paths:
       description: |
         Paginated list of `UsageUnit` resources accessible under the current
         token. Used by the ERP to present a picker for linking
-        (step 4–6 of the Henning↔Dominik flow).
+        Used by the ERP to present a picker for linking a messpunkt.io unit
+        to the ERP's own unit record (with prefilled address, floor and position).
       operationId: listUsageUnits
       security:
         - OAuth2: [read:units]
@@ -166,7 +167,7 @@ paths:
       tags: [Units]
       summary: Consumption for a usage unit over a date range
       description: |
-        **Primary read endpoint** — step 7 of the Henning↔Dominik flow.
+        **Primary read endpoint.**
 
         Returns every meter reading for the unit in `[from, to]`, grouped by
         MeasuringPoint and segmented by device installation window. Meter
