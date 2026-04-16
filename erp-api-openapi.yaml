@@ -8,9 +8,8 @@ info:
   description: |
     # Overview
 
-    This API lets property-management ERPs (Immodio, Vermieter1.de, dotega and
-    future partners) read consumption and meter-reading data from messpunkt.io
-    on behalf of a landlord (Tenant).
+    This API lets property-management ERPs read consumption and meter-reading
+    data from messpunkt.io on behalf of a landlord (Tenant).
 
     **Status:** draft concept, not yet implemented. Shared for partner review.
 

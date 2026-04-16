@@ -11,7 +11,7 @@ Draft OpenAPI specification and hosted reference for the **messpunkt.io Partner 
 
 ## What this is
 
-The messpunkt.io Partner API lets ERPs (Immodio, Vermieter1.de, dotega and successors) list units, query meter readings with explicit meter-replacement semantics, and use modern OAuth 2.1 + PKCE + DPoP auth instead of long-lived API keys.
+The messpunkt.io Partner API lets property-management ERPs list units, query meter readings with explicit meter-replacement semantics, and use modern OAuth 2.1 + PKCE + DPoP auth instead of long-lived API keys.
 
 Key design points:
 
