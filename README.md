@@ -19,7 +19,7 @@ Key design points:
 - **UsageUnit is the ERP-facing resource.** MeasuringPoints are the stable anchor across meter replacements.
 - **Meter replacement is explicit in the schema.** Consumption responses are nested per-MeasuringPoint with device segments — ERPs never diff serials to detect a swap.
 - **No static API keys.** OAuth 2.1 Authorization Code + PKCE; access tokens are DPoP-bound (RFC 9449) and scoped per Tenant.
-- **OBIS-aligned metrics** (IEC 62056).
+- **OBIS-aligned metrics** (IEC 62056-6-1). Every MeasuringPoint carries a standardised [OBIS code](https://de.wikipedia.org/wiki/OBIS-Kennzahlen) so ERPs can unambiguously identify what a reading represents — see the *Meter identifiers (OBIS)* section in the rendered docs.
 
 ## Feedback
 

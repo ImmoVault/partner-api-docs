@@ -56,6 +56,53 @@ info:
     `UsageUnit` is the ERP-facing resource. `MeasuringPoint` is stable across
     device replacements. `Device` segments carry installation windows so meter
     replacement is explicit in the schema.
+
+    # Meter identifiers (OBIS)
+
+    Every `MeasuringPointConsumption` carries an `obis` string — an
+    **OBIS code** (Object Identification System) as defined by
+    **IEC 62056-6-1** (part of the DLMS/COSEM suite). OBIS gives every
+    metered quantity a standardised, language-independent identifier, so
+    an ERP can tell unambiguously what a value represents (e.g. cumulative
+    water volume vs. instantaneous flow) regardless of vendor.
+
+    **Format:** `A-B:C.D.E*F`
+
+    | Group | Meaning | Example values |
+    | --- | --- | --- |
+    | **A** | Medium | `1` electricity · `4` heat cost allocator · `6` heat (Wärmezähler) · `7` gas · `8` cold water · `9` hot water · `0` abstract |
+    | **B** | Channel | `0` or `1` for single-channel sub-meters |
+    | **C** | Physical quantity | `1` energy/volume cumulative · `2` reactive · `3` gas operating volume · `8` time-integral (electricity) |
+    | **D** | Processing / measurement type | `0` general · `8` cumulative total (electricity convention) |
+    | **E** | Tariff / rate | `0` total · `1` tariff 1 · `2` tariff 2 |
+    | **F** | Billing period | `255` current; `0..99` historical. Often omitted (`*F` left off) in German sub-metering. |
+
+    **Typical codes per `Metric`** *(draft mapping; see §Metric schema)*:
+
+    | Metric | Typical OBIS | Meaning |
+    | --- | --- | --- |
+    | `electricity` | `1-1:1.8.0` | Wirkarbeit Bezug, Zählerstand (kWh) |
+    | `heat` | `6-1:1.0.0` | Wärmemenge kumulativ (kWh) |
+    | `water_cold` | `8-1:1.0.0` | Kaltwasservolumen kumulativ (m³) |
+    | `water_warm` | `9-1:1.0.0` | Warmwasservolumen kumulativ (m³) |
+    | `gas` | `7-1:3.0.0` | Betriebsvolumen (m³) |
+    | `hca` | `4-1:1.0.0` | HKV-Einheiten kumulativ (dimensionless) |
+
+    > **Note on the draft.** The codes above follow IEC 62056-6-1 Edition 4.0
+    > medium assignments and common sub-metering practice, but the German
+    > BDEW/BNetzA *Codeliste der OBIS-Kennzahlen und Medien* formally covers
+    > only electricity and gas (market communication); heat, water and HKV
+    > lean on **EN 13757-1** and device-level conventions. Partners should
+    > treat the per-metric mapping as **indicative for V1** — the precise
+    > code for an individual device is reported by messpunkt.io alongside
+    > the reading and should be the authoritative identifier.
+
+    **References**
+    - IEC 62056-6-1 Edition 4.0 (2023): https://webstore.iec.ch/publication/64347
+    - EN 13757-1 (wM-Bus medium types, sub-metering)
+    - BDEW / BNetzA Codeliste der OBIS-Kennzahlen und Medien (electricity + gas, market communication): https://www.bdew-mako.de/
+    - DLMS User Association (COSEM Blue Book, authoritative registry): https://www.dlms.com/
+    - Overview article (German): https://de.wikipedia.org/wiki/OBIS-Kennzahlen
   contact:
     name: messpunkt.io Integrations
     url: https://messpunkt.io
@@ -215,7 +262,7 @@ paths:
                 measuring_points:
                   - measuring_point_id: "a1b2c3d4-5678-4abc-9def-0123456789ab"
                     metric: "water_warm"
-                    obis: "8.0.0.0.0.255"
+                    obis: "9-1:1.0.0"
                     unit: "m3"
                     data_gap: false
                     segments:
@@ -450,7 +497,10 @@ components:
       properties:
         measuring_point_id: { type: string, format: uuid }
         metric: { $ref: "#/components/schemas/Metric" }
-        obis:   { type: [string, "null"], example: "8.0.0.0.0.255" }
+        obis:
+          type: [string, "null"]
+          description: OBIS code identifying the physical quantity (IEC 62056-6-1). Format `A-B:C.D.E[*F]`.
+          example: "9-1:1.0.0"
         unit:   { $ref: "#/components/schemas/MetricUnit" }
         active_device_serial: { type: [string, "null"] }
 
@@ -461,7 +511,10 @@ components:
         id:            { type: string, format: uuid }
         usage_unit_id: { type: string, format: uuid }
         metric:        { $ref: "#/components/schemas/Metric" }
-        obis:          { type: [string, "null"], example: "8.0.0.0.0.255" }
+        obis:
+          type: [string, "null"]
+          description: OBIS code identifying the physical quantity (IEC 62056-6-1). Format `A-B:C.D.E[*F]`.
+          example: "9-1:1.0.0"
         unit:          { $ref: "#/components/schemas/MetricUnit" }
         localization:
           type: [string, "null"]
@@ -500,7 +553,14 @@ components:
       properties:
         measuring_point_id: { type: string, format: uuid }
         metric:             { $ref: "#/components/schemas/Metric" }
-        obis:               { type: [string, "null"], example: "8.0.0.0.0.255" }
+        obis:
+          type: [string, "null"]
+          description: |
+            OBIS code identifying the physical quantity of this MeasuringPoint,
+            per **IEC 62056-6-1** (DLMS/COSEM). Format: `A-B:C.D.E[*F]`.
+            See the `Meter identifiers (OBIS)` section in the API overview
+            for the typical mapping per `Metric`.
+          example: "9-1:1.0.0"
         unit:               { $ref: "#/components/schemas/MetricUnit" }
         data_gap:
           type: boolean
@@ -559,14 +619,28 @@ components:
 
     Metric:
       type: string
-      description: High-level metric family.
+      description: |
+        High-level metric family. Each value maps to a typical OBIS code
+        (see the `Meter identifiers (OBIS)` section in the API overview).
+
+        | Value | German meter type | Typical OBIS | Unit |
+        | --- | --- | --- | --- |
+        | `heat` | Wärmezähler (WMZ) | `6-1:1.0.0` | `kWh` (`MWh`) |
+        | `hca` | Heizkostenverteiler (HKV) | `4-1:1.0.0` | `unit` |
+        | `water_cold` | Kaltwasserzähler | `8-1:1.0.0` | `m3` |
+        | `water_warm` | Warmwasserzähler | `9-1:1.0.0` | `m3` |
+        | `electricity` | Stromzähler | `1-1:1.8.0` | `kWh` |
+        | `gas` | Gaszähler | `7-1:3.0.0` | `m3` |
+
+        The authoritative OBIS code for an individual device is always the
+        value returned in the `obis` field on that MeasuringPoint.
       enum:
-        - heat                 # Wärmemenge (Wärmezähler / WMZ)
-        - hca                  # HKV-Einheiten (Heizkostenverteiler)
-        - water_cold           # Kaltwasser
-        - water_warm           # Warmwasser
-        - electricity          # Stromzähler
-        - gas                  # Gaszähler
+        - heat
+        - hca
+        - water_cold
+        - water_warm
+        - electricity
+        - gas
 
     MetricUnit:
       type: string
