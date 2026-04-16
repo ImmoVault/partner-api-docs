@@ -97,9 +97,64 @@ info:
     > code for an individual device is reported by messpunkt.io alongside
     > the reading and should be the authoritative identifier.
 
+    # Meter readings (Ablesungen / readouts)
+
+    A *reading* (DE: *Ablesung*, also called *readout*) is one timestamped
+    value produced by a physical meter (Device). Readings are exposed by
+    two endpoints:
+
+    | Endpoint | Scope | Typical use |
+    | --- | --- | --- |
+    | `GET /usage-units/{id}/consumption` | all MeasuringPoints of one UsageUnit, date range | unit-level billing export |
+    | `GET /measuring-points/{id}/readings` | one MeasuringPoint, date range | drill-down / reconciliation |
+
+    Both responses use the same nesting shape: per-MeasuringPoint, split
+    into one `DeviceSegment` per continuous device installation window,
+    with a `readings[]` array inside each segment. Meter replacement
+    always starts a new segment.
+
+    Each reading carries:
+
+    - `at` — ISO 8601 UTC timestamp
+    - `value` — numeric meter value
+    - `status` — `measured` · `substituted` · `calculated` · `missing`
+    - `substitution_method` — present when `status = substituted`
+
+    ## Precision & accuracy
+
+    The precision and accuracy of a `value` depend on the physical meter
+    that produced it, not on the API. Two device-level fields expose this:
+
+    - **`resolution`** — the smallest increment the meter can report
+      (e.g. `0.001` m³ = 1 litre for a typical residential water meter;
+      `1` kWh for a heat meter; `1` HKV unit for an allocator).
+      Partners should **display / store values at no finer precision than
+      `resolution`**. The API may emit trailing zeros beyond the
+      resolution for interpolated (`substituted`) values.
+    - **`accuracy_class`** — the MID / EN / IEC conformity class of the
+      device, as declared on its type-approval plate. Typical values:
+
+      | Meter type | Standard | Typical class |
+      | --- | --- | --- |
+      | Wärmezähler | EN 1434 | `EN 1434 Class 2` (residential) |
+      | Wasserzähler | MID 2014/32/EU | `MID Class 2 R160` (residential) |
+      | Stromzähler | IEC 62053 | `IEC 62053 Class 1` |
+      | HKV (Heizkostenverteiler) | VDI 2170 / EN 834 | `EN 834` |
+
+      The field is a free-form string so that actual plate text can round-trip.
+
+    When `status = substituted`, the returned value is an **interpolation
+    of measured boundaries**, not a raw meter output. It is reported at
+    the same `resolution` as measured values but its real uncertainty is
+    governed by `substitution_method` (see `SubstitutionMethod`), not by
+    `accuracy_class`.
+
     **References**
     - IEC 62056-6-1 Edition 4.0 (2023): https://webstore.iec.ch/publication/64347
     - EN 13757-1 (wM-Bus medium types, sub-metering)
+    - EN 1434 (Wärmezähler / heat meters)
+    - MID Directive 2014/32/EU (Measuring Instruments Directive): https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32014L0032
+    - VDI 2170 (Heizkostenverteiler / HCA)
     - BDEW / BNetzA Codeliste der OBIS-Kennzahlen und Medien (electricity + gas, market communication): https://www.bdew-mako.de/
     - DLMS User Association (COSEM Blue Book, authoritative registry): https://www.dlms.com/
     - Overview article (German): https://de.wikipedia.org/wiki/OBIS-Kennzahlen
@@ -272,6 +327,8 @@ paths:
                         installed_at: "2025-07-01"
                         deinstalled_at: "2026-06-30"
                         replacement_reason: "EndOfLife"
+                        resolution: 0.001
+                        accuracy_class: "MID Class 2 R160"
                         readings:
                           - { at: "2026-01-01", value: 0.0,   status: "measured" }
                           - { at: "2026-06-30", value: 700.0, status: "substituted", substitution_method: "linear_interpolation" }
@@ -280,6 +337,8 @@ paths:
                         manufacturer: "SON"
                         installed_at: "2026-07-01"
                         deinstalled_at: null
+                        resolution: 0.001
+                        accuracy_class: "MID Class 2 R160"
                         readings:
                           - { at: "2026-07-01", value: 1.0,   status: "measured" }
                           - { at: "2026-12-31", value: 550.0, status: "measured" }
@@ -314,10 +373,17 @@ paths:
       - $ref: "#/components/parameters/MeasuringPointId"
     get:
       tags: [Measuring points]
-      summary: Readings for a single measuring point
+      summary: Readings (Ablesungen / readouts) for a single measuring point
       description: |
-        Lower-level drill-down. Returns the same segmented structure as the
-        unit-level endpoint but for one MeasuringPoint only.
+        **Readings / Ablesungen / readouts for one MeasuringPoint.**
+
+        Drill-down endpoint: returns the same segmented structure as the
+        unit-level `/usage-units/{id}/consumption`, but scoped to one
+        MeasuringPoint. Each reading carries `at`, `value`, `status`
+        (`measured` · `substituted` · `calculated` · `missing`) and, when
+        applicable, `substitution_method`. Each device segment also carries
+        `resolution` and `accuracy_class` — see *Precision & accuracy* in
+        the API overview.
       operationId: getMeasuringPointReadings
       security:
         - OAuth2: [read:readings]
@@ -534,6 +600,21 @@ components:
         replacement_reason:
           type: [string, "null"]
           enum: [null, EndOfLife, Defect, PeriodEnd, DeviceRemoval, Other]
+        resolution:
+          type: [number, "null"]
+          description: |
+            Smallest increment the meter can report, in the same unit as
+            the reading `value`. Partners should not display or bill at
+            finer precision than this. See *Precision & accuracy* in the
+            API overview.
+          example: 0.001
+        accuracy_class:
+          type: [string, "null"]
+          description: |
+            MID / EN / IEC conformity class of the device as declared on
+            its type-approval plate. Free-form string so actual plate
+            labelling can round-trip unchanged.
+          example: "MID Class 2 R160"
 
     UnitConsumption:
       type: object
@@ -585,8 +666,17 @@ components:
         replacement_reason:
           type: [string, "null"]
           enum: [null, EndOfLife, Defect, PeriodEnd, DeviceRemoval, Other]
+        resolution:
+          type: [number, "null"]
+          description: Smallest increment the device can report, in the unit of `value`. See `Device.resolution`.
+          example: 0.001
+        accuracy_class:
+          type: [string, "null"]
+          description: MID / EN / IEC conformity class as printed on the type-approval plate. See `Device.accuracy_class`.
+          example: "MID Class 2 R160"
         readings:
           type: array
+          description: Ablesungen (readouts) for this device within its installation window.
           items: { $ref: "#/components/schemas/MeterReading" }
 
     MeterReading:
