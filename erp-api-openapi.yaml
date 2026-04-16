@@ -138,6 +138,29 @@ info:
     - `status` — `measured` · `substituted` · `calculated` · `missing`
     - `substitution_method` — present when `status = substituted`
 
+    ## Response contract — two readings per segment
+
+    For a query range `[from, to]`, each `DeviceSegment` returns **exactly
+    two readings**: the start and the end value for the device's coverage
+    within the queried range. The ERP computes consumption per segment as
+    `readings[1].value - readings[0].value` and sums across segments when a
+    meter was replaced mid-range.
+
+    Concretely, per segment:
+
+    - `readings[0].at = max(segment.installed_at, from)`
+    - `readings[1].at = min(segment.deinstalled_at or to, to)`
+    - Either endpoint may be `status: "substituted"` if no actual meter
+      telegram exists exactly at that timestamp — an interpolated value is
+      then reported together with its `substitution_method`.
+    - For a MeasuringPoint with no coverage at all in the range, the
+      segment's `readings` is empty and `data_gap: true` is set on the
+      MeasuringPoint.
+
+    Intermediate readings (e.g. monthly snapshots for charting) are **not**
+    included in V1; a future `granularity=` query parameter can add them
+    without breaking this contract.
+
     ## Precision
 
     Every `DeviceSegment` carries a `resolution` field — the smallest
@@ -651,7 +674,6 @@ paths:
                         resolution: 0.001
                         readings:
                           - { at: "2026-01-01T00:00:00Z", value: 0.000,   status: "measured" }
-                          - { at: "2026-03-31T23:59:59Z", value: 342.180, status: "measured" }
                           - { at: "2026-06-30T23:59:59Z", value: 700.000, status: "substituted", substitution_method: "linear_interpolation" }
                       - device_id: "a263c9ee-8efa-4760-8be0-b6782e0f73d6"
                         serial: "12347"
@@ -662,10 +684,9 @@ paths:
                         resolution: 0.001
                         readings:
                           - { at: "2026-07-01T00:00:00Z", value: 1.000,   status: "measured" }
-                          - { at: "2026-09-30T23:59:59Z", value: 284.500, status: "measured" }
                           - { at: "2026-12-31T23:59:59Z", value: 550.000, status: "measured" }
                 heat_meter_continuous:
-                  summary: Heat meter, no replacement, monthly readings
+                  summary: Heat meter, no replacement — start + end of query range
                   value:
                     measuring_point_id: "08d23bb4-0001-40f3-bd99-40bf33931365"
                     metric: "heat"
@@ -682,9 +703,7 @@ paths:
                         resolution: 1
                         readings:
                           - { at: "2026-01-01T00:00:00Z", value: 12480, status: "measured" }
-                          - { at: "2026-02-01T00:00:00Z", value: 13120, status: "measured" }
-                          - { at: "2026-03-01T00:00:00Z", value: 13680, status: "measured" }
-                          - { at: "2026-04-01T00:00:00Z", value: 14070, status: "substituted", substitution_method: "degree_day_weighted" }
+                          - { at: "2026-11-30T23:59:59Z", value: 15640, status: "substituted", substitution_method: "degree_day_weighted" }
                 hca_with_gap:
                   summary: Heat cost allocator with a data gap (device offline)
                   value:
