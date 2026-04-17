@@ -4,7 +4,7 @@ Draft OpenAPI specification and hosted reference for the **messpunkt.io Partner 
 
 | | |
 |---|---|
-| **Rendered docs** | https://immovault.github.io/partner-api-docs/ |
+| **Rendered docs** | https://developer.messpunkt.io/ |
 | **OpenAPI spec** | [erp-api-openapi.yaml](./erp-api-openapi.yaml) |
 | **Status** | Draft 0.1 · April 2026 · **not yet implemented** |
 | **Spec source of truth** | `ImmoVault/meter-etl` → `docs/erp-api-openapi.yaml` |
