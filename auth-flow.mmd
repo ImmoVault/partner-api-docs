@@ -1,0 +1,38 @@
+sequenceDiagram
+    autonumber
+    actor L as Landlord
+    participant EB as ERP backend
+    participant OA as messpunkt.io<br/>OAuth 2.1 server
+    participant API as messpunkt.io<br/>Partner API
+
+    rect rgba(229,246,253,0.7)
+    Note over L,OA: Phase 1 — Authentication & Consent (one-off per connect)
+    L->>EB: click "Connect messpunkt.io"
+    EB-->>L: redirect to /oauth/authorize<br/>response_type=code · PKCE S256<br/>scope=read:units read:devices read:readings
+    L->>OA: GET /oauth/authorize
+    OA-->>L: login (Entra SSO)
+    OA-->>L: consent screen:<br/>scopes + Property picker<br/>(nothing pre-selected)
+    L->>OA: approve + pick 2 of 50 Properties
+    OA-->>EB: redirect ?code=...&state=...
+    EB->>OA: POST /oauth/token<br/>code + code_verifier + DPoP key
+    OA-->>EB: access_token (≤1 h, DPoP-bound)<br/>property_scope: [uuid-A, uuid-B]<br/>+ rotating refresh_token
+    end
+
+    rect rgba(232,245,233,0.7)
+    Note over EB,API: Phase 2 — Authorized API calls (per request)
+    EB->>API: GET /whoami<br/>Authorization: DPoP <token><br/>DPoP: <proof JWT>
+    API->>API: verify DPoP proof<br/>read property_scope claim
+    API-->>EB: 200 OK · property_scope=[A,B]
+    EB->>API: GET /properties/{A}
+    API-->>EB: 200 OK (Property A)
+    EB->>API: GET /properties/{C}<br/>(C ∉ scope)
+    API->>API: resource filter
+    API-->>EB: 404 Not Found<br/>(existence of C not leaked)
+    end
+
+    rect rgba(255,243,224,0.7)
+    Note over L,API: Phase 3 — Landlord edits scope later
+    L->>OA: dashboard: remove Property B<br/>add Property D
+    OA->>OA: update connection<br/>+ audit-log entry
+    Note over EB,API: next token refresh (≤1 h)<br/>carries new property_scope [A, D]
+    end

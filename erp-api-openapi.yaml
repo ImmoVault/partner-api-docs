@@ -87,6 +87,14 @@ info:
 
     Authentication (OAuth 2.1) proves *who* is calling. **Authorization**
     decides *what data* the caller is allowed to see within the Tenant.
+
+    ![Authentication and Authorization flow](./auth-flow.svg)
+
+    *The diagram covers all three phases: one-off consent with Property
+    picker, authorized runtime requests with DPoP-bound tokens and
+    server-side scope filtering, and later scope edits via the landlord
+    dashboard. Source: `auth-flow.mmd` (Mermaid sequence diagram).*
+
     Because a Tenant often owns Properties that should not all be
     exposed to every ERP (different management mandates, pilot rollouts,
     data-protection boundaries), the API supports a **Property whitelist
