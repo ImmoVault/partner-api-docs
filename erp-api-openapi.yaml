@@ -12,6 +12,36 @@ info:
 
     **Status:** Preview · V1 in active development · **target release Q2 2026** · feedback from pilot partners explicitly invited.
 
+    # Sandbox
+
+    A **live sandbox** is running now so partners can experiment end-to-end
+    with a realistic OAuth 2.1 flow and synthetic data:
+
+    | Host | Purpose |
+    | --- | --- |
+    | `https://api.sandbox.messpunkt.io/v1` | Sandbox API endpoints |
+    | `https://auth.sandbox.messpunkt.io` | Sandbox OAuth 2.1 authorization server |
+
+    Click **Authorize** in Swagger UI (or *Test Request* in Scalar). The
+    browser is redirected to the sandbox consent screen, where a single
+    demo landlord — "Hausverwaltung Musterfrau GmbH" — is already logged
+    in. Pick one or more Properties (nothing is pre-selected), approve,
+    and the viewer completes the token exchange automatically.
+
+    **Sandbox specifics**
+
+    - **Data:** 100 % synthetic (addresses like *Musterstraße 12, 99999 Musterstadt*).
+      No real customer data; zero PII leakage guaranteed by a CI-gated linter.
+    - **DPoP:** validation is relaxed in the sandbox — plain `Bearer` tokens
+      work too, so Swagger UI (which doesn't generate DPoP proofs) can
+      exercise all endpoints. Production will require DPoP.
+    - **Rate limits:** relaxed vs. production (300 rpm per client).
+    - **Token lifetimes:** access 1 h, refresh 7 days.
+    - **Property-scope enforcement** is identical to production —
+      querying a Property outside your selected scope returns `404`.
+    - **Stateless by design:** no writes, no persistence. Same fixture
+      every time.
+
     # Authentication
 
     All endpoints require **OAuth 2.1 Authorization Code + PKCE** with a
@@ -328,10 +358,10 @@ info:
     href: https://messpunkt.io/
 
 servers:
-  - url: https://api.messpunkt.io/v1
-    description: Production (V1)
   - url: https://api.sandbox.messpunkt.io/v1
-    description: Sandbox
+    description: Sandbox — live, Try-it-out-enabled (default). Synthetic data, no PII.
+  - url: https://api.messpunkt.io/v1
+    description: Production (V1) — not yet available; target Q2 2026.
 
 security:
   - OAuth2: [read:units, read:devices, read:readings]
@@ -872,9 +902,11 @@ components:
         (RFC 9449); callers must include a `DPoP` header with every request.
       flows:
         authorizationCode:
-          authorizationUrl: https://auth.messpunkt.io/oauth/authorize
-          tokenUrl: https://auth.messpunkt.io/oauth/token
-          refreshUrl: https://auth.messpunkt.io/oauth/token
+          # Sandbox endpoints (live). Production will use auth.messpunkt.io —
+          # swap when V1 ships.
+          authorizationUrl: https://auth.sandbox.messpunkt.io/oauth/authorize
+          tokenUrl: https://auth.sandbox.messpunkt.io/oauth/token
+          refreshUrl: https://auth.sandbox.messpunkt.io/oauth/token
           scopes:
             "read:units":    Read UsageUnits, Addresses and structural metadata.
             "read:devices":  Read MeasuringPoints and Device lifecycle.

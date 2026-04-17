@@ -138,9 +138,16 @@
           tryItOutEnabled: true,
           persistAuthorization: true,
           validatorUrl: null,
+          oauth2RedirectUrl: window.location.origin + "/swagger-ui/oauth2-redirect.html",
           presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
           plugins: [SwaggerUIBundle.plugins.DownloadUrl],
           layout: "StandaloneLayout"
+        });
+        // Pre-configure OAuth for the sandbox so "Authorize" → sandbox consent screen
+        window.ui.initOAuth({
+          clientId: "sandbox-demo-client",
+          usePkceWithAuthorizationCodeGrant: true,
+          scopes: "read:units read:devices read:readings",
         });
       };
     </script>
