@@ -148,6 +148,7 @@ info:
 
     - **[llms.txt](https://developer.messpunkt.io/llms.txt)** — llms.txt-standard index of the documentation
     - **[.well-known/ai-plugin.json](https://developer.messpunkt.io/.well-known/ai-plugin.json)** — plugin-style manifest pointing at this spec
+    - **[.well-known/security.txt](https://developer.messpunkt.io/.well-known/security.txt)** — RFC 9116 responsible-disclosure contact
     - **[erp-api-openapi.yaml](https://developer.messpunkt.io/erp-api-openapi.yaml)** — this document, the authoritative machine-readable contract
 
     ## Tool-calling integration
