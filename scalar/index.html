@@ -5,32 +5,117 @@
     <title>messpunkt.io Partner API — Scalar</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Scalar view of the messpunkt.io Partner API — modern endpoint explorer with code samples in multiple languages." />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='54' font-size='56'%3E%F0%9F%94%8C%3C/text%3E%3C/svg%3E" />
+    <meta name="theme-color" content="#1e5348" />
+    <link rel="icon" type="image/x-icon" href="../assets/favicon.ico" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
-      html, body { margin: 0; padding: 0; }
-      .viewer-bar {
-        background: #f1f5f9;
-        color: #334155;
-        padding: 10px 24px;
-        font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        border-bottom: 1px solid #e2e8f0;
+      :root {
+        --brand-primary: #1e5348;
+        --brand-primary-hover: #16403a;
+        --brand-dark: #172636;
+        --brand-gray-bg: #eaf0f6;
+        --brand-gray-border: #d1d5dc;
+        --brand-accent: #f7fafa;
+        --brand-white: #ffffff;
+        --scalar-color-1: #172636;
+        --scalar-color-accent: #1e5348;
+        --scalar-background-accent: #f7fafa;
       }
-      .viewer-bar a { color: #0f766e; text-decoration: underline; margin: 0 6px; }
-      .viewer-bar strong { color: #0f172a; }
+      html, body { margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--brand-dark); background: var(--brand-white); }
+
+      .topbar {
+        position: sticky; top: 0; z-index: 50;
+        display: flex; align-items: center; gap: 24px;
+        padding: 14px 28px;
+        background: var(--brand-white);
+        border-bottom: 1px solid var(--brand-gray-border);
+      }
+      .topbar .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--brand-dark); }
+      .topbar .brand img { height: 28px; width: auto; display: block; }
+      .topbar .brand .subtitle {
+        font-size: 13px; font-weight: 500; padding-left: 12px;
+        border-left: 1px solid var(--brand-gray-border); line-height: 1;
+      }
+      .topbar nav { display: flex; gap: 4px; margin-left: auto; align-items: center; flex-wrap: wrap; }
+      .topbar nav a {
+        font-size: 13px; font-weight: 500; padding: 6px 12px; border-radius: 6px;
+        color: var(--brand-dark); text-decoration: none; transition: background 0.15s;
+      }
+      .topbar nav a:hover { background: var(--brand-accent); color: var(--brand-primary); }
+      .topbar nav a.current { background: var(--brand-primary); color: var(--brand-white); }
+      .topbar nav a.current:hover { background: var(--brand-primary-hover); }
+      .topbar nav .divider { width: 1px; height: 18px; background: var(--brand-gray-border); margin: 0 6px; }
+
+      .preview-ribbon {
+        background: var(--brand-accent); color: var(--brand-dark);
+        border-bottom: 1px solid var(--brand-gray-border);
+        padding: 10px 28px; font-size: 13px; line-height: 1.5;
+        display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;
+      }
+      .preview-ribbon .badge {
+        background: var(--brand-primary); color: var(--brand-white);
+        font-weight: 600; font-size: 11px; letter-spacing: 0.05em;
+        text-transform: uppercase; padding: 3px 8px; border-radius: 4px;
+      }
+      .preview-ribbon a { color: var(--brand-primary); font-weight: 500; text-decoration: none; border-bottom: 1px solid currentColor; }
+
+      .site-footer {
+        padding: 24px 28px; border-top: 1px solid var(--brand-gray-border);
+        background: var(--brand-white); color: var(--brand-dark);
+        font-size: 13px; line-height: 1.6;
+      }
+      .site-footer .row { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+      .site-footer a { color: var(--brand-primary); text-decoration: none; }
+      .site-footer a:hover { text-decoration: underline; }
+      .site-footer .links { display: flex; gap: 18px; flex-wrap: wrap; }
+      .site-footer .muted { color: #64748b; }
     </style>
   </head>
   <body>
-    <div class="viewer-bar">
-      <strong>Viewer:</strong> Scalar ·
-      <a href="../">Redoc (narrative docs)</a> ·
-      <a href="../swagger-ui/">Swagger UI</a> ·
-      <a href="../erp-api-openapi.yaml">Raw OpenAPI YAML</a>
+    <header class="topbar">
+      <a class="brand" href="https://messpunkt.io/" target="_blank" rel="noopener">
+        <img src="../assets/messpunkt-logo.png" alt="messpunkt.io" />
+        <span class="subtitle">Partner API · Scalar</span>
+      </a>
+      <nav aria-label="Viewer switcher">
+        <a href="../">Reference</a>
+        <span class="divider" aria-hidden="true"></span>
+        <a href="../swagger-ui/">Swagger UI</a>
+        <a href="./" class="current">Scalar</a>
+        <span class="divider" aria-hidden="true"></span>
+        <a href="../erp-api-openapi.yaml">OpenAPI YAML</a>
+        <a href="https://github.com/ImmoVault/partner-api-docs" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </header>
+
+    <div class="preview-ribbon">
+      <span class="badge">Preview</span>
+      <span>V1 in active development — target release <strong>Q2 2026</strong>. Become a pilot partner:
+        <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
+      </span>
     </div>
+
     <script
       id="api-reference"
       data-url="../erp-api-openapi.yaml"
-      data-configuration='{"theme":"default","hideDownloadButton":false,"metaData":{"title":"messpunkt.io Partner API — Scalar"}}'
+      data-configuration='{"theme":"default","layout":"modern","hideDownloadButton":false,"metaData":{"title":"messpunkt.io Partner API — Scalar"}}'
     ></script>
+
+    <footer class="site-footer">
+      <div class="row">
+        <div>
+          <strong>messpunkt.io Partner API</strong> · Preview · Target release Q2 2026
+          <div class="muted">© 2026 messpunkt.io — <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
+        </div>
+        <div class="links">
+          <a href="https://messpunkt.io/impressum" target="_blank" rel="noopener">Impressum</a>
+          <a href="https://messpunkt.io/datenschutz" target="_blank" rel="noopener">Datenschutz</a>
+          <a href="https://github.com/ImmoVault/partner-api-docs" target="_blank" rel="noopener">Source repo</a>
+          <a href="../erp-api-openapi.yaml">OpenAPI 3.1 spec</a>
+        </div>
+      </div>
+    </footer>
+
     <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
   </body>
 </html>

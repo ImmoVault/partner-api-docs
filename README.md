@@ -1,30 +1,69 @@
 # messpunkt.io Partner API — Documentation
 
-Draft OpenAPI specification and hosted reference for the **messpunkt.io Partner API** — a REST/OAuth 2.1 surface through which property-management ERPs read consumption and meter-reading data from messpunkt.io on behalf of a landlord.
+![OpenAPI](https://img.shields.io/badge/OpenAPI-3.1-1e5348?style=flat-square)
+![OAuth](https://img.shields.io/badge/OAuth-2.1%20%2B%20PKCE-1e5348?style=flat-square)
+![DPoP](https://img.shields.io/badge/DPoP-RFC%209449-1e5348?style=flat-square)
+![Status](https://img.shields.io/badge/status-preview-f2c94c?style=flat-square)
+![Target](https://img.shields.io/badge/V1%20target-Q2%202026-2d9cdb?style=flat-square)
+
+**Partner-facing API documentation for [messpunkt.io](https://messpunkt.io)** — the metering platform for German real estate. This repo hosts the OpenAPI 3.1 specification and the rendered documentation at **https://developer.messpunkt.io**.
+
+## Why this matters
+
+Property-management ERPs (Immobilienverwaltungs-Software) traditionally pull consumption data via legacy file exchanges or bespoke connectors. messpunkt.io exposes a **single, partner-agnostic REST/OAuth 2.1 API** that lets ERPs:
+
+- List Liegenschaften (Properties) and Wohneinheiten (UsageUnits) under a landlord's Tenant
+- Query meter readings (Ablesungen) with explicit meter-replacement semantics, estimated-vs-measured flags, and OBIS-coded metrics
+- Connect via user-delegated OAuth (PKCE + DPoP) — no API keys on clipboards
+- Limit exposure to a subset of Properties per connection via a token-scoped whitelist
+
+One spec. One canonical data model. Multiple renderings (REST today; BVED 3.10 push for the ARGE-speaking long tail is designed in but deferred to V2).
+
+## Rendered documentation
+
+Same spec, three viewers for different audiences:
+
+| URL | Viewer | Best for |
+|---|---|---|
+| [developer.messpunkt.io](https://developer.messpunkt.io/) | Redoc | Product, architect, narrative reading |
+| [developer.messpunkt.io/swagger-ui/](https://developer.messpunkt.io/swagger-ui/) | Swagger UI | Backend developers, endpoint-list workflow |
+| [developer.messpunkt.io/scalar/](https://developer.messpunkt.io/scalar/) | Scalar | Modern teams wanting code samples in curl / JS / Python / C# |
+
+Raw OpenAPI YAML: [erp-api-openapi.yaml](./erp-api-openapi.yaml).
+
+## Status
 
 | | |
 |---|---|
-| **Rendered docs** | https://developer.messpunkt.io/ |
-| **OpenAPI spec** | [erp-api-openapi.yaml](./erp-api-openapi.yaml) |
-| **Status** | Draft 0.1 · April 2026 · **not yet implemented** |
-| **Spec source of truth** | `ImmoVault/meter-etl` → `docs/erp-api-openapi.yaml` |
+| **Release target** | **Q2 2026** |
+| **Current draft** | 0.1 · April 2026 |
+| **Status** | Preview — specification frozen for pilot-partner review; implementation in progress |
+| **Source of truth** | Internal `meter-etl` repo; mirrored here for public sharing |
 
-## What this is
+## Become a pilot partner
 
-The messpunkt.io Partner API lets property-management ERPs list units, query meter readings with explicit meter-replacement semantics, and use modern OAuth 2.1 + PKCE + DPoP auth instead of long-lived API keys.
+messpunkt.io is actively onboarding pilot ERP partners for Q2 2026. If you operate a property-management or billing ERP and want to integrate:
 
-Key design points:
+- **Email:** [kontakt@messpunkt.io](mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration)
+- **What we'll send back:** sandbox credentials, OAuth app registration, a dedicated integration contact, pilot-phase feedback loop
+- **What we'd love from you:** review of the current spec, a list of endpoints that are missing for your use case, your preferred response shape for edge cases (meter replacement, data gaps, tenant moves)
 
-- **One canonical data model, multiple renderings.** V1 is REST + OAuth for modern partners. V2 adds a BVED 3.10 push rendering for the ARGE-speaking long tail (ImmoWare24, ImmoCloud, Wodis Sigma …).
-- **UsageUnit is the ERP-facing resource.** MeasuringPoints are the stable anchor across meter replacements.
-- **Meter replacement is explicit in the schema.** Consumption responses are nested per-MeasuringPoint with device segments — ERPs never diff serials to detect a swap.
-- **No static API keys.** OAuth 2.1 Authorization Code + PKCE; access tokens are DPoP-bound (RFC 9449) and scoped per Tenant.
-- **OBIS-aligned metrics** (IEC 62056-6-1). Every MeasuringPoint carries a standardised [OBIS code](https://de.wikipedia.org/wiki/OBIS-Kennzahlen) so ERPs can unambiguously identify what a reading represents — see the *Meter identifiers (OBIS)* section in the rendered docs.
+## Design highlights
 
-## Feedback
+- **OAuth 2.1 + PKCE + DPoP** — sender-constrained tokens, no static API keys. Authorization Code flow with mandatory PKCE (S256) and DPoP-bound access tokens per [RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449).
+- **Per-Property authorization scope** — each token carries an explicit Property whitelist; out-of-scope resources return `404 Not Found` (not `403`) so no information about other Properties leaks.
+- **Explicit meter-replacement semantics** — responses are nested per-MeasuringPoint with `DeviceSegment[]`; ERPs never have to diff serials to detect a swap.
+- **OBIS-aligned metrics** — every reading carries an [OBIS code](https://en.wikipedia.org/wiki/IEC_62056) per IEC 62056-6-1 so partners can unambiguously identify what a value represents.
+- **Two readings per segment** — simple billing contract: start value + end value per device, clipped to the query range. Intermediate snapshots (charting) are a future `granularity=` extension.
+- **RFC 7807** problem-details for errors, ISO 8601 UTC for timestamps, cursor-based pagination, per-client rate limiting.
 
-This is a concept draft. Feedback from integration partners is explicitly invited before implementation begins. Please reach out to the messpunkt.io integrations team.
+## Legal
 
-## Licence & privacy
+- [Impressum](https://messpunkt.io/impressum)
+- [Datenschutz](https://messpunkt.io/datenschutz)
 
-The specification is shared publicly for the purpose of partner implementation and review. No production credentials, endpoints or customer data are contained in this repository.
+No production credentials, endpoints or customer data are contained in this repository — it holds the public specification and the hosted documentation only.
+
+---
+
+*© 2026 messpunkt.io — Questions? [kontakt@messpunkt.io](mailto:kontakt@messpunkt.io)*

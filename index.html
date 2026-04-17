@@ -2,53 +2,129 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>messpunkt.io Partner API — Draft</title>
+    <title>messpunkt.io Partner API — Documentation</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Draft OpenAPI documentation for the messpunkt.io Partner API — for property-management ERP integration partners." />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='54' font-size='56'%3E%F0%9F%94%8C%3C/text%3E%3C/svg%3E" />
-    <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700" rel="stylesheet" />
+    <meta name="description" content="Official partner-facing API documentation for messpunkt.io — the metering platform for German real estate. OAuth 2.1 + PKCE + DPoP, OBIS-aligned metrics, OpenAPI 3.1." />
+    <meta name="theme-color" content="#1e5348" />
+    <link rel="icon" type="image/x-icon" href="./assets/favicon.ico" />
+    <link rel="preconnect" href="https://cdn.redoc.ly" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
-      html, body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
-      .viewer-bar {
-        background: #f1f5f9;
-        color: #334155;
-        padding: 10px 24px;
-        font-family: 'Montserrat', sans-serif;
-        font-size: 14px;
-        line-height: 1.5;
-        border-bottom: 1px solid #e2e8f0;
+      :root {
+        --brand-primary: #1e5348;
+        --brand-primary-hover: #16403a;
+        --brand-dark: #172636;
+        --brand-gray-bg: #eaf0f6;
+        --brand-gray-border: #d1d5dc;
+        --brand-accent: #f7fafa;
+        --brand-white: #ffffff;
       }
-      .viewer-bar a { color: #0f766e; text-decoration: underline; margin: 0 6px; }
-      .viewer-bar strong { color: #0f172a; }
-      .draft-banner {
-        background: #fef3c7;
-        color: #92400e;
-        padding: 14px 24px;
-        text-align: center;
-        font-family: 'Montserrat', sans-serif;
-        font-size: 14px;
-        line-height: 1.5;
-        border-bottom: 1px solid #fde68a;
+      html, body { margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--brand-dark); background: var(--brand-white); }
+
+      /* Top bar with logo + viewer switcher */
+      .topbar {
+        position: sticky; top: 0; z-index: 50;
+        display: flex; align-items: center; gap: 24px;
+        padding: 14px 28px;
+        background: var(--brand-white);
+        border-bottom: 1px solid var(--brand-gray-border);
+        box-shadow: 0 1px 0 rgba(23, 38, 54, 0.02);
       }
-      .draft-banner strong { font-weight: 700; }
-      .draft-banner a { color: #92400e; text-decoration: underline; }
+      .topbar .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--brand-dark); }
+      .topbar .brand img { height: 28px; width: auto; display: block; }
+      .topbar .brand .subtitle {
+        font-size: 13px; font-weight: 500; color: var(--brand-dark);
+        padding-left: 12px; border-left: 1px solid var(--brand-gray-border);
+        line-height: 1; letter-spacing: 0.01em;
+      }
+      .topbar nav { display: flex; gap: 4px; margin-left: auto; align-items: center; flex-wrap: wrap; }
+      .topbar nav a {
+        font-size: 13px; font-weight: 500; padding: 6px 12px; border-radius: 6px;
+        color: var(--brand-dark); text-decoration: none; transition: background 0.15s;
+      }
+      .topbar nav a:hover { background: var(--brand-accent); color: var(--brand-primary); }
+      .topbar nav a.current { background: var(--brand-primary); color: var(--brand-white); }
+      .topbar nav a.current:hover { background: var(--brand-primary-hover); color: var(--brand-white); }
+      .topbar nav .divider { width: 1px; height: 18px; background: var(--brand-gray-border); margin: 0 6px; }
+
+      /* Preview / status ribbon */
+      .preview-ribbon {
+        background: var(--brand-accent);
+        color: var(--brand-dark);
+        border-bottom: 1px solid var(--brand-gray-border);
+        padding: 10px 28px;
+        font-size: 13px; line-height: 1.5;
+        display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;
+      }
+      .preview-ribbon .badge {
+        background: var(--brand-primary); color: var(--brand-white);
+        font-weight: 600; font-size: 11px; letter-spacing: 0.05em;
+        text-transform: uppercase; padding: 3px 8px; border-radius: 4px;
+      }
+      .preview-ribbon a { color: var(--brand-primary); font-weight: 500; text-decoration: none; border-bottom: 1px solid currentColor; }
+      .preview-ribbon a:hover { color: var(--brand-primary-hover); }
+
+      /* Footer */
+      .site-footer {
+        padding: 24px 28px; border-top: 1px solid var(--brand-gray-border);
+        background: var(--brand-white); color: var(--brand-dark);
+        font-size: 13px; line-height: 1.6;
+      }
+      .site-footer .row { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+      .site-footer a { color: var(--brand-primary); text-decoration: none; }
+      .site-footer a:hover { text-decoration: underline; }
+      .site-footer .links { display: flex; gap: 18px; flex-wrap: wrap; }
+      .site-footer .muted { color: #64748b; }
+
+      redoc { display: block; }
     </style>
   </head>
   <body>
-    <div class="viewer-bar">
-      <strong>Viewer:</strong> Redoc (narrative) ·
-      Prefer an endpoint list?
-      <a href="./swagger-ui/">Swagger UI</a> ·
-      <a href="./scalar/">Scalar (with code samples)</a> ·
-      <a href="./erp-api-openapi.yaml">Raw OpenAPI YAML</a>
+    <header class="topbar">
+      <a class="brand" href="https://messpunkt.io/" target="_blank" rel="noopener">
+        <img src="./assets/messpunkt-logo.png" alt="messpunkt.io" />
+        <span class="subtitle">Partner API · Documentation</span>
+      </a>
+      <nav aria-label="Viewer switcher">
+        <a href="./" class="current">Reference</a>
+        <span class="divider" aria-hidden="true"></span>
+        <a href="./swagger-ui/">Swagger UI</a>
+        <a href="./scalar/">Scalar</a>
+        <span class="divider" aria-hidden="true"></span>
+        <a href="./erp-api-openapi.yaml">OpenAPI YAML</a>
+        <a href="https://github.com/ImmoVault/partner-api-docs" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </header>
+
+    <div class="preview-ribbon">
+      <span class="badge">Preview</span>
+      <span>V1 in active development — target release <strong>Q2 2026</strong>. Become a pilot partner:
+        <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
+      </span>
     </div>
-    <div class="draft-banner">
-      <strong>⚠ Draft concept · not implemented.</strong>
-      This specification is shared for partner review and feedback.
-      Status: 2026-04 · draft 0.1 ·
-      <a href="./erp-api-openapi.yaml">download OpenAPI YAML</a>
-    </div>
-    <redoc spec-url="./erp-api-openapi.yaml" expand-responses="200" hide-download-button="false"></redoc>
+
+    <redoc
+      spec-url="./erp-api-openapi.yaml"
+      expand-responses="200"
+      hide-download-button="false"
+      theme='{"colors":{"primary":{"main":"#1e5348"},"text":{"primary":"#172636"},"http":{"get":"#1e5348","post":"#2d9cdb","put":"#f2c94c","delete":"#d22d1e"}},"typography":{"fontFamily":"Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif","headings":{"fontFamily":"Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif","fontWeight":"600"},"code":{"fontFamily":"SFMono-Regular, Menlo, Monaco, Consolas, monospace"}},"sidebar":{"backgroundColor":"#ffffff","textColor":"#172636"},"rightPanel":{"backgroundColor":"#172636","textColor":"#ffffff"}}'
+    ></redoc>
+
+    <footer class="site-footer">
+      <div class="row">
+        <div>
+          <strong>messpunkt.io Partner API</strong> · Preview · Target release Q2 2026
+          <div class="muted">© 2026 messpunkt.io — Questions &amp; pilot inquiries: <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
+        </div>
+        <div class="links">
+          <a href="https://messpunkt.io/impressum" target="_blank" rel="noopener">Impressum</a>
+          <a href="https://messpunkt.io/datenschutz" target="_blank" rel="noopener">Datenschutz</a>
+          <a href="https://github.com/ImmoVault/partner-api-docs" target="_blank" rel="noopener">Source repo</a>
+          <a href="./erp-api-openapi.yaml">OpenAPI 3.1 spec</a>
+        </div>
+      </div>
+    </footer>
+
     <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
   </body>
 </html>

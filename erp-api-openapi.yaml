@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: messpunkt.io ERP API
+  title: messpunkt.io Partner API
   version: "0.1.0-draft"
   summary: |
     Partner-facing read API for consumption and meter data.
@@ -11,7 +11,7 @@ info:
     This API lets property-management ERPs read consumption and meter-reading
     data from messpunkt.io on behalf of a landlord (Tenant).
 
-    **Status:** draft concept, not yet implemented. Shared for partner review.
+    **Status:** Preview · V1 in active development · **target release Q2 2026** · feedback from pilot partners explicitly invited.
 
     # Authentication
 
@@ -255,8 +255,15 @@ info:
     - DLMS User Association (COSEM Blue Book, authoritative registry): https://www.dlms.com/
     - Overview article (German): https://de.wikipedia.org/wiki/OBIS-Kennzahlen
   contact:
-    name: messpunkt.io Integrations
+    name: messpunkt.io Partnerships
+    email: kontakt@messpunkt.io
     url: https://messpunkt.io
+  termsOfService: https://messpunkt.io/impressum
+  x-logo:
+    url: ./assets/messpunkt-logo.png
+    altText: messpunkt.io
+    backgroundColor: '#ffffff'
+    href: https://messpunkt.io/
 
 servers:
   - url: https://api.messpunkt.io/v1
