@@ -4,7 +4,6 @@ info:
   version: "0.1.0-draft"
   summary: |
     Partner-facing read API for consumption and meter data.
-    Companion to docs/ERP_INTEGRATION_CONCEPT.md.
   description: |
     # Overview
 
