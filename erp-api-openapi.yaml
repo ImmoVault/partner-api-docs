@@ -257,8 +257,6 @@ info:
   contact:
     name: messpunkt.io Integrations
     url: https://messpunkt.io
-  license:
-    name: Proprietary
 
 servers:
   - url: https://api.messpunkt.io/v1
