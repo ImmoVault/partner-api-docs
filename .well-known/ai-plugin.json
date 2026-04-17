@@ -1,0 +1,24 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "messpunkt.io Partner API",
+  "name_for_model": "messpunkt_io_partner_api",
+  "description_for_human": "Read consumption and meter-reading data (heat, water, electricity, gas, HCA) from messpunkt.io on behalf of a landlord. For German property-management ERPs and AI assistants.",
+  "description_for_model": "API for reading sub-metering consumption data from messpunkt.io, a metering platform for German real estate. Use for questions about meter readings, consumption over date ranges, property / unit / measuring-point structure, or OBIS-coded energy data (per IEC 62056-6-1) for a specific landlord's portfolio. Every endpoint requires OAuth 2.1 Authorization Code + PKCE with a DPoP-bound bearer token. Access is Tenant-scoped AND per-Property (the token's property_scope claim lists allowed Property UUIDs or the literal 'all'). Always call GET /whoami after obtaining or refreshing a token to reconcile the accessible Property list. Out-of-scope resources return 404 (never 403) to avoid leaking Property existence. Consumption responses are nested per-MeasuringPoint with DeviceSegment[] so meter replacements are explicit (two readings per segment: start + end of the device's coverage within the query range). V1 responses contain no tenant / Mieter names or contact details — only structural and consumption data.",
+  "auth": {
+    "type": "oauth",
+    "client_url": "https://auth.messpunkt.io/oauth/authorize",
+    "authorization_url": "https://auth.messpunkt.io/oauth/token",
+    "scope": "read:units read:devices read:readings",
+    "authorization_content_type": "application/x-www-form-urlencoded",
+    "verification_tokens": {},
+    "instructions": "OAuth 2.1 Authorization Code + PKCE (S256 mandatory). Access tokens are DPoP-bound per RFC 9449. At consent time the landlord picks one or more Properties; the resulting token carries a property_scope claim used to filter every response."
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://developer.messpunkt.io/erp-api-openapi.yaml",
+    "is_user_authenticated": true
+  },
+  "logo_url": "https://developer.messpunkt.io/assets/favicon.svg",
+  "contact_email": "kontakt@messpunkt.io",
+  "legal_info_url": "https://messpunkt.io/impressum"
+}

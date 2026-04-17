@@ -3,6 +3,7 @@
 ![OpenAPI](https://img.shields.io/badge/OpenAPI-3.1-1e534a?style=flat-square)
 ![OAuth](https://img.shields.io/badge/OAuth-2.1%20%2B%20PKCE-1e534a?style=flat-square)
 ![DPoP](https://img.shields.io/badge/DPoP-RFC%209449-1e534a?style=flat-square)
+![AI-ready](https://img.shields.io/badge/AI--ready-tool%20schemas%20%2B%20llms.txt-1e534a?style=flat-square)
 ![Status](https://img.shields.io/badge/status-preview-f2c94c?style=flat-square)
 ![Target](https://img.shields.io/badge/V1%20target-Q2%202026-2d9cdb?style=flat-square)
 
@@ -56,6 +57,18 @@ messpunkt.io is actively onboarding pilot ERP partners for Q2 2026. If you opera
 - **OBIS-aligned metrics** — every reading carries an [OBIS code](https://en.wikipedia.org/wiki/IEC_62056) per IEC 62056-6-1 so partners can unambiguously identify what a value represents.
 - **Two readings per segment** — simple billing contract: start value + end value per device, clipped to the query range. Intermediate snapshots (charting) are a future `granularity=` extension.
 - **RFC 7807** problem-details for errors, ISO 8601 UTC for timestamps, cursor-based pagination, per-client rate limiting.
+
+## AI-ready
+
+Discovery artifacts so the API is usable by AI assistants and LLM-based agents out of the box:
+
+- **[llms.txt](https://developer.messpunkt.io/llms.txt)** — [llms.txt-standard](https://llmstxt.org) index for AI crawlers
+- **[.well-known/ai-plugin.json](https://developer.messpunkt.io/.well-known/ai-plugin.json)** — plugin-style manifest (OAuth config + OpenAPI pointer)
+- **OpenAPI 3.1 → tool schemas** — operations convert 1:1 to Anthropic Tool Use, OpenAI Function Calling, and Google Gemini / Vertex AI Function Calling
+
+Full detail and constraints for agent authors are in the [*For AI agents*](https://developer.messpunkt.io/#section/For-AI-agents) section of the rendered docs.
+
+**Roadmap:** Tier 2 is an **MCP server** (Model Context Protocol) for native Claude Desktop, Cursor, ChatGPT Desktop and IDE integrations — planned as a follow-up spike.
 
 ## Legal
 

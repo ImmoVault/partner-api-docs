@@ -139,6 +139,68 @@ info:
     - Do not cache Property-level data across token refreshes without
       re-checking `property_scope`.
 
+    # For AI agents
+
+    This API is designed to be usable by AI assistants and LLM-based
+    agents out of the box.
+
+    ## Discovery
+
+    - **[llms.txt](https://developer.messpunkt.io/llms.txt)** — llms.txt-standard index of the documentation
+    - **[.well-known/ai-plugin.json](https://developer.messpunkt.io/.well-known/ai-plugin.json)** — plugin-style manifest pointing at this spec
+    - **[erp-api-openapi.yaml](https://developer.messpunkt.io/erp-api-openapi.yaml)** — this document, the authoritative machine-readable contract
+
+    ## Tool-calling integration
+
+    OpenAPI 3.1 operation schemas convert cleanly to:
+
+    - Anthropic Tool Use (Claude)
+    - OpenAI Function Calling / GPT Actions
+    - Google Gemini Tool Use / Vertex AI Function Calling
+
+    Because every response shape is fully typed (no `anyOf` escape
+    hatches, no free-form JSON blobs), an LLM can reason about outputs
+    structurally. `MeasuringPoint.obis` is deterministically derivable
+    from `metric` — agents should prefer the OBIS code when comparing
+    readings across partners.
+
+    ## Typical LLM use cases
+
+    - *"How much warm water did apartment WE 03 use from January to
+      March 2026 compared to last year?"* → two `GET /usage-units/{id}/consumption`
+      calls with different date ranges
+    - *"Are any units in Reichenstraße 12 showing unusually high heat
+      consumption?"* → `GET /properties?external_ref=…` then
+      `GET /usage-units?property_id=…`, then per-unit consumption
+    - *"When was the water meter in WE 03 last replaced?"* →
+      inspect `DeviceSegment.deinstalled_at` and `.replacement_reason`
+      in the consumption response
+    - *"Which Properties is this ERP allowed to see?"* → `GET /whoami`
+
+    ## Constraints for agent authors
+
+    - Rate limits apply per `client_id`, not per token — share tokens
+      within one application; don't parallelise aggressively across them
+    - Always call `GET /whoami` after a token refresh to reconcile the
+      current `property_scope` — a landlord may have edited it
+    - `404` on a previously-known resource = scope revocation, not a
+      retry condition. Surface this to the user.
+    - V1 responses contain **no Mieter names** — tenant-identified
+      consumption queries are not supported yet
+    - Responses emit two readings per `DeviceSegment` (start + end of
+      that segment within the query range). Intermediate snapshots will
+      become available later via a `granularity=` query parameter.
+
+    ## Roadmap
+
+    - **Shipped (Tier 1):** Discovery artifacts + tool-schema mapping (this section).
+    - **Planned (Tier 2):** **MCP server** — native integration with
+      Claude Desktop, Cursor, ChatGPT Desktop, Zed, JetBrains, VS Code
+      — so a landlord can ask their AI assistant about their own
+      metering data without any intermediate ERP UI.
+    - **Product decision (Tier 3):** conversational-analytics layer and
+      LLM-assisted dispute resolution for Heizkostenabrechnung.
+
     # Meter identifiers (OBIS)
 
     Every `MeasuringPointConsumption` carries an `obis` string — an
