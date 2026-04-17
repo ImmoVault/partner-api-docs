@@ -907,6 +907,9 @@ components:
           authorizationUrl: https://auth.sandbox.messpunkt.io/oauth/authorize
           tokenUrl: https://auth.sandbox.messpunkt.io/oauth/token
           refreshUrl: https://auth.sandbox.messpunkt.io/oauth/token
+          # Scalar-specific: prefill the public sandbox client in the
+          # Authorize panel so partners don't need to paste a client ID.
+          x-scalar-client-id: sandbox-demo-client
           scopes:
             "read:units":    Read UsageUnits, Addresses and structural metadata.
             "read:devices":  Read MeasuringPoints and Device lifecycle.
