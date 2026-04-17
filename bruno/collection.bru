@@ -1,0 +1,69 @@
+auth {
+  mode: oauth2
+}
+
+auth:oauth2 {
+  grant_type: authorization_code
+  callback_url: http://localhost:3000/callback
+  authorization_url: https://auth.sandbox.messpunkt.io/oauth/authorize
+  access_token_url: https://auth.sandbox.messpunkt.io/oauth/token
+  refresh_token_url:
+  client_id: sandbox-demo-client
+  client_secret:
+  scope: read:units read:devices read:readings
+  state:
+  pkce: true
+  credentials_placement: body
+  credentials_id: credentials
+  token_placement: header
+  token_header_prefix: Bearer
+  auto_fetch_token: true
+  auto_refresh_token: false
+}
+
+docs {
+  # messpunkt.io Partner API — Sandbox
+
+  Public preview sandbox for partner ERPs. OAuth 2.1 Authorization Code + PKCE,
+  deterministic synthetic fixture, zero PII.
+
+  **Hosts**
+  - Authorization server: `https://auth.sandbox.messpunkt.io`
+  - Resource server:     `https://api.sandbox.messpunkt.io`
+
+  ## Getting an access token
+
+  This collection uses Bruno's built-in OAuth 2.0 helper. Click **Get Access
+  Token** in this tab — a browser window opens, the sandbox consent screen
+  shows one demo landlord (*Hausverwaltung Musterfrau GmbH*) and a Property
+  picker. Pick a Property, click **Approve**, and Bruno captures the token.
+
+  Tokens last 1 h. When you get a `401`, click **Get Access Token** again.
+
+  ## Property scope
+
+  The token is bound to exactly the Property you picked on the consent screen.
+  Any Property ID outside that scope returns `404 resource-not-found` (not
+  `403` — we avoid leaking the existence of other resources).
+
+  ## Demo landlord
+
+  | Field | Value |
+  |---|---|
+  | Tenant | Hausverwaltung Musterfrau GmbH |
+  | Property | Musterstraße 12-14 (`6fb74d25-5517-4dcc-ae8b-0914579ab036`) |
+  | Units | WE 01 Musterfrau … WE 05 Schema |
+  | Metrics | `heat`, `water_warm`, `water_cold`, `hca` |
+
+  ## Interesting scenarios
+
+  - **Meter replacement** — `WE 01 / water_warm` returns two device segments
+    with a linear-interpolated close-out reading on the first device.
+  - **Data gap** — `WE 02 / hca` returns `data_gap: true` with `readings: []`.
+  - **Property-scope 404** — try any random UUID on `/v1/properties/{id}`.
+
+  ## Docs
+
+  - Reference: https://developer.messpunkt.io
+  - OpenAPI spec: https://developer.messpunkt.io/erp-api-openapi.yaml
+}

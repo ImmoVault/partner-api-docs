@@ -1,0 +1,52 @@
+meta {
+  name: Get Property (Out of Scope)
+  type: http
+  seq: 4
+}
+
+get {
+  url: https://api.sandbox.messpunkt.io/v1/properties/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 00000000-0000-0000-0000-000000000000
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  # GET /v1/properties/{id} — 404 demo
+
+  Hits a Property UUID that is not in your token's `property_scope`.
+  Expected:
+
+  ```
+  HTTP/2 404
+  content-type: application/problem+json
+
+  {
+    "type": "https://api.sandbox.messpunkt.io/errors/resource-not-found",
+    "title": "Resource not found",
+    "status": 404,
+    "detail": "Property … not found in this Tenant's scope",
+    "trace_id": "…"
+  }
+  ```
+
+  We return **404 Not Found**, not **403 Forbidden** — the API never
+  distinguishes "doesn't exist" from "exists but out of scope". That choice
+  is intentional (ADR-ERP-008 in the internal architecture docs) to prevent
+  scope enumeration via error codes.
+
+  ## Why the all-zeros UUID?
+
+  The sandbox fixture currently has two Properties, both belonging to the
+  same demo Tenant. If you tick **both** boxes on the consent screen, both
+  are in your `property_scope` — so using another fixture UUID would return
+  200, not 404. The all-zeros UUID is guaranteed to miss the fixture,
+  giving you the 404 shape no matter what you picked.
+}

@@ -1,0 +1,37 @@
+meta {
+  name: Get Property
+  type: http
+  seq: 3
+}
+
+get {
+  url: https://api.sandbox.messpunkt.io/v1/properties/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 6fb74d25-5517-4dcc-ae8b-0914579ab036
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  # GET /v1/properties/{id}
+
+  Single Property detail. Same shape as one item of `GET /v1/properties`.
+
+  ## Property-scope enforcement
+
+  If you replace the `id` path-param with a UUID **not** in your token's
+  `property_scope`, the sandbox returns **404 Not Found** (not 403) with an
+  RFC 7807 problem body. This is intentional: the API never leaks whether a
+  resource exists outside the caller's scope.
+
+  ## Demo
+
+  Default `id` is the sandbox Property (`Musterstraße 12-14`). To see the
+  404 behaviour, swap in any other UUID, e.g. `d490d09c-46cc-498e-a9ac-e031dd2402d2`.
+}

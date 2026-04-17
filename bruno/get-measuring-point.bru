@@ -1,0 +1,48 @@
+meta {
+  name: Get Measuring Point
+  type: http
+  seq: 11
+}
+
+get {
+  url: https://api.sandbox.messpunkt.io/v1/measuring-points/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 0051c69f-e4e0-450e-b105-2d7eefe9b3e5
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  # GET /v1/measuring-points/{id}
+
+  A MeasuringPoint is the **stable identifier** across device replacements.
+  Devices come and go; the MeasuringPoint persists. Use this endpoint when
+  you already have the `measuring_point_id` (e.g. from a prior consumption
+  response) and want the metadata plus full device history.
+
+  The response contains every `DeviceSegment` ever installed at this point —
+  not clipped by a time range — so ERPs can reconcile long-term history.
+
+  ## Default `id`
+
+  `0051c69f-e4e0-450e-b105-2d7eefe9b3e5` = **WE 01 / water_warm** — the
+  measuring point with the meter-replacement demo (two device segments).
+
+  ## Other measuring points
+
+  | Unit | Metric | measuring_point_id |
+  |---|---|---|
+  | WE 01 | heat        | `f10d46d8-27ba-4d27-a2fb-b9e4fed66787` |
+  | WE 01 | water_warm  | `0051c69f-e4e0-450e-b105-2d7eefe9b3e5` |
+  | WE 01 | water_cold  | `801810e0-4480-4a15-a7ee-ee80d2645125` |
+  | WE 02 | heat        | `0c36d1d8-2251-443e-bc3c-6007750cf1f8` |
+  | WE 02 | water_warm  | `bc37dc2c-83eb-416a-b214-8bb486f728d5` |
+  | WE 02 | water_cold  | `75c7a764-809f-43a7-97c6-757a67ce4e0e` |
+  | WE 02 | hca         | `3f734067-ba52-4675-b9ea-aab47f82ea75` |
+}

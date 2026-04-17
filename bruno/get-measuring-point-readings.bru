@@ -1,0 +1,46 @@
+meta {
+  name: Get Measuring Point Readings
+  type: http
+  seq: 12
+}
+
+get {
+  url: https://api.sandbox.messpunkt.io/v1/measuring-points/:id/readings?from=2026-01-01&to=2026-12-31
+  body: none
+  auth: inherit
+}
+
+params:query {
+  from: 2026-01-01
+  to: 2026-12-31
+}
+
+params:path {
+  id: 0051c69f-e4e0-450e-b105-2d7eefe9b3e5
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  # GET /v1/measuring-points/{id}/readings
+
+  Lower-level drill-down: one MeasuringPoint, segmented by device, with
+  readings clipped to the `from`/`to` range.
+
+  Use this when you want finer control than `GET /v1/usage-units/{id}/consumption`
+  (which aggregates across all MeasuringPoints of a unit). Output shape is
+  the same `measuring_points[0]` node you would get back there, just
+  directly addressable.
+
+  ## Default `id`
+
+  `0051c69f-e4e0-450e-b105-2d7eefe9b3e5` = **WE 01 / water_warm** — shows
+  the meter-replacement scenario.
+
+  ## Query parameters
+
+  - `from` — ISO-8601 date, inclusive
+  - `to`   — ISO-8601 date, inclusive
+}

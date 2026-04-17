@@ -1,0 +1,31 @@
+meta {
+  name: List Properties
+  type: http
+  seq: 2
+}
+
+get {
+  url: https://api.sandbox.messpunkt.io/v1/properties
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  # GET /v1/properties
+
+  List of Properties (*Liegenschaften*) accessible to this token. The result
+  is already filtered to the Property scope chosen on the consent screen —
+  you will see only the Properties you picked.
+
+  Each Property carries:
+  - `id` — stable UUID, use for drill-down endpoints
+  - `external_ref` — partner-supplied reference (always `null` in sandbox)
+  - `addresses[]` — one or more `{street, house_number, postal_code, city}`
+  - `usage_unit_count` — how many UsageUnits sit under this Property
+
+  Pagination is cursor-based (`next_cursor` / `prev_cursor`), never offset.
+}

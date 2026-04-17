@@ -1,0 +1,36 @@
+meta {
+  name: Get Consumption — Cold Water
+  type: http
+  seq: 8
+}
+
+get {
+  url: https://api.sandbox.messpunkt.io/v1/usage-units/:id/consumption?from=2026-01-01&to=2026-12-31&metric=water_cold
+  body: none
+  auth: inherit
+}
+
+params:query {
+  from: 2026-01-01
+  to: 2026-12-31
+  metric: water_cold
+}
+
+params:path {
+  id: cfd6280b-b3c7-47db-aef2-70dc9505096e
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  # Consumption — water_cold (cold-water meter, single segment)
+
+  Same contract as `consumption-water-warm`, but a simpler scenario: a
+  single device segment with no replacement and no data gap. Good baseline
+  to contrast against the meter-replacement response.
+
+  - `unit` is `m3`
+  - OBIS code `9-1:2.0.0`
+}

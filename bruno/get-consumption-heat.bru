@@ -1,0 +1,40 @@
+meta {
+  name: Get Consumption — Heat
+  type: http
+  seq: 9
+}
+
+get {
+  url: https://api.sandbox.messpunkt.io/v1/usage-units/:id/consumption?from=2026-01-01&to=2026-12-31&metric=heat
+  body: none
+  auth: inherit
+}
+
+params:query {
+  from: 2026-01-01
+  to: 2026-12-31
+  metric: heat
+}
+
+params:path {
+  id: cfd6280b-b3c7-47db-aef2-70dc9505096e
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  # Consumption — heat (Wärmezähler)
+
+  Heat meter (Wärmezähler) readings for the chosen unit. Shape is identical
+  to water consumption but:
+
+  - `unit` is `kWh`
+  - OBIS code `9-0:8.0.0`
+  - When a reading is substituted, `substitution_method` is typically
+    `degree_day_weighted` (VDI 2067) rather than `linear_interpolation`,
+    since heat demand is strongly seasonal.
+
+  Default unit `WE 01` has a single heat-meter segment, no replacement.
+}

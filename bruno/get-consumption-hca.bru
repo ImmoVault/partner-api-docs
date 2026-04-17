@@ -1,0 +1,44 @@
+meta {
+  name: Get Consumption — HCA (Data-Gap Demo)
+  type: http
+  seq: 10
+}
+
+get {
+  url: https://api.sandbox.messpunkt.io/v1/usage-units/:id/consumption?from=2026-01-01&to=2026-12-31&metric=hca
+  body: none
+  auth: inherit
+}
+
+params:query {
+  from: 2026-01-01
+  to: 2026-12-31
+  metric: hca
+}
+
+params:path {
+  id: 11963f0d-8c1b-49c0-8ca8-e03f05846b67
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  # Consumption — HCA data-gap scenario
+
+  Default unit is **WE 02, Mustermann**. This demonstrates how the API
+  surfaces a data gap: no readings could be collected for the whole period.
+
+  Expected response:
+
+  - `measuring_points[0].data_gap: true`
+  - `measuring_points[0].segments[0].readings: []` — empty, not omitted
+  - The Device is still reported so the ERP knows the meter exists
+
+  ERPs should treat `data_gap: true` as a hard signal to either estimate
+  (`VDI 2067` degree-day weighting for heat/HCA, linear interpolation for
+  water/electricity) or exclude the unit from the billing period.
+
+  HCA = Heat Cost Allocator (Heizkostenverteiler), unit-less, OBIS `4-1:1.0.0`.
+}

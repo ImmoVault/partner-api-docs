@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>messpunkt.io Partner API — Bruno collection</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Ready-to-use Bruno collection for the messpunkt.io Partner API sandbox — clone, open, click Get Access Token." />
+    <meta name="theme-color" content="#1e534a" />
+    <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+    <link rel="alternate icon" type="image/x-icon" href="../assets/favicon.ico" />
+    <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --brand-primary: #1e534a;
+        --brand-primary-hover: #16403a;
+        --brand-dark: #172636;
+        --brand-gray-bg: #eaf0f6;
+        --brand-gray-border: #d1d5dc;
+        --brand-accent: #f7fafa;
+        --brand-white: #ffffff;
+      }
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--brand-dark); background: var(--brand-white); line-height: 1.6; }
+
+      .topbar {
+        position: sticky; top: 0; z-index: 50;
+        display: flex; align-items: center; gap: 24px;
+        padding: 14px 28px;
+        background: var(--brand-white);
+        border-bottom: 1px solid var(--brand-gray-border);
+      }
+      .topbar .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--brand-dark); }
+      .topbar .brand img { height: 28px; width: auto; display: block; }
+      .topbar .brand .subtitle { font-size: 13px; font-weight: 500; padding-left: 12px; border-left: 1px solid var(--brand-gray-border); line-height: 1; }
+      .topbar nav { display: flex; gap: 4px; margin-left: auto; align-items: center; flex-wrap: wrap; }
+      .topbar nav a { font-size: 13px; font-weight: 500; padding: 6px 12px; border-radius: 6px; color: var(--brand-dark); text-decoration: none; transition: background 0.15s; }
+      .topbar nav a:hover { background: var(--brand-accent); color: var(--brand-primary); }
+      .topbar nav a.current { background: var(--brand-primary); color: var(--brand-white); }
+      .topbar nav a.current:hover { background: var(--brand-primary-hover); }
+      .topbar nav .divider { width: 1px; height: 18px; background: var(--brand-gray-border); margin: 0 6px; }
+
+      .preview-ribbon {
+        background: var(--brand-accent); color: var(--brand-dark);
+        border-bottom: 1px solid var(--brand-gray-border);
+        padding: 10px 28px; font-size: 13px; line-height: 1.5;
+        display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;
+      }
+      .preview-ribbon .badge { background: var(--brand-primary); color: var(--brand-white); font-weight: 600; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
+      .preview-ribbon a { color: var(--brand-primary); font-weight: 500; text-decoration: none; border-bottom: 1px solid currentColor; }
+
+      main { max-width: 940px; margin: 0 auto; padding: 48px 28px 72px; }
+      h1 { font-size: 32px; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.01em; }
+      .lead { color: #3f4c5c; font-size: 17px; margin: 0 0 32px; }
+      h2 { font-size: 22px; margin: 40px 0 12px; letter-spacing: -0.005em; }
+      h3 { font-size: 16px; margin: 24px 0 8px; }
+      p { margin: 0 0 14px; }
+      a { color: var(--brand-primary); }
+      a:hover { color: var(--brand-primary-hover); }
+      code { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; background: var(--brand-gray-bg); padding: 1px 6px; border-radius: 4px; }
+      pre { background: var(--brand-dark); color: #e8eef5; padding: 16px 18px; border-radius: 8px; overflow: auto; font-size: 13px; line-height: 1.55; }
+      pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+
+      .cta-row { display: flex; gap: 12px; flex-wrap: wrap; margin: 24px 0 8px; }
+      .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; transition: background 0.15s, transform 0.05s; }
+      .btn:active { transform: translateY(1px); }
+      .btn-primary { background: var(--brand-primary); color: var(--brand-white); }
+      .btn-primary:hover { background: var(--brand-primary-hover); color: var(--brand-white); }
+      .btn-ghost { background: var(--brand-white); color: var(--brand-dark); border: 1px solid var(--brand-gray-border); }
+      .btn-ghost:hover { background: var(--brand-accent); color: var(--brand-primary); }
+
+      table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+      th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--brand-gray-border); vertical-align: top; }
+      th { font-weight: 600; background: var(--brand-accent); }
+      td code { white-space: nowrap; }
+
+      .steps { counter-reset: step; padding: 0; list-style: none; margin: 16px 0 24px; }
+      .steps > li { counter-increment: step; padding: 12px 12px 12px 44px; position: relative; margin-bottom: 8px; background: var(--brand-accent); border-radius: 8px; }
+      .steps > li::before { content: counter(step); position: absolute; left: 12px; top: 12px; width: 22px; height: 22px; border-radius: 50%; background: var(--brand-primary); color: var(--brand-white); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px; }
+
+      .site-footer { padding: 24px 28px; border-top: 1px solid var(--brand-gray-border); background: var(--brand-white); color: var(--brand-dark); font-size: 13px; line-height: 1.6; }
+      .site-footer .row { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; justify-content: space-between; max-width: 940px; margin: 0 auto; }
+      .site-footer a { color: var(--brand-primary); text-decoration: none; }
+      .site-footer .links { display: flex; gap: 18px; flex-wrap: wrap; }
+      .site-footer .muted { color: #64748b; }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="https://messpunkt.io/" target="_blank" rel="noopener">
+        <img src="../assets/messpunkt-quer.svg" alt="messpunkt.io" />
+        <span class="subtitle">Partner API · Bruno</span>
+      </a>
+      <nav aria-label="Viewer switcher">
+        <a href="../">Reference</a>
+        <span class="divider" aria-hidden="true"></span>
+        <a href="../swagger-ui/">Swagger UI</a>
+        <a href="../scalar/">Scalar</a>
+        <span class="divider" aria-hidden="true"></span>
+        <a href="./" class="current">Bruno</a>
+        <a href="../erp-api-openapi.yaml">OpenAPI YAML</a>
+      </nav>
+    </header>
+
+    <div class="preview-ribbon">
+      <span class="badge">Preview</span>
+      <span>V1 in active development — target release <strong>Q2 2026</strong>. Become a pilot partner:
+        <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
+      </span>
+    </div>
+
+    <main>
+      <h1>Bruno collection</h1>
+      <p class="lead">A ready-to-use <a href="https://www.usebruno.com/" target="_blank" rel="noopener">Bruno</a> collection for the messpunkt.io Partner API sandbox. Clone, open in Bruno, click <strong>Get Access Token</strong> — done.</p>
+
+      <div class="cta-row">
+        <a class="btn btn-primary" href="https://github.com/ImmoVault/partner-api-docs/tree/main/bruno" target="_blank" rel="noopener">Browse on GitHub</a>
+        <a class="btn btn-ghost" href="https://www.usebruno.com/downloads" target="_blank" rel="noopener">Get Bruno</a>
+      </div>
+
+      <h2>Get started</h2>
+      <ol class="steps">
+        <li>Clone the repo and open Bruno:
+          <pre><code>git clone https://github.com/ImmoVault/partner-api-docs.git
+# Or just the /bruno subtree:
+npx degit ImmoVault/partner-api-docs/bruno messpunkt-sandbox</code></pre>
+          In Bruno: <strong>Open Collection</strong> → pick the <code>bruno</code> folder.
+        </li>
+        <li>Click the collection name → <strong>Auth</strong> tab → <strong>Get Access Token</strong>. A browser popup opens the sandbox consent screen with the demo landlord <em>Hausverwaltung Musterfrau GmbH</em>. Pick one or more Properties → <strong>Approve</strong>.</li>
+        <li>Send <strong>Whoami</strong> → you should see the tenant name and granted scopes. Then drill into any <code>List Properties</code>, <code>List Usage Units</code> or <code>Get Consumption …</code> request.</li>
+      </ol>
+
+      <h2>What's included</h2>
+      <table>
+        <thead><tr><th>#</th><th>Request</th><th>Endpoint</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Whoami</td><td><code>GET /v1/whoami</code></td></tr>
+          <tr><td>2</td><td>List Properties</td><td><code>GET /v1/properties</code></td></tr>
+          <tr><td>3</td><td>Get Property</td><td><code>GET /v1/properties/{id}</code></td></tr>
+          <tr><td>4</td><td>Get Property (Out of Scope)</td><td>404 demo</td></tr>
+          <tr><td>5</td><td>List Usage Units</td><td><code>GET /v1/usage-units</code></td></tr>
+          <tr><td>6</td><td>Get Usage Unit</td><td><code>GET /v1/usage-units/{id}</code></td></tr>
+          <tr><td>7</td><td>Get Consumption — Warm Water</td><td>meter-replacement scenario</td></tr>
+          <tr><td>8</td><td>Get Consumption — Cold Water</td><td>single-segment baseline</td></tr>
+          <tr><td>9</td><td>Get Consumption — Heat</td><td>kWh, VDI-2067 substitution</td></tr>
+          <tr><td>10</td><td>Get Consumption — HCA (Data-Gap)</td><td><code>data_gap: true</code> scenario</td></tr>
+          <tr><td>11</td><td>Get Measuring Point</td><td><code>GET /v1/measuring-points/{id}</code></td></tr>
+          <tr><td>12</td><td>Get Measuring Point Readings</td><td><code>GET /v1/measuring-points/{id}/readings</code></td></tr>
+        </tbody>
+      </table>
+      <p>Every request has its own <code>docs {}</code> block with the expected response shape and a hint for what to try next. All three read scopes (<code>read:units</code>, <code>read:devices</code>, <code>read:readings</code>) are requested by default.</p>
+
+      <h2>Hosts</h2>
+      <table>
+        <thead><tr><th>Host</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>https://auth.sandbox.messpunkt.io</code></td><td>Sandbox OAuth 2.1 authorization server</td></tr>
+          <tr><td><code>https://api.sandbox.messpunkt.io/v1</code></td><td>Sandbox API endpoints</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Troubleshooting</h2>
+      <p><strong><code>invalid_redirect_uri</code> on the consent screen</strong> → Bruno's default callback <code>http://localhost:3000/callback</code> is already on the sandbox allow-list. If you customised Bruno's callback, email <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a> to whitelist it.</p>
+      <p><strong><code>401</code> on data endpoints</strong> → token expired (1 h lifetime). Click <strong>Get Access Token</strong> again.</p>
+    </main>
+
+    <footer class="site-footer">
+      <div class="row">
+        <div>
+          <strong>messpunkt.io Partner API</strong> · Preview · Target release Q2 2026
+          <div class="muted">© 2026 messpunkt.io — <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
+        </div>
+        <div class="links">
+          <a href="https://messpunkt.io/impressum" target="_blank" rel="noopener">Impressum</a>
+          <a href="https://messpunkt.io/datenschutz" target="_blank" rel="noopener">Datenschutz</a>
+          <a href="../.well-known/security.txt">Security</a>
+          <a href="../erp-api-openapi.yaml">OpenAPI 3.1 spec</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

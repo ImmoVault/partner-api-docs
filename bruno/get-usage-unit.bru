@@ -1,0 +1,43 @@
+meta {
+  name: Get Usage Unit
+  type: http
+  seq: 6
+}
+
+get {
+  url: https://api.sandbox.messpunkt.io/v1/usage-units/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: cfd6280b-b3c7-47db-aef2-70dc9505096e
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  # GET /v1/usage-units/{id}
+
+  Single UsageUnit with its nested MeasuringPoints. Each MeasuringPoint is
+  the stable anchor across device replacements — use the
+  `measuring_point_id` on drill-down calls, not the `device_id` (devices
+  change, measuring points persist).
+
+  ## Default `id`
+
+  `cfd6280b-b3c7-47db-aef2-70dc9505096e` = **WE 01, Musterfrau** — the unit
+  with the meter-replacement scenario on `water_warm`.
+
+  ## Available units
+
+  | Name | id |
+  |---|---|
+  | WE 01, Musterfrau | `cfd6280b-b3c7-47db-aef2-70dc9505096e` |
+  | WE 02, Mustermann | `11963f0d-8c1b-49c0-8ca8-e03f05846b67` |
+  | WE 03, Beispiel   | `aa375587-0c9f-4688-8b39-e8110ff6ab36` |
+  | WE 04, Probe      | `5c2053af-007e-42aa-9c53-f78d431a4d30` |
+  | WE 05, Schema     | `0fe91234-ac2d-4337-807d-c8fa7e90bb09` |
+}
