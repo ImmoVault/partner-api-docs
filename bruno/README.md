@@ -12,13 +12,9 @@ messpunkt.io Partner API sandbox. Clone, open in Bruno, click
 
 ## Usage
 
-```bash
-git clone https://github.com/ImmoVault/partner-api-docs.git
-# or download the /bruno subtree via degit:
-npx degit ImmoVault/partner-api-docs/bruno messpunkt-sandbox
-```
-
-In Bruno: **Open Collection** → pick the `bruno` folder.
+Download the collection zip from
+[developer.messpunkt.io/bruno](https://developer.messpunkt.io/bruno/)
+and unzip it anywhere. In Bruno: **Open Collection** → pick the unzipped folder.
 
 **First request:**
 
