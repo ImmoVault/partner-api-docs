@@ -1,8 +1,8 @@
 # messpunkt.io Partner API — Documentation
 
-![OpenAPI](https://img.shields.io/badge/OpenAPI-3.1-1e5348?style=flat-square)
-![OAuth](https://img.shields.io/badge/OAuth-2.1%20%2B%20PKCE-1e5348?style=flat-square)
-![DPoP](https://img.shields.io/badge/DPoP-RFC%209449-1e5348?style=flat-square)
+![OpenAPI](https://img.shields.io/badge/OpenAPI-3.1-1e534a?style=flat-square)
+![OAuth](https://img.shields.io/badge/OAuth-2.1%20%2B%20PKCE-1e534a?style=flat-square)
+![DPoP](https://img.shields.io/badge/DPoP-RFC%209449-1e534a?style=flat-square)
 ![Status](https://img.shields.io/badge/status-preview-f2c94c?style=flat-square)
 ![Target](https://img.shields.io/badge/V1%20target-Q2%202026-2d9cdb?style=flat-square)
 

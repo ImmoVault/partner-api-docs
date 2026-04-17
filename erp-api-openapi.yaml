@@ -259,7 +259,7 @@ info:
     url: https://messpunkt.io
   termsOfService: https://messpunkt.io/impressum
   x-logo:
-    url: ./assets/messpunkt-logo.png
+    url: ./assets/messpunkt-quer.svg
     altText: messpunkt.io
     backgroundColor: '#ffffff'
     href: https://messpunkt.io/
