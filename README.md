@@ -38,7 +38,7 @@ Raw OpenAPI YAML: [erp-api-openapi.yaml](./erp-api-openapi.yaml).
 | **Release target** | **Q2 2026** |
 | **Current draft** | 0.1 · April 2026 |
 | **Status** | Preview — specification frozen for pilot-partner review; implementation in progress |
-| **Source of truth** | Internal `meter-etl` repo; mirrored here for public sharing |
+| **Source of truth** | Mirrored from an internal engineering repository |
 
 ## Become a pilot partner
 
