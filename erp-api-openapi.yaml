@@ -35,7 +35,10 @@ info:
     - **DPoP:** validation is relaxed in the sandbox — plain `Bearer` tokens
       work too, so Swagger UI (which doesn't generate DPoP proofs) can
       exercise all endpoints. Production will require DPoP.
-    - **Rate limits:** relaxed vs. production (300 rpm per client).
+    - **Rate limits:** 300 rpm per caller IP on `/v1/*` data endpoints,
+      60 rpm per caller IP on `/oauth/*` (tighter because they're more
+      abusable). `429 Too Many Requests` with `Retry-After` header on
+      exceedance. In-memory, best-effort — not cross-instance.
     - **Token lifetimes:** access 1 h, refresh 7 days.
     - **Property-scope enforcement** is identical to production —
       querying a Property outside your selected scope returns `404`.
