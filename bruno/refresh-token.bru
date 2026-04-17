@@ -1,0 +1,66 @@
+meta {
+  name: Refresh Token
+  type: http
+  seq: 13
+}
+
+post {
+  url: https://auth.sandbox.messpunkt.io/oauth/token
+  body: formUrlEncoded
+  auth: none
+}
+
+body:form-urlencoded {
+  grant_type: refresh_token
+  refresh_token: {{refresh_token}}
+  client_id: sandbox-demo-client
+}
+
+vars:pre-request {
+  refresh_token:
+}
+
+docs {
+  # POST /oauth/token — refresh-token grant
+
+  Exchange a refresh token (7-day lifetime) for a new access+refresh
+  token pair. Does **not** require a browser round-trip — ideal for
+  server-side ERPs that call the API from background jobs.
+
+  ## Setup
+
+  1. Run **Whoami** (or any request that triggers `Get Access Token`)
+     to seed the collection with a fresh pair.
+  2. Copy the `refresh_token` field out of the token response into the
+     `refresh_token` variable on this request's **Vars** tab.
+  3. Send this request → returns `{ access_token, refresh_token, expires_in, scope }`.
+
+  The **new** refresh token immediately supersedes the old one. Save it
+  and use it on the next refresh — presenting the old one after this
+  call will revoke the whole session (see below).
+
+  ## Security model
+
+  - **Rotation** — every refresh returns a new refresh token. Old one
+    becomes invalid.
+  - **Replay detection** — presenting a pre-rotation refresh token is
+    treated as stolen-token evidence. The server revokes the entire
+    session (all outstanding access+refresh tokens with that `sid`). The
+    legitimate holder must re-authorize.
+  - **Absolute session lifetime** — even with perfect rotation, the
+    session expires 30 days after the initial authorization. Prevents an
+    attacker from keeping a stolen token alive indefinitely.
+  - **Scope narrowing** — supply an optional `scope` form parameter to
+    get a new access token with fewer scopes. Widening is rejected with
+    `invalid_scope`.
+
+  ## Error bodies
+
+  ```json
+  { "error": "invalid_grant", "error_description": "Refresh-token replay detected. The session has been revoked. Start a new authorization flow." }
+  { "error": "invalid_grant", "error_description": "Session has reached its absolute lifetime. Start a new authorization flow." }
+  { "error": "invalid_scope", "error_description": "Scope 'write:foo' was not in the original grant. Refresh cannot widen scope." }
+  ```
+
+  In all `invalid_grant` cases: restart the Authorization Code flow.
+}

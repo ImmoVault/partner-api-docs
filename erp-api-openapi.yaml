@@ -39,7 +39,15 @@ info:
       60 rpm per caller IP on `/oauth/*` (tighter because they're more
       abusable). `429 Too Many Requests` with `Retry-After` header on
       exceedance. In-memory, best-effort — not cross-instance.
-    - **Token lifetimes:** access 1 h, refresh 7 days.
+    - **Token lifetimes:** access 1 h, refresh 7 days, absolute session
+      lifetime 30 days (past which re-authorization is required, even with
+      a valid refresh token).
+    - **Refresh-token rotation:** each successful `grant_type=refresh_token`
+      call issues a new refresh token and invalidates the previous one.
+      Presenting a pre-rotation refresh token (replay) revokes the entire
+      session — including the legitimate current token. Callers must persist
+      the newest refresh token immediately after each refresh and treat
+      any `invalid_grant` response as "start a new authorization flow."
     - **Property-scope enforcement** is identical to production —
       querying a Property outside your selected scope returns `404`.
     - **Stateless by design:** no writes, no persistence. Same fixture
