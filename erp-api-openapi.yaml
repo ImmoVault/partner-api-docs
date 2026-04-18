@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: messpunkt.io Partner API
-  version: "1.0.0-rc.1"
+  version: "1.0.0-rc.2"
   summary: |
     Partner-facing read API for consumption and meter data.
   description: |
@@ -53,7 +53,7 @@ info:
 
     Click **Authorize** in Swagger UI (or *Test Request* in Scalar). The
     browser is redirected to the sandbox consent screen, where a single
-    demo landlord — "Hausverwaltung Musterfrau GmbH" — is already logged
+    demo landlord — "Musterhausverwaltung GmbH" — is already logged
     in. Pick one or more Properties (nothing is pre-selected), approve,
     and the viewer completes the token exchange automatically.
 
@@ -432,6 +432,40 @@ paths:
       operationId: whoami
       security:
         - OAuth2: []
+      x-codeSamples:
+        - lang: curl
+          label: curl
+          source: |
+            curl -s https://api.sandbox.messpunkt.io/v1/whoami \
+              -H "Authorization: Bearer $TOKEN"
+        - lang: C#
+          label: C# (HttpClient)
+          source: |
+            using var http = new HttpClient();
+            http.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", accessToken);
+            var who = await http.GetFromJsonAsync<WhoAmI>(
+                "https://api.sandbox.messpunkt.io/v1/whoami");
+            Console.WriteLine($"{who.TenantName} — {who.PropertyScope.Count} property/ies");
+        - lang: TypeScript
+          label: TypeScript (fetch)
+          source: |
+            const res = await fetch(
+              "https://api.sandbox.messpunkt.io/v1/whoami",
+              { headers: { Authorization: `Bearer ${accessToken}` } }
+            );
+            const who = await res.json();
+            console.log(`${who.tenant_name} — ${who.property_scope.length} property/ies`);
+        - lang: Python
+          label: Python (httpx)
+          source: |
+            import httpx
+            r = httpx.get(
+                "https://api.sandbox.messpunkt.io/v1/whoami",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            r.raise_for_status()
+            print(r.json()["tenant_name"])
       responses:
         "200":
           description: OK
@@ -464,6 +498,37 @@ paths:
       operationId: listProperties
       security:
         - OAuth2: [read:units]
+      x-codeSamples:
+        - lang: curl
+          label: curl
+          source: |
+            curl -s https://api.sandbox.messpunkt.io/v1/properties \
+              -H "Authorization: Bearer $TOKEN"
+        - lang: C#
+          label: C# (HttpClient)
+          source: |
+            var page = await http.GetFromJsonAsync<PagedResult<Property>>(
+                "https://api.sandbox.messpunkt.io/v1/properties");
+            foreach (var p in page.Data)
+                Console.WriteLine($"{p.Name} ({p.UsageUnitCount} units)");
+        - lang: TypeScript
+          label: TypeScript (fetch)
+          source: |
+            const res = await fetch(
+              "https://api.sandbox.messpunkt.io/v1/properties",
+              { headers: { Authorization: `Bearer ${accessToken}` } }
+            );
+            const { data: properties } = await res.json();
+            properties.forEach(p => console.log(p.name, p.usage_unit_count));
+        - lang: Python
+          label: Python (httpx)
+          source: |
+            r = httpx.get(
+                "https://api.sandbox.messpunkt.io/v1/properties",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            for p in r.json()["data"]:
+                print(p["name"], p["usage_unit_count"])
       parameters:
         - $ref: "#/components/parameters/PageCursor"
         - $ref: "#/components/parameters/Limit"
@@ -735,6 +800,50 @@ paths:
       operationId: getUsageUnitConsumption
       security:
         - OAuth2: [read:readings]
+      x-codeSamples:
+        - lang: curl
+          label: curl
+          source: |
+            curl -s -H "Authorization: Bearer $TOKEN" \
+              "https://api.sandbox.messpunkt.io/v1/usage-units/$UNIT_ID/consumption?from=2026-01-01&to=2026-12-31&metric=water_warm"
+        - lang: C#
+          label: C# (HttpClient)
+          source: |
+            var url = $"https://api.sandbox.messpunkt.io/v1/usage-units/{unitId}" +
+                     "/consumption?from=2026-01-01&to=2026-12-31&metric=water_warm";
+            var doc = await http.GetFromJsonAsync<UsageUnitConsumption>(url);
+            foreach (var mp in doc.MeasuringPoints)
+            foreach (var seg in mp.Segments)
+            {
+                var delta = seg.Readings[^1].Value - seg.Readings[0].Value;
+                Console.WriteLine($"{mp.Metric} on {seg.Serial}: {delta:F3} {mp.Unit}");
+            }
+        - lang: TypeScript
+          label: TypeScript (fetch)
+          source: |
+            const url =
+              `https://api.sandbox.messpunkt.io/v1/usage-units/${unitId}` +
+              `/consumption?from=2026-01-01&to=2026-12-31&metric=water_warm`;
+            const doc = await (await fetch(url, {
+              headers: { Authorization: `Bearer ${accessToken}` }
+            })).json();
+            for (const mp of doc.measuring_points)
+              for (const seg of mp.segments) {
+                const [a, b] = seg.readings;
+                console.log(mp.metric, seg.serial, b.value - a.value, mp.unit);
+              }
+        - lang: Python
+          label: Python (httpx)
+          source: |
+            url = (
+                f"https://api.sandbox.messpunkt.io/v1/usage-units/{unit_id}"
+                "/consumption?from=2026-01-01&to=2026-12-31&metric=water_warm"
+            )
+            doc = httpx.get(url, headers={"Authorization": f"Bearer {access_token}"}).json()
+            for mp in doc["measuring_points"]:
+                for seg in mp["segments"]:
+                    a, b = seg["readings"]
+                    print(mp["metric"], seg["serial"], b["value"] - a["value"], mp["unit"])
       parameters:
         - name: from
           in: query

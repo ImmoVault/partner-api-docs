@@ -102,6 +102,7 @@
         <a href="../bruno/">Bruno</a>
         <span class="divider" aria-hidden="true"></span>
         <a href="./" class="current">Quickstart</a>
+        <a href="../sdk/">SDK</a>
         <a href="../changelog/">Changelog</a>
         <a href="../erp-api-openapi.yaml">OpenAPI YAML</a>
       </nav>
@@ -122,7 +123,7 @@
       <p class="lead">From zero to reading consumption data in four shell commands. Every step is copy-pasteable — pick a shell that has <code>curl</code>, <code>python3</code>, and <code>openssl</code> (macOS, Linux, or WSL).</p>
 
       <div class="note">
-        <strong>What you'll have at the end:</strong> an access token scoped to the demo landlord "Hausverwaltung Musterfrau GmbH", a list of their Properties, and a warm-water consumption read-out with the meter-replacement demo scenario.
+        <strong>What you'll have at the end:</strong> an access token scoped to the demo landlord "Musterhausverwaltung GmbH", a list of their Properties, and a warm-water consumption read-out with the meter-replacement demo scenario.
       </div>
 
       <h2><span class="step-num">1</span>Start the OAuth flow</h2>
@@ -167,7 +168,7 @@ echo "Access token (first 30 chars): ${TOKEN:0:30}..."</code></pre>
       <p>Returns:</p>
       <pre><code>{
   "tenant_id": "3e17ba96-ae04-4d3b-9986-9e56f0adbf3a",
-  "tenant_name": "Hausverwaltung Musterfrau GmbH",
+  "tenant_name": "Musterhausverwaltung GmbH",
   "client_id": "sandbox-demo-client",
   "granted_scopes": ["read:units", "read:devices", "read:readings"],
   "property_scope": ["6fb74d25-5517-4dcc-ae8b-0914579ab036"]

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>messpunkt.io Partner API — SDK & client generation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Generate a messpunkt.io Partner API client for C#, Java, TypeScript, Python, Go, PHP or Ruby from the OpenAPI 3.1 spec — copy-paste the command and you have a strongly-typed client in 30 seconds." />
+    <meta name="theme-color" content="#1e534a" />
+    <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+    <link rel="alternate icon" type="image/x-icon" href="../assets/favicon.ico" />
+    <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --brand-primary: #1e534a;
+        --brand-primary-hover: #16403a;
+        --brand-dark: #172636;
+        --brand-gray-bg: #eaf0f6;
+        --brand-gray-border: #d1d5dc;
+        --brand-accent: #f7fafa;
+        --brand-white: #ffffff;
+      }
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--brand-dark); background: var(--brand-white); line-height: 1.65; }
+
+      .topbar { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 24px; padding: 14px 28px; background: var(--brand-white); border-bottom: 1px solid var(--brand-gray-border); }
+      .topbar .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--brand-dark); }
+      .topbar .brand img { height: 28px; width: auto; display: block; }
+      .topbar .brand .subtitle { font-size: 13px; font-weight: 500; padding-left: 12px; border-left: 1px solid var(--brand-gray-border); line-height: 1; }
+      .topbar nav { display: flex; gap: 4px; margin-left: auto; align-items: center; flex-wrap: wrap; }
+      .topbar nav a { font-size: 13px; font-weight: 500; padding: 6px 12px; border-radius: 6px; color: var(--brand-dark); text-decoration: none; transition: background 0.15s; }
+      .topbar nav a:hover { background: var(--brand-accent); color: var(--brand-primary); }
+      .topbar nav a.current { background: var(--brand-primary); color: var(--brand-white); }
+      .topbar nav .divider { width: 1px; height: 18px; background: var(--brand-gray-border); margin: 0 6px; }
+
+      .preview-ribbon { background: var(--brand-accent); color: var(--brand-dark); border-bottom: 1px solid var(--brand-gray-border); padding: 10px 28px; font-size: 13px; line-height: 1.5; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+      .preview-ribbon .badge { background: var(--brand-primary); color: var(--brand-white); font-weight: 600; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
+      .preview-ribbon a { color: var(--brand-primary); font-weight: 500; text-decoration: none; border-bottom: 1px solid currentColor; }
+
+      main { max-width: 980px; margin: 0 auto; padding: 48px 28px 72px; }
+      h1 { font-size: 34px; line-height: 1.2; margin: 0 0 10px; letter-spacing: -0.015em; }
+      .lead { color: #3f4c5c; font-size: 17px; margin: 0 0 32px; max-width: 720px; }
+      h2 { font-size: 22px; margin: 48px 0 8px; letter-spacing: -0.005em; }
+      h3 { font-size: 15px; font-weight: 600; margin: 20px 0 8px; color: var(--brand-dark); }
+      p { margin: 0 0 14px; }
+      a { color: var(--brand-primary); }
+      a:hover { color: var(--brand-primary-hover); }
+      code { font-family: 'JetBrains Mono', monospace; font-size: 13px; background: var(--brand-gray-bg); padding: 1px 6px; border-radius: 4px; }
+      pre { position: relative; background: var(--brand-dark); color: #e8eef5; padding: 16px 18px; border-radius: 8px; overflow: auto; font-size: 13px; line-height: 1.55; margin: 10px 0 18px; }
+      pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+      .copy-btn { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.06); color: #e8eef5; border: 1px solid rgba(255,255,255,0.14); padding: 4px 10px; font-size: 11px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 4px; cursor: pointer; opacity: 0.5; transition: opacity 0.15s, background 0.15s, border-color 0.15s, color 0.15s; z-index: 2; }
+      pre:hover .copy-btn, .copy-btn:focus-visible { opacity: 1; }
+      .copy-btn:hover { background: rgba(255,255,255,0.16); }
+      .copy-btn:focus-visible { outline: none; border-color: rgba(255,255,255,0.4); }
+      .copy-btn.copied { opacity: 1; background: rgba(16,124,63,0.3); border-color: rgba(16,124,63,0.5); color: #a0d5a5; }
+      .note { background: var(--brand-accent); border-left: 3px solid var(--brand-primary); padding: 12px 16px; margin: 14px 0; font-size: 14px; border-radius: 4px; }
+      .note strong { color: var(--brand-primary); }
+
+      .lang-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 20px 0 30px; }
+      .lang-card { border: 1px solid var(--brand-gray-border); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; }
+      .lang-card .lang-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+      .lang-card .lang-name { font-weight: 600; font-size: 15px; }
+      .lang-card .lang-stack { font-size: 11px; color: #64748b; background: var(--brand-accent); padding: 2px 8px; border-radius: 999px; letter-spacing: 0.03em; }
+      .lang-card p { font-size: 13px; color: #64748b; margin: 0 0 10px; }
+      .lang-card pre { margin: 0; font-size: 12px; padding: 12px 14px; }
+
+      table { width: 100%; border-collapse: collapse; margin: 14px 0 24px; font-size: 14px; }
+      th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--brand-gray-border); vertical-align: top; }
+      th { font-weight: 600; background: var(--brand-accent); font-size: 13px; }
+
+      .site-footer { padding: 24px 28px; border-top: 1px solid var(--brand-gray-border); background: var(--brand-white); color: var(--brand-dark); font-size: 13px; line-height: 1.6; }
+      .site-footer .row { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; justify-content: space-between; max-width: 980px; margin: 0 auto; }
+      .site-footer a { color: var(--brand-primary); text-decoration: none; }
+      .site-footer .links { display: flex; gap: 18px; flex-wrap: wrap; }
+      .site-footer .muted { color: #64748b; }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="https://messpunkt.io/" target="_blank" rel="noopener">
+        <img src="../assets/messpunkt-quer.svg" alt="messpunkt.io" />
+        <span class="subtitle">Partner API · SDK</span>
+      </a>
+      <nav aria-label="Viewer switcher">
+        <a href="../">Home</a>
+        <a href="../reference/">Reference</a>
+        <span class="divider" aria-hidden="true"></span>
+        <a href="../swagger-ui/">Swagger UI</a>
+        <a href="../scalar/">Scalar</a>
+        <a href="../bruno/">Bruno</a>
+        <span class="divider" aria-hidden="true"></span>
+        <a href="../quickstart/">Quickstart</a>
+        <a href="./" class="current">SDK</a>
+        <a href="../changelog/">Changelog</a>
+        <a href="../erp-api-openapi.yaml">OpenAPI YAML</a>
+      </nav>
+    </header>
+
+    <div class="preview-ribbon">
+      <span class="badge">Preview</span>
+      <span>V1 in active development — target release <strong>Q2 2026</strong>. Become a pilot partner:
+        <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
+      </span>
+    </div>
+
+    <main>
+      <h1>SDK &amp; client generation</h1>
+      <p class="lead">Generate a strongly-typed client for the messpunkt.io Partner API from the <a href="../erp-api-openapi.yaml">OpenAPI 3.1 spec</a>. One command, any language your stack speaks — C#, Java, TypeScript, Python, Go, PHP, Ruby. First-party SDK packages on NuGet/npm/PyPI arrive with GA in Q2 2026.</p>
+
+      <div class="note">
+        <strong>Why generate instead of wait for us?</strong> Every generated client tracks the <em>exact</em> field names, types and enum values from the spec you see on this site. When we add a field, you regenerate — the compiler tells you where the new field is available. There is no drift between docs and client.
+      </div>
+
+      <h2>Recommended: OpenAPI Generator</h2>
+      <p>One CLI, dozens of target languages, maintained by the OpenAPI community. Install once, target anything.</p>
+      <pre><code># macOS / Linux
+brew install openapi-generator
+# or via npm (any OS)
+npm install -g @openapitools/openapi-generator-cli</code></pre>
+
+      <div class="lang-grid">
+        <div class="lang-card">
+          <div class="lang-head">
+            <span class="lang-name">C# / .NET</span>
+            <span class="lang-stack">HttpClient · System.Text.Json</span>
+          </div>
+          <p>Produces a NuGet-ready project with async methods, typed DTOs, and built-in OAuth support.</p>
+          <pre><code>openapi-generator-cli generate \
+  -i https://developer.messpunkt.io/erp-api-openapi.yaml \
+  -g csharp \
+  --additional-properties=targetFramework=net9.0,library=httpclient \
+  -o ./MesspunktPartnerApi</code></pre>
+        </div>
+
+        <div class="lang-card">
+          <div class="lang-head">
+            <span class="lang-name">TypeScript</span>
+            <span class="lang-stack">fetch · strict types</span>
+          </div>
+          <p>Types and runtime in one package. Works in Node, Deno, Bun and the browser.</p>
+          <pre><code>openapi-generator-cli generate \
+  -i https://developer.messpunkt.io/erp-api-openapi.yaml \
+  -g typescript-fetch \
+  -o ./messpunkt-partner-api</code></pre>
+        </div>
+
+        <div class="lang-card">
+          <div class="lang-head">
+            <span class="lang-name">Python</span>
+            <span class="lang-stack">urllib3 · pydantic</span>
+          </div>
+          <p>Type hints throughout, pydantic models for every schema, pytest-friendly.</p>
+          <pre><code>openapi-generator-cli generate \
+  -i https://developer.messpunkt.io/erp-api-openapi.yaml \
+  -g python \
+  -o ./messpunkt_partner_api</code></pre>
+        </div>
+
+        <div class="lang-card">
+          <div class="lang-head">
+            <span class="lang-name">Java</span>
+            <span class="lang-stack">OkHttp · Jackson</span>
+          </div>
+          <p>Maven-ready, Java 17+. Spring-Boot-friendly variants available via <code>-g spring</code>.</p>
+          <pre><code>openapi-generator-cli generate \
+  -i https://developer.messpunkt.io/erp-api-openapi.yaml \
+  -g java \
+  --additional-properties=library=okhttp-gson,dateLibrary=java8 \
+  -o ./messpunkt-partner-api</code></pre>
+        </div>
+
+        <div class="lang-card">
+          <div class="lang-head">
+            <span class="lang-name">Go</span>
+            <span class="lang-stack">net/http · Go modules</span>
+          </div>
+          <p>Module-aware, context-aware, zero-dependency runtime beyond the standard library.</p>
+          <pre><code>openapi-generator-cli generate \
+  -i https://developer.messpunkt.io/erp-api-openapi.yaml \
+  -g go \
+  -o ./messpunkt-partner-api</code></pre>
+        </div>
+
+        <div class="lang-card">
+          <div class="lang-head">
+            <span class="lang-name">PHP</span>
+            <span class="lang-stack">Guzzle · PSR-7</span>
+          </div>
+          <p>Composer-ready, PSR-4 autoloading, typed properties. PHP 8.1+.</p>
+          <pre><code>openapi-generator-cli generate \
+  -i https://developer.messpunkt.io/erp-api-openapi.yaml \
+  -g php \
+  -o ./messpunkt-partner-api</code></pre>
+        </div>
+      </div>
+
+      <h2>Alternative for .NET shops: NSwag</h2>
+      <p>If you prefer NSwag's code-generation style (inline in your build, no Java dependency), it's equally supported. Install as a dotnet tool or NuGet reference:</p>
+      <pre><code>dotnet tool install -g NSwag.ConsoleCore
+nswag openapi2csclient \
+  /input:https://developer.messpunkt.io/erp-api-openapi.yaml \
+  /classname:MesspunktClient \
+  /namespace:YourErp.Integrations.Messpunkt \
+  /output:MesspunktClient.cs</code></pre>
+      <p>Single-file output, no project scaffolding, easy to drop into an existing solution.</p>
+
+      <h2>Spec URLs you'll want</h2>
+      <table>
+        <thead>
+          <tr><th>URL</th><th>When to use</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code><a href="../erp-api-openapi.yaml">https://developer.messpunkt.io/erp-api-openapi.yaml</a></code></td>
+            <td>The canonical spec. Version field in the document tracks <code>1.0.0-rc.1</code>.</td>
+          </tr>
+          <tr>
+            <td><code>https://api.sandbox.messpunkt.io/v1</code></td>
+            <td>The sandbox base URL — what your generated client calls during integration testing.</td>
+          </tr>
+          <tr>
+            <td><code>https://auth.sandbox.messpunkt.io</code></td>
+            <td>The sandbox authorization server — OAuth flows here, not against the resource API.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>OAuth setup after generation</h2>
+      <p>Generators emit the HTTP layer, not the OAuth layer. You handle the token exchange once and inject the resulting access token into the generated client's default headers. See the <a href="../quickstart/">Quickstart</a> for the PKCE flow and the <a href="../dpop/">DPoP guide</a> when you move to production (production will require sender-constrained tokens; the sandbox accepts plain <code>Bearer</code>).</p>
+
+      <div class="note">
+        <strong>Token refresh is your client's responsibility.</strong> Access tokens last 1 h; wrap your generated client with a thin interceptor that refreshes before calls and retries <code>401</code> once. See the <a href="../errors/">Error-handling guide</a> for the exact action matrix.
+      </div>
+
+      <h2>Coming with GA</h2>
+      <p>For Q2 2026 we plan to publish first-party SDK packages on:</p>
+      <ul>
+        <li><strong>NuGet</strong> — <code>Messpunkt.PartnerApi</code></li>
+        <li><strong>npm</strong> — <code>@messpunkt/partner-api</code></li>
+        <li><strong>PyPI</strong> — <code>messpunkt-partner-api</code></li>
+      </ul>
+      <p>They will be thin wrappers on top of the OpenAPI-generated core, adding opinionated OAuth 2.1 helpers, automatic refresh handling, DPoP-proof generation, and typed error handling. Pilot partners can get pre-release builds by email.</p>
+    </main>
+
+    <footer class="site-footer">
+      <div class="row">
+        <div>
+          <strong>messpunkt.io Partner API</strong> · Preview · Target release Q2 2026
+          <div class="muted">© 2026 messpunkt.io — <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
+        </div>
+        <div class="links">
+          <a href="https://messpunkt.io/impressum" target="_blank" rel="noopener">Impressum</a>
+          <a href="https://messpunkt.io/datenschutz" target="_blank" rel="noopener">Datenschutz</a>
+          <a href="../.well-known/security.txt">Security</a>
+          <a href="../erp-api-openapi.yaml">OpenAPI 3.1 spec</a>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      document.querySelectorAll('pre').forEach(pre => {
+        if (pre.querySelector('.copy-btn')) return;
+        const btn = document.createElement('button');
+        btn.className = 'copy-btn';
+        btn.type = 'button';
+        btn.setAttribute('aria-label', 'Copy code to clipboard');
+        btn.textContent = 'Copy';
+        btn.addEventListener('click', async () => {
+          const code = pre.querySelector('code');
+          const text = (code ? code.innerText : pre.innerText).replace(/\s*$/, '');
+          try {
+            await navigator.clipboard.writeText(text);
+            btn.textContent = 'Copied';
+            btn.classList.add('copied');
+          } catch (err) {
+            btn.textContent = 'Error';
+          }
+          setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1600);
+        });
+        pre.appendChild(btn);
+      });
+    </script>
+  </body>
+</html>

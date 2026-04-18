@@ -20,7 +20,7 @@ and unzip it anywhere. In Bruno: **Open Collection** → pick the unzipped folde
 
 1. Click the collection name → **Auth** tab → **Get Access Token**.
    A browser opens, the sandbox consent screen shows the demo landlord
-   `Hausverwaltung Musterfrau GmbH`. Pick one or more Properties → **Approve**.
+   `Musterhausverwaltung GmbH`. Pick one or more Properties → **Approve**.
 2. Send `Whoami` — you should see the tenant name + granted scopes.
 3. Drill into any `List Properties` / `List Usage Units` / `Get Consumption …`
    request.

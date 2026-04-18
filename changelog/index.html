@@ -89,6 +89,7 @@
         <a href="../bruno/">Bruno</a>
         <span class="divider" aria-hidden="true"></span>
         <a href="../quickstart/">Quickstart</a>
+        <a href="../sdk/">SDK</a>
         <a href="./" class="current">Changelog</a>
         <a href="../erp-api-openapi.yaml">OpenAPI YAML</a>
       </nav>
@@ -104,6 +105,30 @@
     <main>
       <h1>Changelog</h1>
       <p class="lead">Release history of the messpunkt.io Partner API. We follow <a href="https://semver.org/" target="_blank" rel="noopener">Semantic Versioning</a> and use the category labels from <a href="https://keepachangelog.com/" target="_blank" rel="noopener">Keep a Changelog</a>.</p>
+
+      <section class="release">
+        <div class="release-header">
+          <span class="version">1.0.0-rc.2</span>
+          <span class="date">2026-04-18</span>
+          <span class="status rc">Release candidate</span>
+        </div>
+        <div class="change-group added">
+          <h3>Added</h3>
+          <ul>
+            <li>New <a href="../sdk/">SDK &amp; client generation</a> page with copy-ready commands for OpenAPI Generator (C#, TypeScript, Python, Java, Go, PHP) and NSwag</li>
+            <li>Per-endpoint <code>x-codeSamples</code> for curl, C#, TypeScript and Python on the three most-used operations (<code>whoami</code>, <code>listProperties</code>, <code>getUsageUnitConsumption</code>) — rendered automatically in Redoc and Scalar</li>
+          </ul>
+        </div>
+        <div class="change-group changed">
+          <h3>Changed</h3>
+          <ul>
+            <li>Sandbox tenant renamed from <code>Hausverwaltung Musterfrau GmbH</code> to <code>Musterhausverwaltung GmbH</code> — clearer, more business-like, still unambiguously fictional</li>
+            <li>Sandbox consent screen fully redesigned: German UX, action-verb permission descriptions, "Select all" Properties toggle, signed-in avatar, trust-building footer about revoke</li>
+            <li>Device serials are now pure numeric (8–10 digits) matching real WMBus format; <code>manufacturer</code> field remains the sole source of brand identity</li>
+            <li>Fixture addresses now use 34 realistic German street names across 14 mid-sized cities (Potsdam, Leipzig, Dresden, Hannover, Stuttgart, Freiburg, Kiel, Münster, Bremen, Erfurt, Augsburg, Karlsruhe, Regensburg, Nürnberg)</li>
+          </ul>
+        </div>
+      </section>
 
       <section class="release">
         <div class="release-header">
