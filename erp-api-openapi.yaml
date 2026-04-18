@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: messpunkt.io Partner API
-  version: "0.1.0-draft"
+  version: "1.0.0-rc.1"
   summary: |
     Partner-facing read API for consumption and meter data.
   description: |
@@ -10,7 +10,36 @@ info:
     This API lets property-management ERPs read consumption and meter-reading
     data from messpunkt.io on behalf of a landlord (Tenant).
 
-    **Status:** Preview · V1 in active development · **target release Q2 2026** · feedback from pilot partners explicitly invited.
+    **Status:** `1.0.0-rc.1` · V1 release candidate · **target GA Q2 2026** · feedback from pilot partners explicitly invited.
+
+    # API stability & versioning
+
+    messpunkt.io commits to the following contract for anything under `/v1`:
+
+    - **SemVer for the OpenAPI document** — `major.minor.patch`. The
+      current `version` string is always machine-readable at the top of
+      [erp-api-openapi.yaml](./erp-api-openapi.yaml).
+    - **No breaking changes within `/v1`.** Field removals, enum-value
+      removals, type changes and semantic shifts are **major-version**
+      changes that require a new path prefix (`/v2`). We run the previous
+      major in parallel for at least **6 months** after the new one GAs.
+    - **Deprecations are announced in writing.** Any field or endpoint we
+      intend to sunset will carry `deprecated: true` in the OpenAPI
+      document and emit a `Sunset: <RFC 8594 date>` header on affected
+      responses, with **at least 6 months overlap** before removal.
+    - **Additive changes are not breaking.** New fields on a response,
+      new optional query parameters, new endpoints, new scopes — these
+      ship in **minor** releases and do not require partner action.
+      Clients must ignore unknown fields.
+    - **Bug fixes, clarifications and documentation-only edits** are
+      **patch** releases.
+    - **Release candidate phase (current).** `1.0.0-rc.x` versions may
+      still adjust minor details based on pilot-partner feedback before
+      GA. Each change is documented in the [changelog](./changelog/);
+      we will never reshape core types (UsageUnit, MeasuringPoint,
+      DeviceSegment, Reading) at this point.
+
+    See [/changelog/](./changelog/) for the full release history.
 
     # Sandbox
 

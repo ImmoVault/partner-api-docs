@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>messpunkt.io Partner API — Changelog</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Release history and change log for the messpunkt.io Partner API." />
+    <meta name="theme-color" content="#1e534a" />
+    <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+    <link rel="alternate icon" type="image/x-icon" href="../assets/favicon.ico" />
+    <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --brand-primary: #1e534a;
+        --brand-primary-hover: #16403a;
+        --brand-dark: #172636;
+        --brand-gray-bg: #eaf0f6;
+        --brand-gray-border: #d1d5dc;
+        --brand-accent: #f7fafa;
+        --brand-white: #ffffff;
+        --added: #107c3f;
+        --changed: #b6791d;
+        --deprecated: #7a3b12;
+        --removed: #a3231a;
+      }
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--brand-dark); background: var(--brand-white); line-height: 1.6; }
+
+      .topbar { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 24px; padding: 14px 28px; background: var(--brand-white); border-bottom: 1px solid var(--brand-gray-border); }
+      .topbar .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--brand-dark); }
+      .topbar .brand img { height: 28px; width: auto; display: block; }
+      .topbar .brand .subtitle { font-size: 13px; font-weight: 500; padding-left: 12px; border-left: 1px solid var(--brand-gray-border); line-height: 1; }
+      .topbar nav { display: flex; gap: 4px; margin-left: auto; align-items: center; flex-wrap: wrap; }
+      .topbar nav a { font-size: 13px; font-weight: 500; padding: 6px 12px; border-radius: 6px; color: var(--brand-dark); text-decoration: none; transition: background 0.15s; }
+      .topbar nav a:hover { background: var(--brand-accent); color: var(--brand-primary); }
+      .topbar nav a.current { background: var(--brand-primary); color: var(--brand-white); }
+      .topbar nav .divider { width: 1px; height: 18px; background: var(--brand-gray-border); margin: 0 6px; }
+
+      .preview-ribbon { background: var(--brand-accent); color: var(--brand-dark); border-bottom: 1px solid var(--brand-gray-border); padding: 10px 28px; font-size: 13px; line-height: 1.5; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+      .preview-ribbon .badge { background: var(--brand-primary); color: var(--brand-white); font-weight: 600; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
+      .preview-ribbon a { color: var(--brand-primary); font-weight: 500; text-decoration: none; border-bottom: 1px solid currentColor; }
+
+      main { max-width: 860px; margin: 0 auto; padding: 48px 28px 72px; }
+      h1 { font-size: 32px; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.01em; }
+      .lead { color: #3f4c5c; font-size: 17px; margin: 0 0 32px; }
+      a { color: var(--brand-primary); }
+      a:hover { color: var(--brand-primary-hover); }
+
+      .release { border-left: 3px solid var(--brand-gray-border); padding: 4px 0 32px 24px; position: relative; }
+      .release::before { content: ''; position: absolute; left: -7px; top: 10px; width: 11px; height: 11px; border-radius: 50%; background: var(--brand-primary); border: 2px solid var(--brand-white); }
+      .release .release-header { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+      .release .version { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 18px; color: var(--brand-dark); }
+      .release .date { color: #64748b; font-size: 14px; }
+      .release .status { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; background: var(--brand-gray-bg); color: var(--brand-dark); }
+      .release .status.rc { background: var(--brand-accent); color: var(--brand-primary); }
+      .release .status.stable { background: #e6f4ea; color: var(--added); }
+
+      .change-group { margin: 14px 0; }
+      .change-group h3 { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 8px; }
+      .change-group h3::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+      .change-group.added h3 { color: var(--added); }
+      .change-group.changed h3 { color: var(--changed); }
+      .change-group.deprecated h3 { color: var(--deprecated); }
+      .change-group.removed h3 { color: var(--removed); }
+      .change-group ul { margin: 0 0 0 4px; padding-left: 18px; }
+      .change-group li { margin-bottom: 4px; }
+      .change-group code { font-family: 'JetBrains Mono', monospace; font-size: 13px; background: var(--brand-gray-bg); padding: 1px 6px; border-radius: 4px; }
+
+      .site-footer { padding: 24px 28px; border-top: 1px solid var(--brand-gray-border); background: var(--brand-white); color: var(--brand-dark); font-size: 13px; line-height: 1.6; }
+      .site-footer .row { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; justify-content: space-between; max-width: 860px; margin: 0 auto; }
+      .site-footer a { color: var(--brand-primary); text-decoration: none; }
+      .site-footer .links { display: flex; gap: 18px; flex-wrap: wrap; }
+      .site-footer .muted { color: #64748b; }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="https://messpunkt.io/" target="_blank" rel="noopener">
+        <img src="../assets/messpunkt-quer.svg" alt="messpunkt.io" />
+        <span class="subtitle">Partner API · Changelog</span>
+      </a>
+      <nav aria-label="Viewer switcher">
+        <a href="../">Home</a>
+        <a href="../reference/">Reference</a>
+        <span class="divider" aria-hidden="true"></span>
+        <a href="../swagger-ui/">Swagger UI</a>
+        <a href="../scalar/">Scalar</a>
+        <a href="../bruno/">Bruno</a>
+        <span class="divider" aria-hidden="true"></span>
+        <a href="../quickstart/">Quickstart</a>
+        <a href="./" class="current">Changelog</a>
+        <a href="../erp-api-openapi.yaml">OpenAPI YAML</a>
+      </nav>
+    </header>
+
+    <div class="preview-ribbon">
+      <span class="badge">Preview</span>
+      <span>V1 in active development — target release <strong>Q2 2026</strong>. Become a pilot partner:
+        <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
+      </span>
+    </div>
+
+    <main>
+      <h1>Changelog</h1>
+      <p class="lead">Release history of the messpunkt.io Partner API. We follow <a href="https://semver.org/" target="_blank" rel="noopener">Semantic Versioning</a> and use the category labels from <a href="https://keepachangelog.com/" target="_blank" rel="noopener">Keep a Changelog</a>.</p>
+
+      <section class="release">
+        <div class="release-header">
+          <span class="version">1.0.0-rc.1</span>
+          <span class="date">2026-04-18</span>
+          <span class="status rc">Release candidate</span>
+        </div>
+        <div class="change-group added">
+          <h3>Added</h3>
+          <ul>
+            <li>Live sandbox on <code>api.sandbox.messpunkt.io</code> + <code>auth.sandbox.messpunkt.io</code> with 3 Properties, 27 UsageUnits, 87 MeasuringPoints of synthetic data</li>
+            <li>Full OAuth 2.1 Authorization Code + PKCE flow with DPoP support on the sandbox</li>
+            <li>Refresh-token grant with family rotation + replay-detection (OAuth 2.1 §4.13)</li>
+            <li>Bruno collection (download zip from <a href="../bruno/">/bruno</a>) with 13 pre-configured requests</li>
+            <li>Per-IP rate limiting — 60 rpm on <code>/oauth/*</code>, 300 rpm on <code>/v1/*</code></li>
+            <li>OBIS-code section (IEC 62056-6-1, BDEW alignment) with per-metric mapping table</li>
+            <li>AI-ready artifacts: <a href="../llms.txt">llms.txt</a>, <a href="../.well-known/ai-plugin.json">.well-known/ai-plugin.json</a></li>
+            <li>RFC 9116 security.txt at <a href="../.well-known/security.txt">/.well-known/security.txt</a></li>
+            <li>Property-scope enforcement — returns <code>404</code> (not <code>403</code>) for out-of-scope resources to avoid scope enumeration</li>
+          </ul>
+        </div>
+        <div class="change-group changed">
+          <h3>Changed</h3>
+          <ul>
+            <li>Version bumped from <code>0.1.0-draft</code> to <code>1.0.0-rc.1</code>; formal stability contract documented in the Reference</li>
+            <li>Bumped Scalar CDN to <code>@1.52.2</code> (fixes OAuth scope-preselect bug upstream)</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="release">
+        <div class="release-header">
+          <span class="version">Pre-release sketches</span>
+          <span class="date">2026-02 – 2026-04</span>
+        </div>
+        <div class="change-group added">
+          <h3>Added</h3>
+          <ul>
+            <li>Initial OpenAPI 3.1 contract covering Introspection, Properties, Units, and Measuring points</li>
+            <li>Three viewer surfaces — Redoc Reference, Swagger UI, Scalar</li>
+            <li>Canonical data-model documentation (Tenant → Property → UsageUnit → Sector → MeasuringPoint → Device → MeterReading)</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="row">
+        <div>
+          <strong>messpunkt.io Partner API</strong> · Preview · Target release Q2 2026
+          <div class="muted">© 2026 messpunkt.io — <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
+        </div>
+        <div class="links">
+          <a href="https://messpunkt.io/impressum" target="_blank" rel="noopener">Impressum</a>
+          <a href="https://messpunkt.io/datenschutz" target="_blank" rel="noopener">Datenschutz</a>
+          <a href="../.well-known/security.txt">Security</a>
+          <a href="../erp-api-openapi.yaml">OpenAPI 3.1 spec</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
