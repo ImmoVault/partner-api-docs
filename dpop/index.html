@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>messpunkt.io Partner API — DPoP guide</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Working DPoP proof-of-possession code for the messpunkt.io Partner API in curl+jose, C#, Node.js, and Python." />
+    <meta name="theme-color" content="#1e534a" />
+    <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+    <link rel="alternate icon" type="image/x-icon" href="../assets/favicon.ico" />
+    <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --brand-primary: #1e534a;
+        --brand-primary-hover: #16403a;
+        --brand-dark: #172636;
+        --brand-gray-bg: #eaf0f6;
+        --brand-gray-border: #d1d5dc;
+        --brand-accent: #f7fafa;
+        --brand-white: #ffffff;
+      }
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--brand-dark); background: var(--brand-white); line-height: 1.65; }
+
+      .topbar { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 24px; padding: 14px 28px; background: var(--brand-white); border-bottom: 1px solid var(--brand-gray-border); }
+      .topbar .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--brand-dark); }
+      .topbar .brand img { height: 28px; width: auto; display: block; }
+      .topbar .brand .subtitle { font-size: 13px; font-weight: 500; padding-left: 12px; border-left: 1px solid var(--brand-gray-border); line-height: 1; }
+      .topbar nav { display: flex; gap: 4px; margin-left: auto; align-items: center; flex-wrap: wrap; }
+      .topbar nav a { font-size: 13px; font-weight: 500; padding: 6px 12px; border-radius: 6px; color: var(--brand-dark); text-decoration: none; transition: background 0.15s; }
+      .topbar nav a:hover { background: var(--brand-accent); color: var(--brand-primary); }
+      .topbar nav a.current { background: var(--brand-primary); color: var(--brand-white); }
+      .topbar nav .divider { width: 1px; height: 18px; background: var(--brand-gray-border); margin: 0 6px; }
+
+      .preview-ribbon { background: var(--brand-accent); color: var(--brand-dark); border-bottom: 1px solid var(--brand-gray-border); padding: 10px 28px; font-size: 13px; line-height: 1.5; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+      .preview-ribbon .badge { background: var(--brand-primary); color: var(--brand-white); font-weight: 600; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
+      .preview-ribbon a { color: var(--brand-primary); font-weight: 500; text-decoration: none; border-bottom: 1px solid currentColor; }
+
+      main { max-width: 900px; margin: 0 auto; padding: 48px 28px 72px; }
+      h1 { font-size: 32px; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.01em; }
+      .lead { color: #3f4c5c; font-size: 17px; margin: 0 0 32px; max-width: 720px; }
+      h2 { font-size: 22px; margin: 40px 0 12px; letter-spacing: -0.005em; }
+      h3 { font-size: 16px; margin: 24px 0 10px; }
+      p { margin: 0 0 14px; }
+      a { color: var(--brand-primary); }
+      code { font-family: 'JetBrains Mono', monospace; font-size: 13px; background: var(--brand-gray-bg); padding: 1px 6px; border-radius: 4px; }
+      pre { background: var(--brand-dark); color: #e8eef5; padding: 14px 16px; border-radius: 8px; overflow: auto; font-size: 13px; line-height: 1.55; margin: 10px 0 18px; }
+      pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+
+      .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--brand-gray-border); margin: 24px 0 0; }
+      .tab-button { background: none; border: none; padding: 10px 16px; font-family: inherit; font-size: 14px; font-weight: 500; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s; }
+      .tab-button:hover { color: var(--brand-primary); }
+      .tab-button.active { color: var(--brand-primary); border-bottom-color: var(--brand-primary); }
+      .tab-panel { display: none; padding-top: 8px; }
+      .tab-panel.active { display: block; }
+
+      .note { background: var(--brand-accent); border-left: 3px solid var(--brand-primary); padding: 12px 16px; margin: 14px 0; font-size: 14px; border-radius: 4px; }
+
+      table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 14px; }
+      th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--brand-gray-border); vertical-align: top; }
+      th { font-weight: 600; background: var(--brand-accent); }
+
+      .site-footer { padding: 24px 28px; border-top: 1px solid var(--brand-gray-border); background: var(--brand-white); color: var(--brand-dark); font-size: 13px; line-height: 1.6; }
+      .site-footer .row { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; justify-content: space-between; max-width: 900px; margin: 0 auto; }
+      .site-footer a { color: var(--brand-primary); text-decoration: none; }
+      .site-footer .links { display: flex; gap: 18px; flex-wrap: wrap; }
+      .site-footer .muted { color: #64748b; }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="https://messpunkt.io/" target="_blank" rel="noopener">
+        <img src="../assets/messpunkt-quer.svg" alt="messpunkt.io" />
+        <span class="subtitle">Partner API · DPoP</span>
+      </a>
+      <nav aria-label="Viewer switcher">
+        <a href="../">Home</a>
+        <a href="../reference/">Reference</a>
+        <span class="divider" aria-hidden="true"></span>
+        <a href="../swagger-ui/">Swagger UI</a>
+        <a href="../scalar/">Scalar</a>
+        <a href="../bruno/">Bruno</a>
+        <span class="divider" aria-hidden="true"></span>
+        <a href="../quickstart/">Quickstart</a>
+        <a href="../changelog/">Changelog</a>
+        <a href="../erp-api-openapi.yaml">OpenAPI YAML</a>
+      </nav>
+    </header>
+
+    <div class="preview-ribbon">
+      <span class="badge">Preview</span>
+      <span>V1 in active development — target release <strong>Q2 2026</strong>. Become a pilot partner:
+        <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
+      </span>
+    </div>
+
+    <main>
+      <h1>DPoP — proof of possession</h1>
+      <p class="lead">The messpunkt.io production API will require <a href="https://datatracker.ietf.org/doc/html/rfc9449" target="_blank" rel="noopener">DPoP (RFC 9449)</a> on every request. A stolen access token is useless without the private key the token is bound to. The sandbox currently accepts plain <code>Bearer</code> tokens as well, so Swagger UI and curl work without extra setup — but partners should implement DPoP before GA.</p>
+
+      <h2>What DPoP does in one paragraph</h2>
+      <p>Your client generates an ECDSA (ES256) or RSA (RS256) key pair once and keeps it in memory or a secure store. On every API call, you sign a short-lived JWT — the <em>DPoP proof</em> — that contains the HTTP method, full URL, a unique <code>jti</code>, and the current timestamp. You send it in a <code>DPoP</code> header alongside the access token. The server checks the signature against the public-key thumbprint bound into the access token (<code>cnf.jkt</code> claim). If they match, the request is authentic.</p>
+
+      <h2>Request shape</h2>
+      <pre><code>GET /v1/whoami HTTP/2
+Host: api.sandbox.messpunkt.io
+Authorization: DPoP eyJhbGciOiJSUzI1NiIs...   ← the access token
+DPoP: eyJ0eXAiOiJkcG9wK2p3dCIsImFsZy...       ← the proof, a separate JWT</code></pre>
+
+      <h2>Proof contents</h2>
+      <table>
+        <tr><th>Header</th><th>Value</th></tr>
+        <tr><td><code>typ</code></td><td><code>dpop+jwt</code></td></tr>
+        <tr><td><code>alg</code></td><td><code>ES256</code> (recommended) or <code>RS256</code></td></tr>
+        <tr><td><code>jwk</code></td><td>The public key in JWK form</td></tr>
+        <tr><th>Claim</th><th>Value</th></tr>
+        <tr><td><code>jti</code></td><td>Random UUID — unique per request</td></tr>
+        <tr><td><code>htm</code></td><td>Request method, e.g. <code>GET</code></td></tr>
+        <tr><td><code>htu</code></td><td>Request URL without query string, e.g. <code>https://api.sandbox.messpunkt.io/v1/whoami</code></td></tr>
+        <tr><td><code>iat</code></td><td>Current Unix time (seconds)</td></tr>
+        <tr><td><code>ath</code></td><td>Base64url(SHA-256(access_token)) — access-token hash</td></tr>
+      </table>
+
+      <h2>Working code</h2>
+      <p>Same request, four languages. Pick your stack, copy, adapt.</p>
+
+      <div class="tabs" role="tablist">
+        <button class="tab-button active" role="tab" data-tab="csharp">C# / .NET</button>
+        <button class="tab-button" role="tab" data-tab="nodejs">Node.js</button>
+        <button class="tab-button" role="tab" data-tab="python">Python</button>
+        <button class="tab-button" role="tab" data-tab="curl">curl + jose</button>
+      </div>
+
+      <div class="tab-panel active" id="tab-csharp">
+<pre><code>// dotnet add package Microsoft.IdentityModel.JsonWebTokens
+using System.Security.Cryptography;
+using System.Text;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
+
+var ec  = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+var key = new ECDsaSecurityKey(ec);
+var jwk = JsonWebKeyConverter.ConvertFromECDsaSecurityKey(key);
+jwk.Use = "sig"; jwk.Alg = "ES256";
+
+string Proof(string method, string url, string accessToken)
+{
+    using var sha = SHA256.Create();
+    var ath = Base64UrlEncoder.Encode(
+        sha.ComputeHash(Encoding.UTF8.GetBytes(accessToken)));
+
+    var descriptor = new SecurityTokenDescriptor {
+        Claims = new Dictionary&lt;string, object&gt; {
+            ["jti"] = Guid.NewGuid().ToString("N"),
+            ["htm"] = method,
+            ["htu"] = url,
+            ["iat"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+            ["ath"] = ath,
+        },
+        SigningCredentials = new SigningCredentials(
+            key, SecurityAlgorithms.EcdsaSha256),
+        TokenType = "dpop+jwt",
+        AdditionalHeaderClaims = new Dictionary&lt;string, object&gt; {
+            ["jwk"] = new { kty = jwk.Kty, crv = jwk.Crv, x = jwk.X, y = jwk.Y }
+        },
+    };
+    return new JsonWebTokenHandler().CreateToken(descriptor);
+}
+
+var method = HttpMethod.Get;
+var url    = "https://api.sandbox.messpunkt.io/v1/whoami";
+var accessToken = "...";  // from /oauth/token
+
+var req = new HttpRequestMessage(method, url);
+req.Headers.Add("Authorization", $"DPoP {accessToken}");
+req.Headers.Add("DPoP", Proof(method.Method, url, accessToken));
+
+var http = new HttpClient();
+var res  = await http.SendAsync(req);
+Console.WriteLine(await res.Content.ReadAsStringAsync());</code></pre>
+      </div>
+
+      <div class="tab-panel" id="tab-nodejs">
+<pre><code>// npm i jose
+import { generateKeyPair, SignJWT, exportJWK, calculateJwkThumbprint } from 'jose';
+import { createHash, randomUUID } from 'crypto';
+
+const { privateKey, publicKey } = await generateKeyPair('ES256', { extractable: true });
+const publicJwk = await exportJWK(publicKey);
+publicJwk.alg = 'ES256';
+
+async function dpopProof(method, url, accessToken) {
+  const ath = createHash('sha256').update(accessToken).digest('base64url');
+
+  return await new SignJWT({
+      jti: randomUUID(),
+      htm: method,
+      htu: url,
+      iat: Math.floor(Date.now() / 1000),
+      ath,
+    })
+    .setProtectedHeader({ alg: 'ES256', typ: 'dpop+jwt', jwk: publicJwk })
+    .sign(privateKey);
+}
+
+const accessToken = '...';  // from /oauth/token
+const url    = 'https://api.sandbox.messpunkt.io/v1/whoami';
+const proof  = await dpopProof('GET', url, accessToken);
+
+const res = await fetch(url, {
+  headers: {
+    Authorization: `DPoP ${accessToken}`,
+    DPoP: proof,
+  },
+});
+console.log(await res.json());</code></pre>
+      </div>
+
+      <div class="tab-panel" id="tab-python">
+<pre><code># pip install authlib httpx
+from authlib.jose import JsonWebKey, jwt
+from cryptography.hazmat.primitives.asymmetric import ec
+from hashlib import sha256
+import base64, time, uuid, httpx
+
+priv = ec.generate_private_key(ec.SECP256R1())
+jwk_priv = JsonWebKey.import_key(
+    priv.private_bytes_raw() if False else priv, {"kty": "EC", "crv": "P-256", "alg": "ES256", "use": "sig"})
+jwk_pub  = jwk_priv.as_dict(is_private=False)
+
+def dpop_proof(method: str, url: str, access_token: str) -> str:
+    ath = base64.urlsafe_b64encode(sha256(access_token.encode()).digest()).rstrip(b"=").decode()
+    header = {"typ": "dpop+jwt", "alg": "ES256", "jwk": jwk_pub}
+    payload = {
+        "jti": str(uuid.uuid4()),
+        "htm": method,
+        "htu": url,
+        "iat": int(time.time()),
+        "ath": ath,
+    }
+    return jwt.encode(header, payload, jwk_priv).decode()
+
+url = "https://api.sandbox.messpunkt.io/v1/whoami"
+access_token = "..."  # from /oauth/token
+
+r = httpx.get(url, headers={
+    "Authorization": f"DPoP {access_token}",
+    "DPoP": dpop_proof("GET", url, access_token),
+})
+print(r.json())</code></pre>
+      </div>
+
+      <div class="tab-panel" id="tab-curl">
+<pre><code># needs: openssl, jose-util (https://github.com/latchset/jose) or step-cli
+
+# 1. one-time key generation
+jose jwk gen -i '{"alg":"ES256"}' -o priv.jwk
+jose jwk pub -i priv.jwk -o pub.jwk
+
+# 2. per-request proof (swap ACCESS, URL, METHOD)
+ACCESS="eyJhbGciOi..."
+URL="https://api.sandbox.messpunkt.io/v1/whoami"
+METHOD="GET"
+
+ATH=$(printf "%s" "$ACCESS" | openssl dgst -binary -sha256 \
+  | openssl base64 | tr -d '=' | tr '/+' '_-')
+
+PAYLOAD=$(jq -c -n \
+  --arg jti "$(uuidgen)" --arg htm "$METHOD" --arg htu "$URL" \
+  --arg ath "$ATH" --argjson iat "$(date +%s)" \
+  '{jti:$jti, htm:$htm, htu:$htu, iat:$iat, ath:$ath}')
+
+HEADER=$(jq -c -n --slurpfile jwk pub.jwk \
+  '{typ:"dpop+jwt", alg:"ES256", jwk:$jwk[0]}')
+
+PROOF=$(jose jws sig -I &lt;(echo "$PAYLOAD") -k priv.jwk \
+  -s "$HEADER" -c -o -)
+
+curl -H "Authorization: DPoP $ACCESS" -H "DPoP: $PROOF" "$URL"</code></pre>
+      </div>
+
+      <h2>Token-endpoint DPoP</h2>
+      <p>The production <code>/oauth/token</code> endpoint will additionally require a DPoP proof when you <em>exchange the code or refresh token</em>. The proof has the same shape minus <code>ath</code>, and the returned access token will carry a <code>cnf.jkt</code> claim bound to the same key. Sandbox currently skips this.</p>
+
+      <h2>Common pitfalls</h2>
+      <ul>
+        <li><strong>Clock skew.</strong> <code>iat</code> must be within ±60&nbsp;seconds of the server clock. Use NTP. Don't reuse a proof from a paused debugger session.</li>
+        <li><strong>URL mismatch.</strong> <code>htu</code> is the target URL <em>without</em> query string and without port when default. <code>https://api.sandbox.messpunkt.io/v1/whoami</code>, not <code>https://api.sandbox.messpunkt.io:443/v1/whoami</code>.</li>
+        <li><strong>Key reuse across processes.</strong> If your app scales horizontally, every instance must either share the key or register its own public key with the authorization server. The token is bound to a specific key thumbprint.</li>
+        <li><strong>Replay window.</strong> Each <code>jti</code> must be unique within a 5-minute window. Always use <code>uuid.v4()</code>.</li>
+        <li><strong>ES256 vs RS256.</strong> Prefer ES256 (smaller proofs, faster sign). Only use RS256 if your HSM or legacy crypto library forces it.</li>
+      </ul>
+
+      <h2>Next</h2>
+      <div class="note">
+        Bruno, Swagger UI, and Scalar do not generate DPoP proofs out of the box. Use the sandbox's <strong>plain Bearer</strong> mode for interactive exploration, and implement DPoP for server-to-server integration. Our production requirement will be announced at least 3 months before it's enforced.
+      </div>
+      <p>See also: <a href="../errors/">Error handling</a> · <a href="../quickstart/">Quickstart</a> · <a href="../reference/">Full API reference</a></p>
+    </main>
+
+    <footer class="site-footer">
+      <div class="row">
+        <div>
+          <strong>messpunkt.io Partner API</strong> · Preview · Target release Q2 2026
+          <div class="muted">© 2026 messpunkt.io — <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
+        </div>
+        <div class="links">
+          <a href="https://messpunkt.io/impressum" target="_blank" rel="noopener">Impressum</a>
+          <a href="https://messpunkt.io/datenschutz" target="_blank" rel="noopener">Datenschutz</a>
+          <a href="../.well-known/security.txt">Security</a>
+          <a href="../erp-api-openapi.yaml">OpenAPI 3.1 spec</a>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>messpunkt.io Partner API — Error handling</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Every status code the messpunkt.io Partner API emits, what it means, whether to retry, and what the recommended client action is." />
+    <meta name="theme-color" content="#1e534a" />
+    <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+    <link rel="alternate icon" type="image/x-icon" href="../assets/favicon.ico" />
+    <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --brand-primary: #1e534a;
+        --brand-primary-hover: #16403a;
+        --brand-dark: #172636;
+        --brand-gray-bg: #eaf0f6;
+        --brand-gray-border: #d1d5dc;
+        --brand-accent: #f7fafa;
+        --brand-white: #ffffff;
+        --ok: #107c3f;
+        --warn: #b6791d;
+        --err: #a3231a;
+      }
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--brand-dark); background: var(--brand-white); line-height: 1.65; }
+
+      .topbar { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 24px; padding: 14px 28px; background: var(--brand-white); border-bottom: 1px solid var(--brand-gray-border); }
+      .topbar .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--brand-dark); }
+      .topbar .brand img { height: 28px; width: auto; display: block; }
+      .topbar .brand .subtitle { font-size: 13px; font-weight: 500; padding-left: 12px; border-left: 1px solid var(--brand-gray-border); line-height: 1; }
+      .topbar nav { display: flex; gap: 4px; margin-left: auto; align-items: center; flex-wrap: wrap; }
+      .topbar nav a { font-size: 13px; font-weight: 500; padding: 6px 12px; border-radius: 6px; color: var(--brand-dark); text-decoration: none; transition: background 0.15s; }
+      .topbar nav a:hover { background: var(--brand-accent); color: var(--brand-primary); }
+      .topbar nav a.current { background: var(--brand-primary); color: var(--brand-white); }
+      .topbar nav .divider { width: 1px; height: 18px; background: var(--brand-gray-border); margin: 0 6px; }
+
+      .preview-ribbon { background: var(--brand-accent); color: var(--brand-dark); border-bottom: 1px solid var(--brand-gray-border); padding: 10px 28px; font-size: 13px; line-height: 1.5; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+      .preview-ribbon .badge { background: var(--brand-primary); color: var(--brand-white); font-weight: 600; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
+      .preview-ribbon a { color: var(--brand-primary); font-weight: 500; text-decoration: none; border-bottom: 1px solid currentColor; }
+
+      main { max-width: 960px; margin: 0 auto; padding: 48px 28px 72px; }
+      h1 { font-size: 32px; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.01em; }
+      .lead { color: #3f4c5c; font-size: 17px; margin: 0 0 32px; max-width: 720px; }
+      h2 { font-size: 22px; margin: 40px 0 12px; letter-spacing: -0.005em; }
+      p { margin: 0 0 14px; }
+      a { color: var(--brand-primary); }
+      code { font-family: 'JetBrains Mono', monospace; font-size: 13px; background: var(--brand-gray-bg); padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
+      pre { background: var(--brand-dark); color: #e8eef5; padding: 14px 16px; border-radius: 8px; overflow: auto; font-size: 13px; line-height: 1.55; }
+      pre code { background: none; padding: 0; color: inherit; white-space: pre; }
+
+      table { width: 100%; border-collapse: collapse; margin: 16px 0 24px; font-size: 14px; }
+      th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--brand-gray-border); vertical-align: top; }
+      th { font-weight: 600; background: var(--brand-accent); font-size: 13px; letter-spacing: 0.01em; }
+      td.status code { font-weight: 600; }
+      td.retry { text-align: center; }
+      .pill { display: inline-flex; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: 0.03em; }
+      .pill.yes { background: #e6f4ea; color: var(--ok); }
+      .pill.no { background: #fde8e7; color: var(--err); }
+      .pill.cond { background: #fdf3d8; color: var(--warn); }
+
+      .note { background: var(--brand-accent); border-left: 3px solid var(--brand-primary); padding: 12px 16px; margin: 14px 0; font-size: 14px; border-radius: 4px; }
+
+      .site-footer { padding: 24px 28px; border-top: 1px solid var(--brand-gray-border); background: var(--brand-white); color: var(--brand-dark); font-size: 13px; line-height: 1.6; }
+      .site-footer .row { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; justify-content: space-between; max-width: 960px; margin: 0 auto; }
+      .site-footer a { color: var(--brand-primary); text-decoration: none; }
+      .site-footer .links { display: flex; gap: 18px; flex-wrap: wrap; }
+      .site-footer .muted { color: #64748b; }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="https://messpunkt.io/" target="_blank" rel="noopener">
+        <img src="../assets/messpunkt-quer.svg" alt="messpunkt.io" />
+        <span class="subtitle">Partner API · Error handling</span>
+      </a>
+      <nav aria-label="Viewer switcher">
+        <a href="../">Home</a>
+        <a href="../reference/">Reference</a>
+        <span class="divider" aria-hidden="true"></span>
+        <a href="../swagger-ui/">Swagger UI</a>
+        <a href="../scalar/">Scalar</a>
+        <a href="../bruno/">Bruno</a>
+        <span class="divider" aria-hidden="true"></span>
+        <a href="../quickstart/">Quickstart</a>
+        <a href="../changelog/">Changelog</a>
+        <a href="../erp-api-openapi.yaml">OpenAPI YAML</a>
+      </nav>
+    </header>
+
+    <div class="preview-ribbon">
+      <span class="badge">Preview</span>
+      <span>V1 in active development — target release <strong>Q2 2026</strong>. Become a pilot partner:
+        <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
+      </span>
+    </div>
+
+    <main>
+      <h1>Error handling</h1>
+      <p class="lead">Every error response follows <a href="https://datatracker.ietf.org/doc/html/rfc7807" target="_blank" rel="noopener">RFC 7807</a> (<code>application/problem+json</code>). This page lists every status code the API emits, whether the client should retry, and what action is appropriate.</p>
+
+      <h2>Response shape</h2>
+      <pre><code>HTTP/2 404
+content-type: application/problem+json
+
+{
+  "type":      "https://api.sandbox.messpunkt.io/errors/resource-not-found",
+  "title":     "Resource not found",
+  "status":    404,
+  "detail":    "Property d490d09c-46cc-498e-a9ac-e031dd2402d2 not found in this Tenant's scope",
+  "trace_id":  "e9048b1072c8443b"
+}</code></pre>
+      <p><code>type</code> is a stable identifier you can branch on in code; <code>title</code> is human-readable but may be localised in the future; <code>trace_id</code> is the single best thing to include when you open a support ticket.</p>
+
+      <h2>Status-code matrix</h2>
+      <p>Applies to all <code>/v1/*</code> data endpoints. OAuth endpoints (<code>/oauth/*</code>) use the OAuth 2.0 error format (RFC 6749 §5.2) — see the OAuth table below.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th><code>type</code> suffix</th>
+            <th>Retryable?</th>
+            <th>Recommended client action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="status"><code>400</code></td>
+            <td><code>invalid-request</code></td>
+            <td class="retry"><span class="pill no">No</span></td>
+            <td>Malformed request — missing required query parameter, bad date format, etc. Fix the request, do not retry.</td>
+          </tr>
+          <tr>
+            <td class="status"><code>401</code></td>
+            <td><code>invalid-token</code></td>
+            <td class="retry"><span class="pill cond">After refresh</span></td>
+            <td>Access token missing, expired, or malformed. Refresh the token via <code>grant_type=refresh_token</code> and retry once. If refresh also fails, restart the authorization flow.</td>
+          </tr>
+          <tr>
+            <td class="status"><code>401</code></td>
+            <td><code>invalid-dpop-proof</code></td>
+            <td class="retry"><span class="pill no">No</span></td>
+            <td>DPoP proof failed validation (wrong <code>htu</code>/<code>htm</code>, clock skew, reused <code>jti</code>, missing <code>cnf.jkt</code> match). Fix the proof generation — see the <a href="../dpop/">DPoP guide</a>.</td>
+          </tr>
+          <tr>
+            <td class="status"><code>403</code></td>
+            <td><code>insufficient-scope</code></td>
+            <td class="retry"><span class="pill no">No</span></td>
+            <td>Token is valid but lacks a scope required for this endpoint (e.g. calling a <code>read:readings</code> endpoint with only <code>read:units</code>). Re-authorize requesting the missing scope.</td>
+          </tr>
+          <tr>
+            <td class="status"><code>404</code></td>
+            <td><code>resource-not-found</code></td>
+            <td class="retry"><span class="pill no">No</span></td>
+            <td>Either the resource doesn't exist, <strong>or it exists but is outside your Property scope</strong>. The API deliberately does not distinguish these — see <em>Property scope</em> in the Reference. Treat <code>404</code> on a previously-known ID as "access revoked"; refresh your Property list via <code>/whoami</code> and re-fetch <code>/properties</code>.</td>
+          </tr>
+          <tr>
+            <td class="status"><code>422</code></td>
+            <td><code>validation-failed</code></td>
+            <td class="retry"><span class="pill no">No</span></td>
+            <td>Query was well-formed but semantically invalid (<code>from</code> after <code>to</code>, unknown <code>metric</code> value). Response includes a field-level breakdown. Fix and do not retry.</td>
+          </tr>
+          <tr>
+            <td class="status"><code>429</code></td>
+            <td><code>too-many-requests</code></td>
+            <td class="retry"><span class="pill yes">Yes</span></td>
+            <td>Rate limit exceeded. Honour the <code>Retry-After</code> header (seconds). Use exponential backoff for bursty loads — see <em>Retry strategy</em> below.</td>
+          </tr>
+          <tr>
+            <td class="status"><code>500</code></td>
+            <td><code>internal-error</code></td>
+            <td class="retry"><span class="pill yes">Yes</span></td>
+            <td>Unexpected server error. Retry with exponential backoff. Include <code>trace_id</code> if you escalate.</td>
+          </tr>
+          <tr>
+            <td class="status"><code>502</code> / <code>503</code> / <code>504</code></td>
+            <td><em>(platform-level)</em></td>
+            <td class="retry"><span class="pill yes">Yes</span></td>
+            <td>Gateway or cold-start transient. Retry with exponential backoff. Usually resolves within a few seconds.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>OAuth endpoint errors</h2>
+      <p>The <code>/oauth/authorize</code> and <code>/oauth/token</code> endpoints follow RFC 6749 §5.2 — a flat <code>{"error": "...", "error_description": "..."}</code> body:</p>
+      <table>
+        <thead>
+          <tr>
+            <th><code>error</code></th>
+            <th>Meaning</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>invalid_request</code></td>
+            <td>Missing or malformed parameter on the request.</td>
+            <td>Fix and retry.</td>
+          </tr>
+          <tr>
+            <td><code>invalid_client</code></td>
+            <td>Unknown <code>client_id</code>, or client_id mismatch between the authorization code and the token request.</td>
+            <td>Fix client config. Do not retry the same request.</td>
+          </tr>
+          <tr>
+            <td><code>invalid_grant</code></td>
+            <td>Authorization code is expired, wrong <code>redirect_uri</code>, PKCE verifier doesn't match, refresh token is replayed or the session was revoked.</td>
+            <td><strong>Restart the authorization flow</strong> — do not retry. If this happened on refresh, the refresh-token family was revoked: the user must re-consent.</td>
+          </tr>
+          <tr>
+            <td><code>invalid_scope</code></td>
+            <td>Requested a scope that's not in the original grant (refresh-time scope narrowing only).</td>
+            <td>Request a subset of the original scopes, or re-authorize to widen.</td>
+          </tr>
+          <tr>
+            <td><code>unsupported_grant_type</code></td>
+            <td>Only <code>authorization_code</code> and <code>refresh_token</code> are supported.</td>
+            <td>Fix the request.</td>
+          </tr>
+          <tr>
+            <td><code>invalid_redirect_uri</code></td>
+            <td>The <code>redirect_uri</code> is not on the allow-list for this <code>client_id</code>.</td>
+            <td>Use a registered redirect URI, or contact us to register a new one.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Retry strategy</h2>
+      <p>For <code>429</code> and <code>5xx</code> responses, use exponential backoff with jitter:</p>
+      <ul>
+        <li><strong>Attempt 1:</strong> wait max(<code>Retry-After</code>, 1&nbsp;s)</li>
+        <li><strong>Attempt 2:</strong> wait 2&nbsp;s ± 500&nbsp;ms random jitter</li>
+        <li><strong>Attempt 3:</strong> 4&nbsp;s ± 1&nbsp;s</li>
+        <li><strong>Attempt 4:</strong> 8&nbsp;s ± 2&nbsp;s</li>
+        <li><strong>Attempt 5:</strong> 16&nbsp;s ± 4&nbsp;s</li>
+        <li><strong>Stop at 5 retries.</strong> Log <code>trace_id</code>, surface a user-facing message, and continue.</li>
+      </ul>
+      <div class="note">
+        Never retry <strong>non-idempotent</strong> operations without explicit idempotency keys. V1 is read-only, so every operation is safe — but plan the pattern now for when write endpoints ship.
+      </div>
+
+      <h2>Getting help</h2>
+      <p>When you open a support ticket, always include:</p>
+      <ol>
+        <li>The <code>trace_id</code> from the response body</li>
+        <li>The UTC timestamp of the request</li>
+        <li>Your <code>client_id</code></li>
+        <li>The HTTP method + path (without secrets)</li>
+      </ol>
+      <p>Email: <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Error">kontakt@messpunkt.io</a> — we respond within 1 business day during the pilot phase.</p>
+    </main>
+
+    <footer class="site-footer">
+      <div class="row">
+        <div>
+          <strong>messpunkt.io Partner API</strong> · Preview · Target release Q2 2026
+          <div class="muted">© 2026 messpunkt.io — <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
+        </div>
+        <div class="links">
+          <a href="https://messpunkt.io/impressum" target="_blank" rel="noopener">Impressum</a>
+          <a href="https://messpunkt.io/datenschutz" target="_blank" rel="noopener">Datenschutz</a>
+          <a href="../.well-known/security.txt">Security</a>
+          <a href="../erp-api-openapi.yaml">OpenAPI 3.1 spec</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
