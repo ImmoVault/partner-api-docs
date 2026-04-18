@@ -37,7 +37,22 @@
       .preview-ribbon .badge { background: var(--brand-primary); color: var(--brand-white); font-weight: 600; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
       .preview-ribbon a { color: var(--brand-primary); font-weight: 500; text-decoration: none; border-bottom: 1px solid currentColor; }
 
-      main { max-width: 860px; margin: 0 auto; padding: 48px 28px 72px; }
+      main { max-width: 1200px; margin: 0 auto; padding: 48px 28px 72px; }
+      .layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 56px; align-items: start; }
+      .content { min-width: 0; }
+      .side-nav { position: sticky; top: 84px; align-self: start; }
+      .side-nav h3 { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; margin: 0 0 12px; }
+      .side-nav .side-cards { display: flex; flex-direction: column; gap: 8px; }
+      .side-nav .side-card { display: block; border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 12px 14px; text-decoration: none; color: inherit; transition: border-color 0.15s, background 0.15s, transform 0.05s; }
+      .side-nav .side-card:hover { border-color: var(--brand-primary); background: var(--brand-accent); transform: translateX(2px); }
+      .side-nav .side-card .title { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; color: var(--brand-primary); margin-bottom: 2px; }
+      .side-nav .side-card .title::after { content: '→'; font-weight: 400; color: var(--brand-primary); opacity: 0.55; transition: transform 0.15s, opacity 0.15s; }
+      .side-nav .side-card:hover .title::after { opacity: 1; transform: translateX(2px); }
+      .side-nav .side-card .desc { font-size: 12px; color: #64748b; line-height: 1.45; }
+      @media (max-width: 960px) {
+        .layout { grid-template-columns: 1fr; gap: 32px; }
+        .side-nav { position: static; max-width: 100%; margin-top: 16px; }
+      }
       h1 { font-size: 36px; line-height: 1.15; margin: 0 0 12px; letter-spacing: -0.015em; }
       .lead { color: #3f4c5c; font-size: 18px; margin: 0 0 40px; max-width: 700px; }
       h2 { font-size: 24px; margin: 48px 0 8px; letter-spacing: -0.005em; }
@@ -100,6 +115,8 @@
     </div>
 
     <main>
+      <div class="layout">
+        <article class="content">
       <span class="time-badge">5-Minute Walkthrough</span>
       <h1>Your first call against the sandbox</h1>
       <p class="lead">From zero to reading consumption data in four shell commands. Every step is copy-pasteable — pick a shell that has <code>curl</code>, <code>python3</code>, and <code>openssl</code> (macOS, Linux, or WSL).</p>
@@ -178,28 +195,36 @@ curl -s -H "Authorization: Bearer $TOKEN" \
         <strong>Important:</strong> the response contains a <strong>new</strong> refresh token that supersedes the old one. Persist it immediately. Presenting the pre-rotation refresh token a second time is treated as token theft — the entire session is revoked and both tokens become useless. See the <a href="../changelog/">changelog</a> and the Reference's <em>Authentication</em> section for the full replay-detection semantics.
       </div>
 
-      <h2>Next steps</h2>
-      <div class="next-steps">
-        <a class="next-step-card" href="../errors/">
-          <div class="title">Error handling →</div>
-          <div class="desc">Every status code, every <code>error_description</code>, when to retry, when to re-auth.</div>
-        </a>
-        <a class="next-step-card" href="../dpop/">
-          <div class="title">DPoP proof of possession →</div>
-          <div class="desc">Sender-constraining tokens for production — working code in curl, C#, Node, Python.</div>
-        </a>
-        <a class="next-step-card" href="../bruno/">
-          <div class="title">Bruno collection →</div>
-          <div class="desc">All 13 requests pre-wired. Download the zip, click "Get Access Token", send.</div>
-        </a>
-        <a class="next-step-card" href="../reference/">
-          <div class="title">Full API reference →</div>
-          <div class="desc">Redoc browser — every endpoint, schema, example, OBIS code.</div>
-        </a>
-      </div>
-
       <div class="note" style="margin-top:32px">
         Stuck or found a bug? Reach the maintainers at <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Quickstart">kontakt@messpunkt.io</a> — pilot-partner feedback is actively invited.
+      </div>
+        </article>
+
+        <aside class="side-nav" aria-label="Next steps">
+          <h3>Next steps</h3>
+          <div class="side-cards">
+            <a class="side-card" href="../errors/">
+              <div class="title">Error handling</div>
+              <div class="desc">Every status code, when to retry, when to re-auth.</div>
+            </a>
+            <a class="side-card" href="../dpop/">
+              <div class="title">DPoP proof</div>
+              <div class="desc">Sender-constraining tokens — C#, Node, Python, curl.</div>
+            </a>
+            <a class="side-card" href="../bruno/">
+              <div class="title">Bruno collection</div>
+              <div class="desc">13 requests pre-wired. Download the zip, send.</div>
+            </a>
+            <a class="side-card" href="../reference/">
+              <div class="title">Full reference</div>
+              <div class="desc">Every endpoint, schema, example, OBIS code.</div>
+            </a>
+            <a class="side-card" href="../changelog/">
+              <div class="title">Changelog</div>
+              <div class="desc">Release history and stability contract.</div>
+            </a>
+          </div>
+        </aside>
       </div>
     </main>
 
