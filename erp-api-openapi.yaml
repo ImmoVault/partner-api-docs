@@ -10,7 +10,7 @@ info:
     This API lets property-management ERPs read consumption and meter-reading
     data from messpunkt.io on behalf of a landlord (Tenant).
 
-    **Status:** `1.0.0-rc.1` · V1 release candidate · **target GA Q2 2026** · feedback from pilot partners explicitly invited.
+    **Status:** `1.0.0-rc.2` · V1 release candidate · **target GA Q2 2026** · feedback from pilot partners explicitly invited.
 
     # API stability & versioning
 
