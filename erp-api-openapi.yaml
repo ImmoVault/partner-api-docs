@@ -68,15 +68,22 @@ info:
       60 rpm per caller IP on `/oauth/*` (tighter because they're more
       abusable). `429 Too Many Requests` with `Retry-After` header on
       exceedance. In-memory, best-effort — not cross-instance.
-    - **Token lifetimes:** access 1 h, refresh 7 days, absolute session
-      lifetime 30 days (past which re-authorization is required, even with
-      a valid refresh token).
+    - **Token lifetimes:** access 1 h, refresh 90 days. There is
+      **no absolute session cap** — a session stays valid as long as the
+      ERP rotates its refresh token at least every 90 days. Built for
+      long-lived B2B integrations (Google/Microsoft/Stripe/Shopify pattern):
+      the landlord consents once, the ERP runs for years.
     - **Refresh-token rotation:** each successful `grant_type=refresh_token`
       call issues a new refresh token and invalidates the previous one.
       Presenting a pre-rotation refresh token (replay) revokes the entire
       session — including the legitimate current token. Callers must persist
       the newest refresh token immediately after each refresh and treat
       any `invalid_grant` response as "start a new authorization flow."
+    - **Landlord-initiated revoke:** the landlord can revoke an ERP
+      connection at any time from the messpunkt.io dashboard. The
+      next refresh attempt fails with `invalid_grant` and the ERP must
+      prompt for re-consent. (Dashboard UI ships with GA; sandbox
+      simulates the behaviour via family revocation on replay.)
     - **Property-scope enforcement** is identical to production —
       querying a Property outside your selected scope returns `404`.
     - **Stateless by design:** no writes, no persistence. Same fixture

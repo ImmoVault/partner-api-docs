@@ -23,9 +23,9 @@ vars:pre-request {
 docs {
   # POST /oauth/token — refresh-token grant
 
-  Exchange a refresh token (7-day lifetime) for a new access+refresh
-  token pair. Does **not** require a browser round-trip — ideal for
-  server-side ERPs that call the API from background jobs.
+  Exchange a refresh token (90-day inactivity lifetime) for a new
+  access+refresh token pair. Does **not** require a browser round-trip —
+  ideal for server-side ERPs that call the API from background jobs.
 
   ## Setup
 
@@ -47,9 +47,11 @@ docs {
     treated as stolen-token evidence. The server revokes the entire
     session (all outstanding access+refresh tokens with that `sid`). The
     legitimate holder must re-authorize.
-  - **Absolute session lifetime** — even with perfect rotation, the
-    session expires 30 days after the initial authorization. Prevents an
-    attacker from keeping a stolen token alive indefinitely.
+  - **Inactivity expiry (no absolute cap)** — the session expires only
+    after 90 days without a successful refresh. Each refresh rolls the
+    clock forward, so a daily-running ERP keeps its session alive
+    indefinitely. Built for the B2B "connect once, run for years" pattern
+    (Google/Microsoft/Stripe/Shopify).
   - **Scope narrowing** — supply an optional `scope` form parameter to
     get a new access token with fewer scopes. Widening is rejected with
     `invalid_scope`.
@@ -58,7 +60,7 @@ docs {
 
   ```json
   { "error": "invalid_grant", "error_description": "Refresh-token replay detected. The session has been revoked. Start a new authorization flow." }
-  { "error": "invalid_grant", "error_description": "Session has reached its absolute lifetime. Start a new authorization flow." }
+  { "error": "invalid_grant", "error_description": "Session has been inactive for too long. Start a new authorization flow." }
   { "error": "invalid_scope", "error_description": "Scope 'write:foo' was not in the original grant. Refresh cannot widen scope." }
   ```
 
