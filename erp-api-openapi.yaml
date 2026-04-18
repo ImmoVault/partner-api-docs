@@ -157,7 +157,7 @@ info:
     Authentication (OAuth 2.1) proves *who* is calling. **Authorization**
     decides *what data* the caller is allowed to see within the Tenant.
 
-    ![Authentication and Authorization flow](./auth-flow.svg)
+    ![Authentication and Authorization flow](/auth-flow.svg)
 
     *The diagram covers all three phases: one-off consent with Property
     picker, authorized runtime requests with DPoP-bound tokens and

@@ -126,6 +126,32 @@
       .endpoint-list .path { color: var(--brand-dark); }
       .endpoint-list .note-inline { font-family: 'Inter', sans-serif; font-size: 13px; color: #64748b; margin-left: auto; }
 
+      /* Auth-flow diagram */
+      .authflow { background: var(--brand-white); }
+      .authflow .diagram-wrap {
+        border: 1px solid var(--brand-gray-border);
+        border-radius: 12px;
+        background: var(--brand-white);
+        padding: 24px;
+        margin-top: 22px;
+        overflow: auto;
+        max-height: 80vh;
+        text-align: center;
+      }
+      .authflow .diagram-wrap img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+      }
+      .authflow .caption {
+        font-size: 13px;
+        color: #64748b;
+        margin: 14px 0 0;
+        text-align: center;
+      }
+      .authflow .caption a { color: var(--brand-primary); }
+
       /* CTA band */
       .cta-band { background: var(--brand-primary); color: var(--brand-white); padding: 56px 28px; text-align: center; }
       .cta-band h2 { font-size: 28px; font-weight: 700; margin: 0 0 10px; letter-spacing: -0.01em; }
@@ -301,6 +327,18 @@ curl -H <span class="str">"Authorization: Bearer $TOKEN"</span> \
             </ul>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- Auth-flow sequence diagram -->
+    <section class="block authflow" style="padding-top:0">
+      <div class="wrap">
+        <h2>How the auth flow works</h2>
+        <p class="section-lead">The one-picture version: landlord consent with a Property picker, runtime requests with DPoP-bound tokens + server-side scope filtering, and later scope edits via the dashboard — all three phases in one sequence.</p>
+        <div class="diagram-wrap">
+          <img src="./auth-flow.svg" alt="Sequence diagram: consent with Property picker, authorized runtime requests with DPoP-bound tokens, scope updates from the landlord dashboard." loading="lazy" />
+        </div>
+        <p class="caption">Source: <a href="./auth-flow.mmd">auth-flow.mmd</a> (Mermaid sequence diagram) · SVG generated via mermaid-cli.</p>
       </div>
     </section>
 
