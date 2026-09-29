@@ -140,6 +140,15 @@ info:
       querying a Property outside your selected scope returns `404`.
     - **Stateless by design:** no writes, no persistence. Same fixture
       every time.
+    - **Static data until 2026-12-31.** The fixture holds month-end values
+      up to December 2026 and is not extended automatically. From 2027 on,
+      the latest months stop looking "current": a range that reaches past
+      December 2026 is shortened to end on `2026-12-31` (check the echoed
+      `to`), and a range that starts after it returns no values.
+    - **Not every status is demonstrated.** The sandbox fixture contains no
+      `substituted` values; you can read the status in this document and in
+      the examples of `GET /measuring-points/{id}/readings`, but not try it
+      out against the sandbox.
 
     **Sandbox and production differ today in these points** (the sandbox
     catches up with the rc.3 sandbox release, announced in the changelog):
@@ -226,11 +235,13 @@ info:
 
     | Status | `type` suffix | Meaning | Retry? |
     | --- | --- | --- | --- |
-    | `400` | `invalid-request` | malformed request, e.g. `from` not a date or `to` before `from` | no — fix the request |
+    | `400` | `invalid-request` | malformed request, e.g. `from` not a date, `to` before `from`, a range that starts after the last completed month, an unknown `metric` value, an invalid `limit`, `page_cursor` or `property_id`; `detail` names the problem | no — fix the request |
     | `401` | `invalid-token` | token missing, expired, not an access token, wrong audience, or DPoP proof invalid | after refreshing the token |
     | `403` | `insufficient-scope` | token lacks the scope this endpoint needs | no — re-authorize with the scope |
     | `404` | `resource-not-found` | resource does not exist **or** lies outside your Property scope | no — see *Implications for ERP clients* |
     | `429` | `too-many-requests` | rate limit exceeded | yes, after `Retry-After` seconds |
+    | `500` | `internal-error` | unexpected server error; no `detail` | yes, with exponential backoff; quote `trace_id` if it persists |
+    | `503` | `service-unavailable` | a dependency needed to check the token or the connection is unavailable; no `detail`. The request was not served — never answered with data | yes, with exponential backoff |
 
     A `401` also carries a `WWW-Authenticate` header (RFC 6750 / RFC 9449)
     naming the error. OAuth endpoints (`/oauth/*`) answer in the OAuth error
@@ -260,6 +271,8 @@ info:
     to a unit; a Sector is allocated to a UsageUnit. In the vast majority of
     properties that allocation is one-to-one, and `usage_unit_id` names that
     unit. Values in this API are **per device and never pre-weighted**.
+    How measuring points of a Sector shared by several UsageUnits appear
+    under `usage_unit_id` will be fixed before GA.
 
     **Difference meters.** Some measuring points carry no device of their own:
     their consumption is the remainder of a sum meter minus all other meters
@@ -441,7 +454,10 @@ info:
     `from` and `to` are calendar dates. The range is **widened to whole
     months** (`from` → first day of its month, `to` → last day of its month)
     and capped at the end of the last completed month. The response echoes
-    the effective range in `from` / `to`.
+    the effective range in `from` / `to`. A range that lies entirely after
+    the last completed month (for example only the running month) has no
+    month-end data yet and is rejected with `400 invalid-request`; `detail`
+    names the last completed month.
 
     ## Per segment
 
@@ -451,8 +467,9 @@ info:
       `from` (so it lies **before** `from`). If the device was installed
       inside the range, it is the device's start value at installation —
       **not necessarily 0**. If the installation date is unknown
-      (`installed_at: null`), the segment starts with the first value known
-      for the device.
+      (`installed_at: null`), it is the month-end value before `from` when
+      one exists, otherwise the first value known for the device — which
+      can lie **inside** the range.
     - `installed_at` / `deinstalled_at` — set only when the date is
       documented. An unknown installation date is `null`, never a
       placeholder.
@@ -461,6 +478,15 @@ info:
       without any value are omitted.
     - `period_consumption` — end value, raw consumption, `factor` and the
       **billable value**. This is the number the landlord portal uses.
+      - *Device removed inside the range:* `end_date` is the removal date
+        and `end_value` the meter value on that day, with status `measured`
+        (`missing` if the value at removal is not known). If the removal
+        date is a month end, the same value also appears as that month's
+        reading.
+      - *No value at the end of the range:* the end value is **not carried
+        forward** from an earlier month. Unless it can be extrapolated
+        (`substituted`), `status` is `missing` and `end_value`, `value` and
+        `billable_value` are `null`.
     - `factor` — multiplier from raw to billable consumption (K-factor /
       Bewertungsfaktor for heat cost allocators, usually `1` for all other
       meters).
@@ -538,6 +564,10 @@ paths:
         Lightweight token-introspection endpoint. ERPs should call this once
         after obtaining a token to verify the tenant and granted scopes
         before deeper queries.
+
+        If the landlord's API access has ended, the call returns
+        `401 invalid-token` like every other endpoint — never `404`. Start a
+        new authorization flow.
       operationId: whoami
       security:
         - OAuth2: []
@@ -605,6 +635,8 @@ paths:
                     token_expires_at: "2026-09-29T21:30:00Z"
         "401": { $ref: "#/components/responses/Unauthorized" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
 
   /properties:
     get:
@@ -698,9 +730,33 @@ paths:
                         city: "Musterstadt"
                         country_code: "DE"
                     usage_unit_count: 8
+        "400":
+          description: Invalid paging parameter — fix the request, do not retry.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+              examples:
+                invalid_limit:
+                  summary: "`limit` outside 1–200 or not an integer"
+                  value:
+                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    title: "Invalid request"
+                    status: 400
+                    detail: "limit must be an integer between 1 and 200."
+                    trace_id: "7c2e19a0d4b35f81"
+                invalid_page_cursor:
+                  summary: "`page_cursor` not issued by this API"
+                  value:
+                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    title: "Invalid request"
+                    status: 400
+                    detail: "page_cursor is not valid."
+                    trace_id: "1d8f4b6e20a97c53"
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
 
   /properties/{id}:
     parameters:
@@ -759,6 +815,8 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
 
   /usage-units:
     get:
@@ -874,9 +932,41 @@ paths:
                       city: "Musterstadt"
                       country_code: "DE"
                     measuring_points: []
+        "400":
+          description: Invalid paging or filter parameter — fix the request, do not retry.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+              examples:
+                invalid_limit:
+                  summary: "`limit` outside 1–200 or not an integer"
+                  value:
+                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    title: "Invalid request"
+                    status: 400
+                    detail: "limit must be an integer between 1 and 200."
+                    trace_id: "7c2e19a0d4b35f81"
+                invalid_page_cursor:
+                  summary: "`page_cursor` not issued by this API"
+                  value:
+                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    title: "Invalid request"
+                    status: 400
+                    detail: "page_cursor is not valid."
+                    trace_id: "1d8f4b6e20a97c53"
+                invalid_property_id:
+                  summary: "`property_id` is not a UUID"
+                  value:
+                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    title: "Invalid request"
+                    status: 400
+                    detail: "property_id must be a UUID."
+                    trace_id: "b40a7e3c19d26f58"
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
 
   /usage-units/{id}:
     parameters:
@@ -942,6 +1032,8 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
 
   /usage-units/{id}/consumption:
     parameters:
@@ -1017,7 +1109,11 @@ paths:
         - $ref: "#/components/parameters/To"
         - name: metric
           in: query
-          description: Optional filter. Omit to return all metrics.
+          description: |
+            Optional filter, comma-separated (`metric=heat,hca`). Omit to
+            return all metrics. An unknown value is rejected with `400`
+            naming the value — it is never silently ignored, because an
+            ignored filter would widen the result.
           required: false
           schema:
             type: array
@@ -1091,11 +1187,50 @@ paths:
                           substitution_method: null
                           value: 20.043
                           billable_value: 20.043
-        "400": { $ref: "#/components/responses/BadRequest" }
+        "400":
+          description: Invalid query range or `metric` filter — fix the request, do not retry.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+              examples:
+                to_before_from:
+                  summary: "`to` before `from`"
+                  value:
+                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    title: "Invalid request"
+                    status: 400
+                    detail: "to must be on or after from"
+                    trace_id: "3f9c2a71b0d84e15"
+                invalid_date:
+                  summary: "`from` or `to` missing or not an ISO 8601 date"
+                  value:
+                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    title: "Invalid request"
+                    status: 400
+                    detail: "from is required and must be an ISO 8601 date (yyyy-MM-dd)."
+                    trace_id: "9a41c7e05b2d386f"
+                range_after_last_completed_month:
+                  summary: Range lies entirely after the last completed month
+                  value:
+                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    title: "Invalid request"
+                    status: 400
+                    detail: "The range starts after the last completed month (2026-08-31); no month-end data exists yet."
+                    trace_id: "e6b03f9d27c4a158"
+                unknown_metric:
+                  summary: Unknown `metric` filter value
+                  value:
+                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    title: "Invalid request"
+                    status: 400
+                    detail: "'steam' is not a valid metric."
+                    trace_id: "52d8a0f6c13e7b94"
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
 
   /measuring-points/{id}:
     parameters:
@@ -1158,6 +1293,8 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
 
   /measuring-points/{id}/readings:
     parameters:
@@ -1366,11 +1503,42 @@ paths:
                     is_difference_meter: true
                     data_gap: false
                     segments: []
-        "400": { $ref: "#/components/responses/BadRequest" }
+        "400":
+          description: Invalid query range — fix the request, do not retry.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+              examples:
+                to_before_from:
+                  summary: "`to` before `from`"
+                  value:
+                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    title: "Invalid request"
+                    status: 400
+                    detail: "to must be on or after from"
+                    trace_id: "3f9c2a71b0d84e15"
+                invalid_date:
+                  summary: "`from` or `to` missing or not an ISO 8601 date"
+                  value:
+                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    title: "Invalid request"
+                    status: 400
+                    detail: "from is required and must be an ISO 8601 date (yyyy-MM-dd)."
+                    trace_id: "9a41c7e05b2d386f"
+                range_after_last_completed_month:
+                  summary: Range lies entirely after the last completed month
+                  value:
+                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    title: "Invalid request"
+                    status: 400
+                    detail: "The range starts after the last completed month (2026-08-31); no month-end data exists yet."
+                    trace_id: "e6b03f9d27c4a158"
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
 
 components:
 
@@ -1444,7 +1612,9 @@ components:
       description: |
         End of the query range (ISO 8601 date, inclusive). Widened to the
         last day of its month and capped at the end of the last completed
-        month. Must not be before `from` (otherwise `400`).
+        month. Must not be before `from` (otherwise `400`). If the whole
+        range lies after the last completed month, the request is rejected
+        with `400`.
       schema: { type: string, format: date }
       example: "2025-12-31"
     PropertyId:
@@ -1467,17 +1637,6 @@ components:
       schema: { type: string, format: uuid }
 
   responses:
-    BadRequest:
-      description: Malformed request — fix it, do not retry.
-      content:
-        application/problem+json:
-          schema: { $ref: "#/components/schemas/Problem" }
-          example:
-            type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
-            title: "Invalid request"
-            status: 400
-            detail: "to must be on or after from"
-            trace_id: "3f9c2a71b0d84e15"
     Unauthorized:
       description: |
         Missing, expired or invalid token — including a refresh token sent as
@@ -1534,6 +1693,33 @@ components:
             title: "Too many requests"
             status: 429
             detail: "Rate limit of 300 requests per 60s exceeded. Retry in 12s."
+    InternalError:
+      description: |
+        Unexpected server error. The body carries no `detail` and no stack
+        trace. Retry with exponential backoff; quote `trace_id` if the error
+        persists.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+          example:
+            type: "https://api.sandbox.messpunkt.io/errors/internal-error"
+            title: "Internal error"
+            status: 500
+            trace_id: "c8157d2e904fa36b"
+    ServiceUnavailable:
+      description: |
+        A dependency needed to check the token or the connection (signing
+        keys, connection status) is temporarily unavailable. The request was
+        refused, not served — the API never answers with data it could not
+        authorize. No `detail`. Retry with exponential backoff.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+          example:
+            type: "https://api.sandbox.messpunkt.io/errors/service-unavailable"
+            title: "Service unavailable"
+            status: 503
+            trace_id: "0fa39c6b58e2d714"
 
   schemas:
 
@@ -1561,7 +1747,12 @@ components:
             - type: array
               items: { type: string, format: uuid }
           example: ["718e092d-8626-4975-b800-252a7746ad08", "6d8be330-8f9d-4f75-b798-05a67c0074be"]
-        token_expires_at: { type: string, format: date-time }
+        token_expires_at:
+          type: string
+          format: date-time
+          description: |
+            Expiry of the access token (UTC), taken from the token. Omitted
+            when unknown — never `null`.
 
     Page:
       type: object
@@ -1852,7 +2043,11 @@ components:
         baseline_date:
           type: [string, "null"]
           format: date
-          description: Date of `baseline_value`. May lie before `from`.
+          description: |
+            Date of `baseline_value`. May lie before `from`; if
+            `installed_at` is `null` and no month-end value before `from` is
+            known, it is the date of the first known value and may lie inside
+            the range.
           example: "2024-12-31"
         readings:
           type: array
@@ -1877,11 +2072,16 @@ components:
           format: date
           description: |
             Date of `end_value`: the removal date if the device left inside the
-            range, otherwise the effective end of the range.
+            range, otherwise the effective end of the range. A value missing
+            on that date is never replaced by an earlier one
+            (`status = missing`).
           example: "2025-12-31"
         end_value:
           type: [number, "null"]
-          description: Meter value at `end_date`. `null` when `status = missing`.
+          description: |
+            Meter value at `end_date` — for a removal inside the range, the
+            value on the removal day (status `measured`). `null` when
+            `status = missing`.
           example: 20.047
         status: { $ref: "#/components/schemas/ReadingStatus" }
         substitution_method: { $ref: "#/components/schemas/SubstitutionMethod" }

@@ -135,13 +135,13 @@ content-type: application/problem+json
             <td class="status"><code>400</code></td>
             <td><code>invalid-request</code></td>
             <td class="retry"><span class="pill no">No</span></td>
-            <td>Malformed or invalid request — missing required query parameter, bad date format, <code>to</code> before <code>from</code>, unknown <code>metric</code> value. <code>detail</code> says which. Fix the request, do not retry.</td>
+            <td>Malformed or invalid request — missing required query parameter, bad date format, <code>to</code> before <code>from</code>, a range that lies entirely after the last completed month, unknown <code>metric</code> value (named in <code>detail</code>), <code>limit</code> outside 1–200, a <code>page_cursor</code> not issued by the API, a <code>property_id</code> that is not a UUID. <code>detail</code> says which. Fix the request, do not retry.</td>
           </tr>
           <tr>
             <td class="status"><code>401</code></td>
             <td><code>invalid-token</code></td>
             <td class="retry"><span class="pill cond">After refresh</span></td>
-            <td>Access token missing, expired, malformed, issued for another audience, or a refresh token sent as access token. Refresh the token via <code>grant_type=refresh_token</code> and retry once. If refresh also fails, restart the authorization flow. For tokens bound to a DPoP key, a failed proof (wrong <code>htu</code>/<code>htm</code>, clock skew, reused <code>jti</code>, key not matching <code>cnf.jkt</code>) also returns <code>401</code>, with <code>WWW-Authenticate: DPoP error="invalid_dpop_proof"</code> — fix the proof generation instead of refreshing, see the <a href="../dpop/">DPoP guide</a>.</td>
+            <td>Access token missing, expired, malformed, issued for another audience, a refresh token sent as access token, or the landlord's API access has ended (also on <code>/whoami</code> — never <code>404</code>). Refresh the token via <code>grant_type=refresh_token</code> and retry once. If refresh also fails, restart the authorization flow. For tokens bound to a DPoP key, a failed proof (wrong <code>htu</code>/<code>htm</code>, clock skew, reused <code>jti</code>, key not matching <code>cnf.jkt</code>) also returns <code>401</code>, with <code>WWW-Authenticate: DPoP error="invalid_dpop_proof"</code> — fix the proof generation instead of refreshing, see the <a href="../dpop/">DPoP guide</a>.</td>
           </tr>
           <tr>
             <td class="status"><code>403</code></td>
@@ -165,11 +165,17 @@ content-type: application/problem+json
             <td class="status"><code>500</code></td>
             <td><code>internal-error</code></td>
             <td class="retry"><span class="pill yes">Yes</span></td>
-            <td>Unexpected server error. Retry with exponential backoff. Include <code>trace_id</code> if you escalate.</td>
+            <td>Unexpected server error. No <code>detail</code>, no stack trace. Retry with exponential backoff. Include <code>trace_id</code> if you escalate.</td>
+          </tr>
+          <tr>
+            <td class="status"><code>503</code></td>
+            <td><code>service-unavailable</code></td>
+            <td class="retry"><span class="pill yes">Yes</span></td>
+            <td>A dependency needed to check the token or the connection is temporarily unavailable. The request was refused, not served — the API never answers with data it could not authorize. No <code>detail</code>. Retry with exponential backoff.</td>
           </tr>
           <tr>
             <td class="status"><code>502</code> / <code>503</code> / <code>504</code></td>
-            <td><em>(platform-level)</em></td>
+            <td><em>(platform-level, may not be <code>problem+json</code>)</em></td>
             <td class="retry"><span class="pill yes">Yes</span></td>
             <td>Gateway or cold-start transient. Retry with exponential backoff. Usually resolves within a few seconds.</td>
           </tr>
