@@ -1,16 +1,25 @@
 openapi: 3.1.0
 info:
   title: messpunkt.io Partner API
-  version: "1.0.0-rc.2"
+  version: "1.0.0-rc.3"
   summary: |
-    Partner-facing read API for consumption and meter data.
+    Partner-facing read API for monthly consumption and meter data.
   description: |
     # Overview
 
     This API lets property-management ERPs read consumption and meter-reading
-    data from messpunkt.io on behalf of a landlord (Tenant).
+    data from messpunkt.io on behalf of a landlord (Tenant). Landlords who want
+    to ask their **own AI assistant** (Claude, ChatGPT, Codex) about their data
+    use the MCP server instead — see *For AI agents* below. Both share the same
+    consent, the same authorization server and the same data rules.
 
-    **Status:** `1.0.0-rc.2` · V1 release candidate · **target GA Q2 2026** · feedback from pilot partners explicitly invited.
+    **Status:** `1.0.0-rc.3` · V1 release candidate · GA ships with the first
+    pilot partner and will be announced in the [changelog](./changelog/) ·
+    feedback from pilot partners explicitly invited.
+
+    **Coming from rc.2?** rc.3 contains two breaking changes (monthly data
+    resolution, nullable `active_device`). Read *Migrating from rc.2* below
+    before you upgrade.
 
     # API stability & versioning
 
@@ -19,7 +28,7 @@ info:
     - **SemVer for the OpenAPI document** — `major.minor.patch`. The
       current `version` string is always machine-readable at the top of
       [erp-api-openapi.yaml](./erp-api-openapi.yaml).
-    - **No breaking changes within `/v1`.** Field removals, enum-value
+    - **No breaking changes within `/v1` after GA.** Field removals, enum-value
       removals, type changes and semantic shifts are **major-version**
       changes that require a new path prefix (`/v2`). We run the previous
       major in parallel for at least **6 months** after the new one GAs.
@@ -28,18 +37,64 @@ info:
       document and emit a `Sunset: <RFC 8594 date>` header on affected
       responses, with **at least 6 months overlap** before removal.
     - **Additive changes are not breaking.** New fields on a response,
-      new optional query parameters, new endpoints, new scopes — these
-      ship in **minor** releases and do not require partner action.
-      Clients must ignore unknown fields.
+      new enum values, new optional query parameters, new endpoints, new
+      scopes — these ship in **minor** releases and do not require partner
+      action. Clients must ignore unknown fields and must tolerate unknown
+      enum values.
     - **Bug fixes, clarifications and documentation-only edits** are
       **patch** releases.
-    - **Release candidate phase (current).** `1.0.0-rc.x` versions may
-      still adjust minor details based on pilot-partner feedback before
-      GA. Each change is documented in the [changelog](./changelog/);
-      we will never reshape core types (UsageUnit, MeasuringPoint,
-      DeviceSegment, Reading) at this point.
+    - **Release candidate phase (current).** rc.2 promised that core types
+      would no longer be reshaped. **rc.3 breaks that promise once, on
+      purpose**: the published contract described data messpunkt.io does not
+      have and a resolution it must not deliver (see *Migrating from rc.2*).
+      Correcting that before the first partner goes live is cheap; afterwards
+      it would be a `/v2`. From rc.3 on, `UsageUnit`, `MeasuringPoint`,
+      `DeviceSegment` and `MeterReading` change only additively.
 
     See [/changelog/](./changelog/) for the full release history.
+
+    # Migrating from rc.2
+
+    | What changed | rc.2 | rc.3 | What you need to do |
+    | --- | --- | --- | --- |
+    | **Data resolution** *(breaking)* | two readings per segment at arbitrary dates (`at` = date-time) | one reading per **calendar month end** (`at` = date); `from`/`to` widened to whole months | Parse `at` as a date. Stop expecting exactly two readings. Use `period_consumption` for billing. |
+    | **Billable consumption** | ERP computed `last − first` | `period_consumption.billable_value` per segment (raw consumption × `factor`) | Sum `billable_value` across segments. Do not subtract readings yourself for billing. |
+    | **`MeasuringPoint.active_device`** *(breaking)* | required object | object **or `null`** (difference meters, removed devices) | Handle `null`. |
+    | `ReadingStatus` | 4 values | + `calibration_expired` | Never bill a value with this status. |
+    | `SubstitutionMethod` | 3 values | + `weighted_recent_2values`, `weighted_recent_3values`, `baseline_fallback`, `baseline_single_value` | Treat as informational. |
+    | `replacement_reason` | `EndOfLife`, `Defect`, … | + `DeviceReplacement` (the value you will actually see) | Map `DeviceReplacement` to "meter swap". |
+    | `Metric` | 6 values | + `water_outdoor` | Keep outdoor water out of tenant water billing. |
+    | `DeviceSegment` | — | + `baseline_value`, `baseline_date`, `factor`, `period_consumption` | Use them. |
+    | `MeterReading` | — | + `is_synthetic` | Show "calculated" values differently if you display readings. |
+    | `MeasuringPoint` | — | + `is_difference_meter` | Expect no device and no readings for these. |
+    | `obis`, `resolution`, `external_ref` | documented as populated | always `null` today | Do not rely on them. |
+
+    # Data resolution: monthly, never finer
+
+    messpunkt.io delivers consumption data **per calendar month and per
+    billing-relevant boundary only**. There are no daily, hourly or
+    per-telegram values in this API, and no query parameter unlocks them.
+
+    **Why:** Radio meters report several times a day. A series that fine,
+    per apartment, shows when people are at home, shower, cook or are away —
+    a behavioural profile of the residents. Heating-cost billing
+    (HeizkostenV) needs period values, not profiles, and the GDPR principle of
+    data minimisation (Art. 5(1)(c)) does not let us hand out more than the
+    purpose needs. The landlord portal applies the same rule, so an ERP sees
+    exactly what the landlord sees.
+
+    What you get instead:
+
+    - **Month-end readings** (`readings[]`): the meter value at the end of each
+      calendar month inside the query range — either the value the device
+      stored itself for that day (*Stichtagswert*) or a value messpunkt.io
+      interpolated at the month boundary (`is_synthetic: true`).
+    - **Period consumption per device segment** (`period_consumption`): the
+      billable consumption of that device inside the query range, computed the
+      same way as in the landlord portal.
+    - **Segment boundaries**: the start value of a device (`baseline_value`,
+      `baseline_date`) and its end value. These fall on installation or
+      removal dates, which are part of the device record, not a usage series.
 
     # Sandbox
 
@@ -60,84 +115,163 @@ info:
     **Sandbox specifics**
 
     - **Data:** 100 % synthetic (addresses like *Musterstraße 12, 99999 Musterstadt*).
-      No real customer data; zero PII leakage guaranteed by a CI-gated linter.
-    - **DPoP:** validation is relaxed in the sandbox — plain `Bearer` tokens
-      work too, so Swagger UI (which doesn't generate DPoP proofs) can
-      exercise all endpoints. Production will require DPoP.
-    - **Rate limits:** 300 rpm per caller IP on `/v1/*` data endpoints,
-      60 rpm per caller IP on `/oauth/*` (tighter because they're more
-      abusable). `429 Too Many Requests` with `Retry-After` header on
-      exceedance. In-memory, best-effort — not cross-instance.
+      No real customer data; a CI-gated linter keeps personal data out of the fixture.
+    - **DPoP:** optional, exactly as in production. Plain `Bearer` tokens work,
+      so Swagger UI (which doesn't generate DPoP proofs) can exercise all
+      endpoints. See *Authentication*.
+    - **Rate limits:** 300 requests per minute per caller IP on `/v1/*` data
+      endpoints, 60 per minute per caller IP on `/oauth/*`. `429 Too Many
+      Requests` with a `Retry-After` header on exceedance. Counted in memory per
+      server instance, best effort: the effective limit can be higher than the
+      number above, never lower.
     - **Token lifetimes:** access 1 h, refresh 90 days. There is
       **no absolute session cap** — a session stays valid as long as the
       ERP rotates its refresh token at least every 90 days. Built for
-      long-lived B2B integrations (Google/Microsoft/Stripe/Shopify pattern):
-      the landlord consents once, the ERP runs for years.
+      long-lived B2B integrations: the landlord consents once, the ERP runs
+      for years.
     - **Refresh-token rotation:** each successful `grant_type=refresh_token`
       call issues a new refresh token and invalidates the previous one.
       Presenting a pre-rotation refresh token (replay) revokes the entire
       session — including the legitimate current token. Callers must persist
       the newest refresh token immediately after each refresh and treat
       any `invalid_grant` response as "start a new authorization flow."
-    - **Landlord-initiated revoke:** the landlord can revoke an ERP
-      connection at any time from the messpunkt.io dashboard. The
-      next refresh attempt fails with `invalid_grant` and the ERP must
-      prompt for re-consent. (Dashboard UI ships with GA; sandbox
-      simulates the behaviour via family revocation on replay.)
     - **Property-scope enforcement** is identical to production —
       querying a Property outside your selected scope returns `404`.
     - **Stateless by design:** no writes, no persistence. Same fixture
       every time.
 
+    **Sandbox and production differ today in these points** (the sandbox
+    catches up with the rc.3 sandbox release, announced in the changelog):
+
+    - The sandbox still serves the rc.2 response shape until the rc.3 sandbox
+      release. Build against this document, test the auth flow against the
+      sandbox.
+    - `resource` (RFC 8707) and `/oauth/revoke` are not yet available in the
+      sandbox.
+
     # Authentication
 
-    All endpoints require **OAuth 2.1 Authorization Code + PKCE** with a
-    **DPoP-bound** bearer token (RFC 9449). Tokens are scoped per Tenant.
+    All endpoints require an access token from **OAuth 2.1 Authorization Code
+    + PKCE (S256)**. Tokens are issued for exactly one Tenant and are
+    additionally restricted to the Properties the landlord selected.
 
     Connect flow:
 
     1. Landlord clicks "Connect messpunkt.io" inside the ERP.
     2. ERP redirects the browser to `/oauth/authorize` with
-       `response_type=code`, `code_challenge_method=S256`, `scope`,
-       `client_id`, `redirect_uri`, `state`.
-    3. Landlord authenticates on messpunkt.io.
-    4. **Consent screen** asks the landlord to (a) confirm the requested
-       scopes and (b) **pick the Properties** the ERP is allowed to see
-       (see *Authorization & Property scope* below). No Property is
-       pre-selected — the landlord must explicitly choose.
-    5. Browser is redirected back with an authorization code.
-    6. ERP exchanges the code at `/oauth/token` with the PKCE verifier.
-    7. ERP receives an access token (≤1 h, DPoP-bound, carrying the
-       Property whitelist) and a rotating refresh token.
+       `response_type=code`, `code_challenge_method=S256`, `code_challenge`,
+       `scope`, `client_id`, `redirect_uri`, `state` and
+       `resource=https://api.messpunkt.io` (RFC 8707).
+    3. Landlord signs in with their messpunkt.io portal account.
+    4. **Consent screen** shows your application's name, the requested scopes
+       and lets the landlord choose which Properties you may see: *all
+       Properties, including future ones*, or a selection (see *Authorization
+       & Property scope*).
+    5. Browser is redirected back with `code`, `state` and `iss` (RFC 9207).
+       Check that `iss` equals the authorization server you started with.
+    6. ERP exchanges the code at `/oauth/token` with the PKCE verifier and the
+       same `resource`.
+    7. ERP receives an access token (≤ 1 h, `aud` = the requested resource,
+       carrying the Property selection) and a rotating refresh token.
 
-    Every request to the API carries:
+    Every request to the API carries `Authorization: Bearer <access_token>`,
+    or — if you use DPoP — `Authorization: DPoP <access_token>` plus a
+    `DPoP: <proof JWT>` header.
 
-    - `Authorization: DPoP <access_token>`
-    - `DPoP: <dpop-proof JWT>` — a signed proof-of-possession token
-      per RFC 9449.
+    **Prerequisite on the landlord side:** API access is part of the
+    landlord's contract with messpunkt.io and is enabled per organisation. If
+    it is not enabled, the consent screen shows a notice instead of a consent
+    form.
+
+    **ERP clients** are registered by messpunkt.io — write to
+    [kontakt@messpunkt.io](mailto:kontakt@messpunkt.io). Registered clients
+    authenticate at the token endpoint with `private_key_jwt` (preferred) or
+    `client_secret_basic`. The sandbox uses the public demo client
+    `sandbox-demo-client` (PKCE only, no client secret).
+
+    **Revocation:** a client ends its own session with `POST /oauth/revoke`
+    (RFC 7009). The landlord can disconnect any application in the
+    messpunkt.io portal (*Verbundene Anwendungen*); access and refresh stop
+    working within 60 seconds.
+
+    ## DPoP (optional)
+
+    DPoP (RFC 9449) is **supported and optional**. If you send a DPoP proof
+    to `/oauth/token`, the access token is bound to your key (`cnf.jkt`), and
+    every API request with that token must use `Authorization: DPoP` together
+    with a valid proof — the server checks `htm`, `htu`, `iat` (±60 s), `jti`
+    replay, `ath` and the key thumbprint. A bound token presented as `Bearer`
+    is rejected. Tokens obtained without a proof are plain bearer tokens.
+    messpunkt.io can make DPoP mandatory for an individual registered client
+    on request. See the [DPoP guide](./dpop/).
 
     # Conventions
 
-    - Media type: `application/json`; errors use `application/problem+json` (RFC 7807).
-    - Timestamps: ISO 8601 UTC.
-    - IDs: UUID v4.
+    - Media type: `application/json`; errors use `application/problem+json`
+      (RFC 7807, see *Errors*).
+    - Dates: ISO 8601 calendar dates (`2025-12-31`). Timestamps (`token_expires_at`): ISO 8601 UTC.
+    - IDs: UUID.
     - Pagination: cursor-based (`page_cursor`, `next_cursor`, `prev_cursor`).
     - Versioning: `/v1` path prefix; deprecations signalled with `Sunset` header + 6 months overlap.
-    - Rate limits: per `client_id`. `429` with `Retry-After` on exceedance.
+    - Rate limits: `429` with `Retry-After` on exceedance. The sandbox limits
+      are listed above; production limits are applied per `client_id` and
+      will be published here before GA.
+
+    ## Errors
+
+    Every non-2xx response of a `/v1` endpoint is an `application/problem+json`
+    document. Branch on the last path segment of `type` — the host part is the
+    API host you called (`api.sandbox.messpunkt.io` or `api.messpunkt.io`).
+
+    | Status | `type` suffix | Meaning | Retry? |
+    | --- | --- | --- | --- |
+    | `400` | `invalid-request` | malformed request, e.g. `from` not a date or `to` before `from` | no — fix the request |
+    | `401` | `invalid-token` | token missing, expired, not an access token, wrong audience, or DPoP proof invalid | after refreshing the token |
+    | `403` | `insufficient-scope` | token lacks the scope this endpoint needs | no — re-authorize with the scope |
+    | `404` | `resource-not-found` | resource does not exist **or** lies outside your Property scope | no — see *Implications for ERP clients* |
+    | `429` | `too-many-requests` | rate limit exceeded | yes, after `Retry-After` seconds |
+
+    A `401` also carries a `WWW-Authenticate` header (RFC 6750 / RFC 9449)
+    naming the error. OAuth endpoints (`/oauth/*`) answer in the OAuth error
+    format (`error`, `error_description`). The full table with client actions
+    is on the [error-handling page](./errors/).
 
     # Canonical model
 
     ```
-    Tenant → Property → Address → UsageUnit → Sector
-                                     → MeasuringPoint
-                                         → Device (installation windows)
-                                             → MeterReading
+    Tenant                      (landlord organisation)
+    └─ Property                 (Liegenschaft)
+       └─ Address
+          ├─ UsageUnit          (Wohn-/Gewerbeeinheit)
+          └─ Sector             (area a meter set belongs to)
+             └─ MeasuringPoint  (stable across device replacements)
+                └─ Device segments (installation windows)
+                   └─ month-end readings + period consumption
+
+    Sector ⇄ UsageUnit: allocation (usually one unit per sector)
     ```
 
-    `UsageUnit` is the ERP-facing resource for billing and meter-reading
-    queries. `MeasuringPoint` is stable across device replacements.
-    `Device` segments carry installation windows so meter replacement is
-    explicit in the schema.
+    `UsageUnit` is the ERP-facing resource for billing queries.
+    `MeasuringPoint` is stable across device replacements. Device segments
+    carry installation windows so meter replacement is explicit in the schema.
+
+    **Sectors and units.** Measuring points belong to a *Sector*, not directly
+    to a unit; a Sector is allocated to a UsageUnit. In the vast majority of
+    properties that allocation is one-to-one, and `usage_unit_id` names that
+    unit. Values in this API are **per device and never pre-weighted**.
+
+    **Difference meters.** Some measuring points carry no device of their own:
+    their consumption is the remainder of a sum meter minus all other meters
+    behind it. They are marked `is_difference_meter: true`, have
+    `active_device: null` and no readings. V1 does not deliver a consumption
+    value for them.
+
+    **Pre-metering (Vorerfassung) is not exposed.** A pre-metering point
+    measures a total that other meters then split up (e.g. the warm-water share
+    of a central heat meter). Delivering it next to the meters behind it would
+    count the same consumption twice, so V1 leaves it out. Consequence: the sum
+    over all UsageUnits of a Property is **not** the building's total — the
+    difference is common or unallocated consumption.
 
     ## Multi-Property Tenants
 
@@ -166,45 +300,37 @@ info:
 
     ![Authentication and Authorization flow](/auth-flow.svg)
 
-    *The diagram covers all three phases: one-off consent with Property
-    picker, authorized runtime requests with DPoP-bound tokens and
-    server-side scope filtering, and later scope edits via the landlord
-    dashboard. Source: `auth-flow.mmd` (Mermaid sequence diagram).*
+    *The diagram covers consent with Property picker, authorized runtime
+    requests with server-side scope filtering, and later changes from the
+    landlord side. Source: `auth-flow.mmd` (Mermaid sequence diagram).*
 
     Because a Tenant often owns Properties that should not all be
     exposed to every ERP (different management mandates, pilot rollouts,
-    data-protection boundaries), the API supports a **Property whitelist
+    data-protection boundaries), the API supports a **Property selection
     per connection**.
 
     ## How it works
 
-    - **At consent time** the landlord picks one or more Properties from
-      the Tenant's portfolio. Default is *nothing selected* — the landlord
-      must actively choose.
+    - **At consent time** the landlord chooses *all Properties, including
+      future ones*, or picks individual Properties. (The sandbox consent
+      screen pre-selects nothing.)
     - The resulting access token carries a `property_scope` claim — either
-      the literal string `"all"` (landlord chose to expose everything) or
-      a list of Property UUIDs.
+      the literal string `"all"` or a list of Property UUIDs.
     - **Every API response is filtered** server-side against this
-      whitelist. Endpoints that target a single Property, UsageUnit,
-      MeasuringPoint, Device or MeterReading return **`404 Not Found`**
-      if the resource is outside the whitelist — we deliberately do **not**
-      return `403 Forbidden`, so the existence of out-of-scope Properties
-      is not leaked to the ERP.
+      selection. Endpoints that target a single Property, UsageUnit or
+      MeasuringPoint return **`404 Not Found`** if the resource is outside
+      the selection — we deliberately do **not** return `403 Forbidden`, so
+      the existence of out-of-scope Properties is not leaked to the ERP.
     - `GET /whoami` exposes the current `property_scope` so an ERP can
       display "you have access to N Properties" before issuing queries.
 
-    ## Changing the scope later
+    ## Changes from the landlord side
 
-    The landlord can edit the Property whitelist for an existing
-    connection in the messpunkt.io dashboard **without re-consent**.
-    Changes take effect on the next token refresh (at most within the
-    access-token lifetime, ~1 h). In particular:
-
-    - **Reducing** the whitelist is effective immediately for new tokens
-      and at the latest within ~1 h for existing tokens.
-    - **Extending** the whitelist follows the same path; there is no
-      re-consent step, but the dashboard clearly shows which ERP is
-      affected and logs the change in the audit trail.
+    - **Disconnecting** an application in the portal ends access and refresh
+      within 60 seconds — the connection is checked on every request, not only
+      on refresh.
+    - **Changing the Property selection** means reconnecting: the landlord
+      disconnects and goes through the consent screen again.
 
     ## Implications for ERP clients
 
@@ -218,37 +344,46 @@ info:
 
     # For AI agents
 
-    This API is designed to be usable by AI assistants and LLM-based
-    agents out of the box.
+    ## MCP server for landlords
 
-    ## Discovery
+    Landlords who want to ask their own assistant — *"Wie hoch war der
+    Wärmeverbrauch 2025 in der Musterstraße 12?"* — connect it to the
+    messpunkt.io **MCP server** (Model Context Protocol):
+
+    | | |
+    | --- | --- |
+    | Server URL | `https://mcp.messpunkt.io/v1` |
+    | Clients | Claude (claude.ai, Claude Code), ChatGPT, Codex and other MCP clients with OAuth support |
+    | Tools (read-only) | `list_properties`, `get_property_overview`, `get_consumption`, `get_device_status` |
+    | Auth | same authorization server and consent screen as this API; token audience `https://mcp.messpunkt.io/v1` |
+    | Data rules | same as this API — monthly values, Property scope, `404` outside the scope |
+
+    The MCP server is part of V1 and goes live together with the production
+    REST API; the setup guide for each client is published at the same time.
+    Tokens for the MCP server are not accepted by this REST API and vice versa.
+
+    ## REST API from agents
+
+    This REST API remains the interface for ERP systems. Agents built on
+    tool calling can use it too — see the discovery artifacts:
 
     - **[llms.txt](https://developer.messpunkt.io/llms.txt)** — llms.txt-standard index of the documentation
     - **[.well-known/ai-plugin.json](https://developer.messpunkt.io/.well-known/ai-plugin.json)** — plugin-style manifest pointing at this spec
     - **[.well-known/security.txt](https://developer.messpunkt.io/.well-known/security.txt)** — RFC 9116 responsible-disclosure contact
     - **[erp-api-openapi.yaml](https://developer.messpunkt.io/erp-api-openapi.yaml)** — this document, the authoritative machine-readable contract
 
-    ## Tool-calling integration
+    OpenAPI 3.1 operation schemas convert cleanly to Anthropic Tool Use
+    (Claude), OpenAI Function Calling and Google Gemini / Vertex AI Function
+    Calling. Identify quantities by `metric` + `unit`; `obis` is not populated
+    today.
 
-    OpenAPI 3.1 operation schemas convert cleanly to:
+    ## Typical questions
 
-    - Anthropic Tool Use (Claude)
-    - OpenAI Function Calling / GPT Actions
-    - Google Gemini Tool Use / Vertex AI Function Calling
-
-    Because every response shape is fully typed (no `anyOf` escape
-    hatches, no free-form JSON blobs), an LLM can reason about outputs
-    structurally. `MeasuringPoint.obis` is deterministically derivable
-    from `metric` — agents should prefer the OBIS code when comparing
-    readings across partners.
-
-    ## Typical LLM use cases
-
-    - *"How much warm water did apartment WE 03 use from January to
-      March 2026 compared to last year?"* → two `GET /usage-units/{id}/consumption`
-      calls with different date ranges
-    - *"Are any units in Reichenstraße 12 showing unusually high heat
-      consumption?"* → `GET /properties?external_ref=…` then
+    - *"How much warm water did apartment WE 03 use in 2025 compared to 2024?"*
+      → two `GET /usage-units/{id}/consumption` calls, sum
+      `period_consumption.billable_value` per call
+    - *"Are any units in Musterstraße 12 showing unusually high heat
+      consumption?"* → `GET /properties`, then
       `GET /usage-units?property_id=…`, then per-unit consumption
     - *"When was the water meter in WE 03 last replaced?"* →
       inspect `DeviceSegment.deinstalled_at` and `.replacement_reason`
@@ -257,142 +392,107 @@ info:
 
     ## Constraints for agent authors
 
-    - Rate limits apply per `client_id`, not per token — share tokens
-      within one application; don't parallelise aggressively across them
     - Always call `GET /whoami` after a token refresh to reconcile the
-      current `property_scope` — a landlord may have edited it
+      current `property_scope`
     - `404` on a previously-known resource = scope revocation, not a
       retry condition. Surface this to the user.
-    - V1 responses contain **no Mieter names** — tenant-identified
-      consumption queries are not supported yet
-    - Responses emit two readings per `DeviceSegment` (start + end of
-      that segment within the query range). Intermediate snapshots will
-      become available later via a `granularity=` query parameter.
+    - The REST API has no fields for resident (Mieter) names or contact
+      details. `UsageUnit.name` is the label the landlord gave the unit.
+    - Values are monthly at the finest (see *Data resolution*). There is
+      no parameter for daily or per-telegram data, and there will not be.
 
-    ## Roadmap
+    # Metrics and units
 
-    - **Shipped (Tier 1):** Discovery artifacts + tool-schema mapping (this section).
-    - **Planned (Tier 2):** **MCP server** — native integration with
-      Claude Desktop, Cursor, ChatGPT Desktop, Zed, JetBrains, VS Code
-      — so a landlord can ask their AI assistant about their own
-      metering data without any intermediate ERP UI.
-    - **Product decision (Tier 3):** conversational-analytics layer and
-      LLM-assisted dispute resolution for Heizkostenabrechnung.
+    `metric` says what a measuring point measures; it follows the measuring
+    point, not the radio type byte of the device fitted there. Every metric
+    has exactly one unit, so ERPs never convert units.
 
-    # Meter identifiers (OBIS)
+    | `metric` | Meter | `unit` | Notes |
+    | --- | --- | --- | --- |
+    | `heat` | Wärmezähler (WMZ) | `kWh` | |
+    | `hca` | Heizkostenverteiler (HKV) | `unit` | raw allocator units; multiply by `factor` |
+    | `water_cold` | Kaltwasserzähler | `m3` | |
+    | `water_warm` | Warmwasserzähler | `m3` | |
+    | `water_outdoor` | Außenwasserzähler (Garten, Sprengwasser) | `m3` | **not** part of the water billed to residents — keep it separate |
+    | `electricity` | Stromzähler | `kWh` | reserved — messpunkt.io has no readable electricity meters today; you will not receive values |
+    | `gas` | Gaszähler | `m3` | reserved — messpunkt.io has no readable gas meters today; you will not receive values |
 
-    Every `MeasuringPointConsumption` carries an `obis` string — an
-    **OBIS code** (Object Identification System) as defined by
-    **IEC 62056-6-1** (part of the DLMS/COSEM suite). OBIS gives every
-    metered quantity a standardised, language-independent identifier, so
-    an ERP can tell unambiguously what a value represents (e.g. cumulative
-    water volume vs. instantaneous flow) regardless of vendor.
+    **OBIS codes** (`obis`) are reserved for a later minor release and are
+    **always `null` today**. messpunkt.io does not store OBIS codes per
+    measuring point; an OBIS value derived from `metric` alone would add no
+    information.
 
-    **Format:** `A-B:C.D.E*F`
+    # Meter readings and consumption
 
-    | Group | Meaning | Example values |
-    | --- | --- | --- |
-    | **A** | Medium | `1` electricity · `4` heat cost allocator · `6` heat (Wärmezähler) · `7` gas · `8` cold water · `9` hot water · `0` abstract |
-    | **B** | Channel | `0` or `1` for single-channel sub-meters |
-    | **C** | Physical quantity | `1` energy/volume cumulative · `2` reactive · `3` gas operating volume · `8` time-integral (electricity) |
-    | **D** | Processing / measurement type | `0` general · `8` cumulative total (electricity convention) |
-    | **E** | Tariff / rate | `0` total · `1` tariff 1 · `2` tariff 2 |
-    | **F** | Billing period | `255` current; `0..99` historical. Often omitted (`*F` left off) in German sub-metering. |
-
-    **Typical codes per `Metric`** *(draft mapping; see §Metric schema)*:
-
-    | Metric | Typical OBIS | Meaning |
-    | --- | --- | --- |
-    | `electricity` | `1-1:1.8.0` | Wirkarbeit Bezug, Zählerstand (kWh) |
-    | `heat` | `6-1:1.0.0` | Wärmemenge kumulativ (kWh) |
-    | `water_cold` | `8-1:1.0.0` | Kaltwasservolumen kumulativ (m³) |
-    | `water_warm` | `9-1:1.0.0` | Warmwasservolumen kumulativ (m³) |
-    | `gas` | `7-1:3.0.0` | Betriebsvolumen (m³) |
-    | `hca` | `4-1:1.0.0` | HKV-Einheiten kumulativ (dimensionless) |
-
-    > **Note on the draft.** The codes above follow IEC 62056-6-1 Edition 4.0
-    > medium assignments and common sub-metering practice, but the German
-    > BDEW/BNetzA *Codeliste der OBIS-Kennzahlen und Medien* formally covers
-    > only electricity and gas (market communication); heat, water and HKV
-    > lean on **EN 13757-1** and device-level conventions. Partners should
-    > treat the per-metric mapping as **indicative for V1** — the precise
-    > code for an individual device is reported by messpunkt.io alongside
-    > the reading and should be the authoritative identifier.
-
-    # Meter readings (Ablesungen / readouts)
-
-    A *reading* (DE: *Ablesung*, also called *readout*) is one timestamped
-    value produced by a physical meter (Device). Readings are exposed by
-    two endpoints:
+    Two endpoints return the same nested shape:
 
     | Endpoint | Scope | Typical use |
     | --- | --- | --- |
-    | `GET /usage-units/{id}/consumption` | all MeasuringPoints of one UsageUnit, date range | unit-level billing export |
-    | `GET /measuring-points/{id}/readings` | one MeasuringPoint, date range | drill-down / reconciliation |
+    | `GET /usage-units/{id}/consumption` | all MeasuringPoints of one UsageUnit | unit-level billing export |
+    | `GET /measuring-points/{id}/readings` | one MeasuringPoint | drill-down / reconciliation |
 
-    Both responses use the same nesting shape: per-MeasuringPoint, split
-    into one `DeviceSegment` per continuous device installation window,
-    with a `readings[]` array inside each segment. Meter replacement
+    Per MeasuringPoint the response holds one `DeviceSegment` per continuous
+    device installation window inside the query range. A meter replacement
     always starts a new segment.
 
-    Each reading carries:
+    ## Query range
 
-    - `at` — ISO 8601 UTC timestamp
-    - `value` — numeric meter value
-    - `status` — `measured` · `substituted` · `calculated` · `missing`
-    - `substitution_method` — present when `status = substituted`
+    `from` and `to` are calendar dates. The range is **widened to whole
+    months** (`from` → first day of its month, `to` → last day of its month)
+    and capped at the end of the last completed month. The response echoes
+    the effective range in `from` / `to`.
 
-    ## Response contract — two readings per segment
+    ## Per segment
 
-    For a query range `[from, to]`, each `DeviceSegment` returns **exactly
-    two readings**: the start and the end value for the device's coverage
-    within the queried range. The ERP computes consumption per segment as
-    `readings[1].value - readings[0].value` and sums across segments when a
-    meter was replaced mid-range.
+    - `baseline_value` / `baseline_date` — the value the segment's
+      consumption is measured from. If the device was already installed
+      before the range, this is the month-end value of the month before
+      `from` (so it lies **before** `from`). If the device was installed
+      inside the range, it is the device's start value at installation —
+      **not necessarily 0**.
+    - `readings[]` — one `MeterReading` per calendar month end inside both
+      the range and the installation window, in ascending order. Months
+      without any value are omitted.
+    - `period_consumption` — end value, raw consumption, `factor` and the
+      **billable value**. This is the number the landlord portal uses.
+    - `factor` — multiplier from raw to billable consumption (K-factor /
+      Bewertungsfaktor for heat cost allocators, usually `1` for all other
+      meters).
 
-    Concretely, per segment:
+    **Billable consumption of a MeasuringPoint** = sum of
+    `period_consumption.billable_value` over its segments. Do not compute
+    billing values as `last reading − first reading`: that misses the
+    baseline before `from`, the start value of a replacement device and the
+    factor.
 
-    - `readings[0].at = max(segment.installed_at, from)`
-    - `readings[1].at = min(segment.deinstalled_at or to, to)`
-    - Either endpoint may be `status: "substituted"` if no actual meter
-      telegram exists exactly at that timestamp — an interpolated value is
-      then reported together with its `substitution_method`.
-    - For a MeasuringPoint with no coverage at all in the range, the
-      segment's `readings` is empty and `data_gap: true` is set on the
-      MeasuringPoint.
+    ## Value status
 
-    Intermediate readings (e.g. monthly snapshots for charting) are **not**
-    included in V1; a future `granularity=` query parameter can add them
-    without breaking this contract.
+    | `status` | `is_synthetic` | Meaning |
+    | --- | --- | --- |
+    | `measured` | `false` | value reported by the device for that date (telegram or device-stored Stichtagswert) |
+    | `calculated` | `true` | interpolated by messpunkt.io at the month boundary between two real readings (`substitution_method` says how) |
+    | `substituted` | `true` | extrapolated because the device has not reported since; only at the end of a range, from readings at most 20 days old |
+    | `missing` | — | no value could be determined; only on `period_consumption` (then `end_value`, `value` and `billable_value` are `null`) |
+    | `calibration_expired` | `false` | the device's statutory calibration period (Eichfrist) had ended; the value is shown but **must not be billed** — `billable_value` is `0` |
+
+    A MeasuringPoint without any value in the range has `data_gap: true`.
 
     ## Precision
 
-    Every `DeviceSegment` carries a `resolution` field — the smallest
-    increment the meter can report (e.g. `0.001` m³ = 1 litre for a
-    typical residential water meter; `1` kWh for a heat meter;
-    `1` HKV unit for an allocator). Partners should **display or store
-    values at no finer precision than `resolution`** — the API may
-    emit trailing zeros beyond the resolution on interpolated
-    (`substituted`) values.
+    `DeviceSegment.resolution` is reserved and **always `null` today** —
+    messpunkt.io does not record the smallest increment of each device.
+    `calculated` and `substituted` values can carry more decimals than the
+    device resolves; round for display as your billing rules require.
 
-    When `status = substituted`, the returned value is an **interpolation
-    of measured boundaries**, not a raw meter output. Its real uncertainty
-    is governed by `substitution_method` (see `SubstitutionMethod`).
-
-    MID / EN / IEC accuracy classes (e.g. `MID Class 2 R160`) are **not**
-    exposed in V1 — they are valuable for eichrechtliche Nachweise
-    but not for day-to-day billing logic. They may be added in a later
-    version if a partner needs them.
+    MID / EN / IEC accuracy classes are not exposed in V1.
 
     **References**
-    - IEC 62056-6-1 Edition 4.0 (2023): https://webstore.iec.ch/publication/64347
-    - EN 13757-1 (wM-Bus medium types, sub-metering)
     - EN 1434 (Wärmezähler / heat meters)
-    - MID Directive 2014/32/EU (Measuring Instruments Directive): https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32014L0032
+    - EN 13757 (M-Bus / wireless M-Bus, sub-metering)
+    - VDI 2067 (degree-day weighting used for `degree_day_weighted`)
     - VDI 2170 (Heizkostenverteiler / HCA)
-    - BDEW / BNetzA Codeliste der OBIS-Kennzahlen und Medien (electricity + gas, market communication): https://www.bdew-mako.de/
-    - DLMS User Association (COSEM Blue Book, authoritative registry): https://www.dlms.com/
-    - Overview article (German): https://de.wikipedia.org/wiki/OBIS-Kennzahlen
+    - MID Directive 2014/32/EU (Measuring Instruments Directive): https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32014L0032
+    - Heizkostenverordnung (HeizkostenV): https://www.gesetze-im-internet.de/heizkostenv/
   contact:
     name: messpunkt.io Partnerships
     email: kontakt@messpunkt.io
@@ -408,17 +508,20 @@ servers:
   - url: https://api.sandbox.messpunkt.io/v1
     description: Sandbox — live, Try-it-out-enabled (default). Synthetic data, no PII.
   - url: https://api.messpunkt.io/v1
-    description: Production (V1) — not yet available; target Q2 2026.
+    description: Production (V1) — not yet available; goes live with the first pilot partner, announced in the changelog.
 
 security:
   - OAuth2: [read:units, read:devices, read:readings]
 
 tags:
   - name: Introspection
+    description: Who is calling, for which Tenant, with which scopes.
   - name: Properties
     description: Liegenschaften — top-level grouping of UsageUnits under a Tenant.
   - name: Units
+    description: Usage units (Wohn-/Gewerbeeinheiten) and their consumption.
   - name: Measuring points
+    description: Individual measuring points, their current device and month-end readings.
 
 paths:
   /whoami:
@@ -473,15 +576,27 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/WhoAmI"
-              example:
-                tenant_id: "9bb2c1ee-39c9-4eca-a83c-522e43c7be27"
-                tenant_name: "Hausverwaltung Müller GmbH"
-                client_id: "erp-client-01"
-                granted_scopes: ["read:units", "read:devices", "read:readings"]
-                property_scope:
-                  - "718e092d-8626-4975-b800-252a7746ad08"
-                  - "6d8be330-8f9d-4f75-b798-05a67c0074be"
-                token_expires_at: "2026-04-16T21:30:00Z"
+              examples:
+                selected_properties:
+                  summary: Landlord selected two Properties
+                  value:
+                    tenant_id: "9bb2c1ee-39c9-4eca-a83c-522e43c7be27"
+                    tenant_name: "Musterhausverwaltung GmbH"
+                    client_id: "erp-client-01"
+                    granted_scopes: ["read:units", "read:devices", "read:readings"]
+                    property_scope:
+                      - "718e092d-8626-4975-b800-252a7746ad08"
+                      - "6d8be330-8f9d-4f75-b798-05a67c0074be"
+                    token_expires_at: "2026-09-29T21:30:00Z"
+                all_properties:
+                  summary: Landlord chose all Properties, including future ones
+                  value:
+                    tenant_id: "9bb2c1ee-39c9-4eca-a83c-522e43c7be27"
+                    tenant_name: "Musterhausverwaltung GmbH"
+                    client_id: "erp-client-01"
+                    granted_scopes: ["read:units", "read:readings"]
+                    property_scope: "all"
+                    token_expires_at: "2026-09-29T21:30:00Z"
         "401": { $ref: "#/components/responses/Unauthorized" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
 
@@ -532,11 +647,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PageCursor"
         - $ref: "#/components/parameters/Limit"
-        - name: external_ref
-          in: query
-          description: Filter by the ERP's own reference (exact match).
-          required: false
-          schema: { type: string }
+        - $ref: "#/components/parameters/ExternalRef"
       responses:
         "200":
           description: OK
@@ -556,29 +667,29 @@ paths:
                 data:
                   - id: "718e092d-8626-4975-b800-252a7746ad08"
                     tenant_id: "9bb2c1ee-39c9-4eca-a83c-522e43c7be27"
-                    external_ref: "erp-property-0815"
-                    name: "Reichenstraße 12-14"
+                    external_ref: null
+                    name: "Musterstraße 12-14"
                     addresses:
-                      - street: "Reichenstraße"
+                      - street: "Musterstraße"
                         house_number: "12"
-                        postal_code: "10999"
-                        city: "Berlin"
+                        postal_code: "99999"
+                        city: "Musterstadt"
                         country_code: "DE"
-                      - street: "Reichenstraße"
+                      - street: "Musterstraße"
                         house_number: "14"
-                        postal_code: "10999"
-                        city: "Berlin"
+                        postal_code: "99999"
+                        city: "Musterstadt"
                         country_code: "DE"
                     usage_unit_count: 16
                   - id: "6d8be330-8f9d-4f75-b798-05a67c0074be"
                     tenant_id: "9bb2c1ee-39c9-4eca-a83c-522e43c7be27"
                     external_ref: null
-                    name: "Forgerstraße 4"
+                    name: "Beispielweg 4"
                     addresses:
-                      - street: "Forgerstraße"
+                      - street: "Beispielweg"
                         house_number: "4"
-                        postal_code: "12053"
-                        city: "Berlin"
+                        postal_code: "99998"
+                        city: "Musterstadt"
                         country_code: "DE"
                     usage_unit_count: 8
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -598,6 +709,23 @@ paths:
       operationId: getProperty
       security:
         - OAuth2: [read:units]
+      x-codeSamples:
+        - lang: curl
+          label: curl
+          source: |
+            curl -s https://api.sandbox.messpunkt.io/v1/properties/$PROPERTY_ID \
+              -H "Authorization: Bearer $TOKEN"
+        - lang: Python
+          label: Python (httpx)
+          source: |
+            r = httpx.get(
+                f"https://api.sandbox.messpunkt.io/v1/properties/{property_id}",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            if r.status_code == 404:
+                print("Property not visible under this connection")  # deleted or out of scope
+            else:
+                print(r.json()["name"])
       responses:
         "200":
           description: OK
@@ -607,18 +735,18 @@ paths:
               example:
                 id: "718e092d-8626-4975-b800-252a7746ad08"
                 tenant_id: "9bb2c1ee-39c9-4eca-a83c-522e43c7be27"
-                external_ref: "erp-property-0815"
-                name: "Reichenstraße 12-14"
+                external_ref: null
+                name: "Musterstraße 12-14"
                 addresses:
-                  - street: "Reichenstraße"
+                  - street: "Musterstraße"
                     house_number: "12"
-                    postal_code: "10999"
-                    city: "Berlin"
+                    postal_code: "99999"
+                    city: "Musterstadt"
                     country_code: "DE"
-                  - street: "Reichenstraße"
+                  - street: "Musterstraße"
                     house_number: "14"
-                    postal_code: "10999"
-                    city: "Berlin"
+                    postal_code: "99999"
+                    city: "Musterstadt"
                     country_code: "DE"
                 usage_unit_count: 16
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -638,14 +766,30 @@ paths:
       operationId: listUsageUnits
       security:
         - OAuth2: [read:units]
+      x-codeSamples:
+        - lang: curl
+          label: curl
+          source: |
+            curl -s -H "Authorization: Bearer $TOKEN" \
+              "https://api.sandbox.messpunkt.io/v1/usage-units?property_id=$PROPERTY_ID&limit=50"
+        - lang: TypeScript
+          label: TypeScript (fetch, all pages)
+          source: |
+            let cursor: string | null = null;
+            do {
+              const url = new URL("https://api.sandbox.messpunkt.io/v1/usage-units");
+              url.searchParams.set("property_id", propertyId);
+              if (cursor) url.searchParams.set("page_cursor", cursor);
+              const page = await (await fetch(url, {
+                headers: { Authorization: `Bearer ${accessToken}` }
+              })).json();
+              page.data.forEach(u => console.log(u.name, u.floor, u.position));
+              cursor = page.next_cursor;
+            } while (cursor);
       parameters:
         - $ref: "#/components/parameters/PageCursor"
         - $ref: "#/components/parameters/Limit"
-        - name: external_ref
-          in: query
-          description: Filter by the ERP's own reference (exact match).
-          required: false
-          schema: { type: string }
+        - $ref: "#/components/parameters/ExternalRef"
         - name: property_id
           in: query
           description: Limit to units in a single Property.
@@ -673,53 +817,55 @@ paths:
                     property_id: "718e092d-8626-4975-b800-252a7746ad08"
                     property:
                       id: "718e092d-8626-4975-b800-252a7746ad08"
-                      name: "Reichenstraße 12-14"
-                      address_line: "Reichenstraße 12, 10999 Berlin"
-                      external_ref: "erp-property-0815"
-                    external_ref: "erp-unit-0815"
-                    name: "WE 03, Müller"
+                      name: "Musterstraße 12-14"
+                      address_line: "Musterstraße 12, 99999 Musterstadt"
+                      external_ref: null
+                    external_ref: null
+                    name: "WE 03"
                     floor: "2"
                     position: "links"
                     unit_type: "residential"
                     area_heated_m2: 72.4
                     area_ww_m2: 72.4
                     address:
-                      street: "Reichenstraße"
+                      street: "Musterstraße"
                       house_number: "12"
-                      postal_code: "10999"
-                      city: "Berlin"
+                      postal_code: "99999"
+                      city: "Musterstadt"
                       country_code: "DE"
                     measuring_points:
                       - measuring_point_id: "a45f8b4a-d595-49e0-8217-dd0b1c4a600f"
                         metric: "water_warm"
-                        obis: "9-1:1.0.0"
+                        obis: null
                         unit: "m3"
                         active_device_serial: "12347"
+                        is_difference_meter: false
                       - measuring_point_id: "b1359209-f047-4d7d-9f64-a3a4c43fba30"
                         metric: "heat"
-                        obis: "6-1:1.0.0"
+                        obis: null
                         unit: "kWh"
-                        active_device_serial: "HZ-0815-42"
+                        active_device_serial: "70815042"
+                        is_difference_meter: false
                   - id: "c6699e51-c145-498a-8222-f84e6547d5dc"
                     tenant_id: "9bb2c1ee-39c9-4eca-a83c-522e43c7be27"
                     property_id: "718e092d-8626-4975-b800-252a7746ad08"
                     property:
                       id: "718e092d-8626-4975-b800-252a7746ad08"
-                      name: "Reichenstraße 12-14"
-                      address_line: "Reichenstraße 14, 10999 Berlin"
-                      external_ref: "erp-property-0815"
+                      name: "Musterstraße 12-14"
+                      address_line: "Musterstraße 14, 99999 Musterstadt"
+                      external_ref: null
                     external_ref: null
-                    name: "WE 04, Schmidt"
+                    name: "WE 04"
                     floor: "2"
                     position: "rechts"
                     unit_type: "residential"
                     area_heated_m2: 68.1
                     area_ww_m2: 68.1
                     address:
-                      street: "Reichenstraße"
+                      street: "Musterstraße"
                       house_number: "14"
-                      postal_code: "10999"
-                      city: "Berlin"
+                      postal_code: "99999"
+                      city: "Musterstadt"
                       country_code: "DE"
                     measuring_points: []
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -732,9 +878,19 @@ paths:
     get:
       tags: [Units]
       summary: Get a single usage unit
+      description: |
+        Returns one UsageUnit with its address, its Property summary and a
+        summary of its measuring points. Readings and consumption are on
+        `GET /usage-units/{id}/consumption`.
       operationId: getUsageUnit
       security:
         - OAuth2: [read:units]
+      x-codeSamples:
+        - lang: curl
+          label: curl
+          source: |
+            curl -s https://api.sandbox.messpunkt.io/v1/usage-units/$UNIT_ID \
+              -H "Authorization: Bearer $TOKEN"
       responses:
         "200":
           description: OK
@@ -747,33 +903,35 @@ paths:
                 property_id: "718e092d-8626-4975-b800-252a7746ad08"
                 property:
                   id: "718e092d-8626-4975-b800-252a7746ad08"
-                  name: "Reichenstraße 12-14"
-                  address_line: "Reichenstraße 12, 10999 Berlin"
-                  external_ref: "erp-property-0815"
-                external_ref: "erp-unit-0815"
-                name: "WE 03, Müller"
+                  name: "Musterstraße 12-14"
+                  address_line: "Musterstraße 12, 99999 Musterstadt"
+                  external_ref: null
+                external_ref: null
+                name: "WE 03"
                 floor: "2"
                 position: "links"
                 unit_type: "residential"
                 area_heated_m2: 72.4
                 area_ww_m2: 72.4
                 address:
-                  street: "Reichenstraße"
+                  street: "Musterstraße"
                   house_number: "12"
-                  postal_code: "10999"
-                  city: "Berlin"
+                  postal_code: "99999"
+                  city: "Musterstadt"
                   country_code: "DE"
                 measuring_points:
                   - measuring_point_id: "a45f8b4a-d595-49e0-8217-dd0b1c4a600f"
                     metric: "water_warm"
-                    obis: "9-1:1.0.0"
+                    obis: null
                     unit: "m3"
                     active_device_serial: "12347"
+                    is_difference_meter: false
                   - measuring_point_id: "b1359209-f047-4d7d-9f64-a3a4c43fba30"
                     metric: "heat"
-                    obis: "6-1:1.0.0"
+                    obis: null
                     unit: "kWh"
-                    active_device_serial: "HZ-0815-42"
+                    active_device_serial: "70815042"
+                    is_difference_meter: false
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -784,19 +942,22 @@ paths:
       - $ref: "#/components/parameters/UsageUnitId"
     get:
       tags: [Units]
-      summary: Consumption for a usage unit over a date range
+      summary: Monthly readings and period consumption for a usage unit
       description: |
         **Primary read endpoint.**
 
-        Returns every meter reading for the unit in `[from, to]`, grouped by
-        MeasuringPoint and segmented by device installation window. Meter
-        replacements appear as separate segments, so the ERP never has to diff
-        serials to detect a swap.
+        Returns, for every MeasuringPoint of the unit, the device segments in
+        the query range with their month-end readings and their billable
+        period consumption. Meter replacements appear as separate segments,
+        so the ERP never has to diff serials to detect a swap.
 
-        `status` on each reading distinguishes `measured` vs `substituted`
-        (interpolated / forward-filled) vs `calculated` vs `missing`. A
-        MeasuringPoint with an uncovered period returns a segment with
-        `readings: []` and `data_gap: true` — never silent omission.
+        Resolution is **monthly at the finest** — see *Data resolution* and
+        *Meter readings and consumption* in the API overview. `from` / `to`
+        are widened to whole months; the response echoes the effective range.
+
+        A MeasuringPoint without any value in the range is returned with
+        `data_gap: true` — never silently omitted. Difference meters are
+        returned with `is_difference_meter: true` and no segments.
       operationId: getUsageUnitConsumption
       security:
         - OAuth2: [read:readings]
@@ -805,56 +966,49 @@ paths:
           label: curl
           source: |
             curl -s -H "Authorization: Bearer $TOKEN" \
-              "https://api.sandbox.messpunkt.io/v1/usage-units/$UNIT_ID/consumption?from=2026-01-01&to=2026-12-31&metric=water_warm"
+              "https://api.sandbox.messpunkt.io/v1/usage-units/$UNIT_ID/consumption?from=2025-01-01&to=2025-12-31&metric=water_warm"
         - lang: C#
           label: C# (HttpClient)
           source: |
             var url = $"https://api.sandbox.messpunkt.io/v1/usage-units/{unitId}" +
-                     "/consumption?from=2026-01-01&to=2026-12-31&metric=water_warm";
-            var doc = await http.GetFromJsonAsync<UsageUnitConsumption>(url);
+                     "/consumption?from=2025-01-01&to=2025-12-31&metric=water_warm";
+            var doc = await http.GetFromJsonAsync<UnitConsumption>(url);
             foreach (var mp in doc.MeasuringPoints)
-            foreach (var seg in mp.Segments)
             {
-                var delta = seg.Readings[^1].Value - seg.Readings[0].Value;
-                Console.WriteLine($"{mp.Metric} on {seg.Serial}: {delta:F3} {mp.Unit}");
+                // billable = sum over segments; never last − first reading
+                var billable = mp.Segments.Sum(s => s.PeriodConsumption.BillableValue ?? 0m);
+                Console.WriteLine($"{mp.Metric}: {billable:F3} {mp.Unit}");
             }
         - lang: TypeScript
           label: TypeScript (fetch)
           source: |
             const url =
               `https://api.sandbox.messpunkt.io/v1/usage-units/${unitId}` +
-              `/consumption?from=2026-01-01&to=2026-12-31&metric=water_warm`;
+              `/consumption?from=2025-01-01&to=2025-12-31&metric=water_warm`;
             const doc = await (await fetch(url, {
               headers: { Authorization: `Bearer ${accessToken}` }
             })).json();
-            for (const mp of doc.measuring_points)
-              for (const seg of mp.segments) {
-                const [a, b] = seg.readings;
-                console.log(mp.metric, seg.serial, b.value - a.value, mp.unit);
-              }
+            for (const mp of doc.measuring_points) {
+              // billable = sum over segments; never last − first reading
+              const billable = mp.segments.reduce(
+                (sum, s) => sum + (s.period_consumption.billable_value ?? 0), 0);
+              console.log(mp.metric, billable, mp.unit);
+            }
         - lang: Python
           label: Python (httpx)
           source: |
             url = (
                 f"https://api.sandbox.messpunkt.io/v1/usage-units/{unit_id}"
-                "/consumption?from=2026-01-01&to=2026-12-31&metric=water_warm"
+                "/consumption?from=2025-01-01&to=2025-12-31&metric=water_warm"
             )
             doc = httpx.get(url, headers={"Authorization": f"Bearer {access_token}"}).json()
             for mp in doc["measuring_points"]:
-                for seg in mp["segments"]:
-                    a, b = seg["readings"]
-                    print(mp["metric"], seg["serial"], b["value"] - a["value"], mp["unit"])
+                # billable = sum over segments; never last − first reading
+                billable = sum(s["period_consumption"]["billable_value"] or 0 for s in mp["segments"])
+                print(mp["metric"], billable, mp["unit"])
       parameters:
-        - name: from
-          in: query
-          required: true
-          description: Inclusive start of the query range (ISO 8601 date).
-          schema: { type: string, format: date, example: "2026-01-01" }
-        - name: to
-          in: query
-          required: true
-          description: Inclusive end of the query range (ISO 8601 date).
-          schema: { type: string, format: date, example: "2026-12-31" }
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
         - name: metric
           in: query
           description: Optional filter. Omit to return all metrics.
@@ -872,35 +1026,65 @@ paths:
               schema: { $ref: "#/components/schemas/UnitConsumption" }
               example:
                 usage_unit_id: "08d23bb4-0001-40f3-bd99-40bf33931365"
-                external_ref: "erp-unit-0815"
-                from: "2026-01-01"
-                to: "2026-12-31"
+                external_ref: null
+                from: "2025-01-01"
+                to: "2025-12-31"
                 measuring_points:
                   - measuring_point_id: "a45f8b4a-d595-49e0-8217-dd0b1c4a600f"
                     metric: "water_warm"
-                    obis: "9-1:1.0.0"
+                    obis: null
                     unit: "m3"
+                    is_difference_meter: false
                     data_gap: false
                     segments:
                       - device_id: "613ee53e-e9dc-415f-a9d5-772422cedd23"
                         serial: "12345"
                         manufacturer: "SON"
-                        installed_at: "2025-07-01"
-                        deinstalled_at: "2026-06-30"
-                        replacement_reason: "EndOfLife"
-                        resolution: 0.001
+                        installed_at: "2019-06-01"
+                        deinstalled_at: "2025-06-12"
+                        replacement_reason: "DeviceReplacement"
+                        resolution: null
+                        factor: 1
+                        baseline_value: 412.318
+                        baseline_date: "2024-12-31"
                         readings:
-                          - { at: "2026-01-01", value: 0.0,   status: "measured" }
-                          - { at: "2026-06-30", value: 700.0, status: "substituted", substitution_method: "linear_interpolation" }
+                          - { at: "2025-01-31", value: 415.902, status: "measured",   is_synthetic: false }
+                          - { at: "2025-02-28", value: 419.377, status: "calculated", is_synthetic: true, substitution_method: "linear_interpolation" }
+                          - { at: "2025-03-31", value: 422.950, status: "measured",   is_synthetic: false }
+                          - { at: "2025-04-30", value: 426.101, status: "measured",   is_synthetic: false }
+                          - { at: "2025-05-31", value: 429.388, status: "measured",   is_synthetic: false }
+                        period_consumption:
+                          end_date: "2025-06-12"
+                          end_value: 431.020
+                          status: "measured"
+                          substitution_method: null
+                          value: 18.702
+                          billable_value: 18.702
                       - device_id: "a263c9ee-8efa-4760-8be0-b6782e0f73d6"
                         serial: "12347"
                         manufacturer: "SON"
-                        installed_at: "2026-07-01"
+                        installed_at: "2025-06-12"
                         deinstalled_at: null
-                        resolution: 0.001
+                        replacement_reason: null
+                        resolution: null
+                        factor: 1
+                        baseline_value: 0.004
+                        baseline_date: "2025-06-12"
                         readings:
-                          - { at: "2026-07-01", value: 1.0,   status: "measured" }
-                          - { at: "2026-12-31", value: 550.0, status: "measured" }
+                          - { at: "2025-06-30", value: 0.581,  status: "measured",   is_synthetic: false }
+                          - { at: "2025-07-31", value: 3.742,  status: "measured",   is_synthetic: false }
+                          - { at: "2025-08-31", value: 6.690,  status: "measured",   is_synthetic: false }
+                          - { at: "2025-09-30", value: 9.911,  status: "calculated", is_synthetic: true, substitution_method: "linear_interpolation" }
+                          - { at: "2025-10-31", value: 13.205, status: "measured",   is_synthetic: false }
+                          - { at: "2025-11-30", value: 16.618, status: "measured",   is_synthetic: false }
+                          - { at: "2025-12-31", value: 20.047, status: "measured",   is_synthetic: false }
+                        period_consumption:
+                          end_date: "2025-12-31"
+                          end_value: 20.047
+                          status: "measured"
+                          substitution_method: null
+                          value: 20.043
+                          billable_value: 20.043
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
@@ -913,31 +1097,57 @@ paths:
     get:
       tags: [Measuring points]
       summary: Get a measuring point with its current device
+      description: |
+        Returns one MeasuringPoint and the device currently installed there.
+        `active_device` is `null` for difference meters and for measuring
+        points whose device was removed without replacement.
       operationId: getMeasuringPoint
       security:
         - OAuth2: [read:devices]
+      x-codeSamples:
+        - lang: curl
+          label: curl
+          source: |
+            curl -s https://api.sandbox.messpunkt.io/v1/measuring-points/$MP_ID \
+              -H "Authorization: Bearer $TOKEN"
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema: { $ref: "#/components/schemas/MeasuringPoint" }
-              example:
-                id: "a45f8b4a-d595-49e0-8217-dd0b1c4a600f"
-                usage_unit_id: "08d23bb4-0001-40f3-bd99-40bf33931365"
-                metric: "water_warm"
-                obis: "9-1:1.0.0"
-                unit: "m3"
-                localization: "Badezimmer Steigstrang"
-                active_device:
-                  id: "a263c9ee-8efa-4760-8be0-b6782e0f73d6"
-                  serial: "12347"
-                  manufacturer: "SON"
-                  device_type: "WarmWaterMeter"
-                  installed_at: "2026-07-01"
-                  deinstalled_at: null
-                  replacement_reason: null
-                  resolution: 0.001
+              examples:
+                with_device:
+                  summary: Warm-water meter with its current device
+                  value:
+                    id: "a45f8b4a-d595-49e0-8217-dd0b1c4a600f"
+                    usage_unit_id: "08d23bb4-0001-40f3-bd99-40bf33931365"
+                    metric: "water_warm"
+                    obis: null
+                    unit: "m3"
+                    localization: "Badezimmer Steigstrang"
+                    is_difference_meter: false
+                    active_device:
+                      id: "a263c9ee-8efa-4760-8be0-b6782e0f73d6"
+                      serial: "12347"
+                      manufacturer: "SON"
+                      device_type: "HotWaterMeter"
+                      installed_at: "2025-06-12"
+                      deinstalled_at: null
+                      replacement_reason: null
+                      resolution: null
+                      factor: 1
+                difference_meter:
+                  summary: Difference meter — no device of its own
+                  value:
+                    id: "5f0d6a3e-2b71-4c5e-9a8f-1d2c3b4a5e6f"
+                    usage_unit_id: "08d23bb4-0001-40f3-bd99-40bf33931365"
+                    metric: "water_warm"
+                    obis: null
+                    unit: "m3"
+                    localization: null
+                    is_difference_meter: true
+                    active_device: null
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -948,28 +1158,39 @@ paths:
       - $ref: "#/components/parameters/MeasuringPointId"
     get:
       tags: [Measuring points]
-      summary: Readings (Ablesungen / readouts) for a single measuring point
+      summary: Month-end readings and period consumption for one measuring point
       description: |
-        **Readings / Ablesungen / readouts for one MeasuringPoint.**
+        **Readings / Ablesungen for one MeasuringPoint.**
 
         Drill-down endpoint: returns the same segmented structure as the
-        unit-level `/usage-units/{id}/consumption`, but scoped to one
-        MeasuringPoint. Each reading carries `at`, `value`, `status`
-        (`measured` · `substituted` · `calculated` · `missing`) and, when
-        applicable, `substitution_method`. Each device segment also carries
-        `resolution` — see *Precision* in the API overview.
+        unit-level `/usage-units/{id}/consumption`, scoped to one
+        MeasuringPoint — month-end readings per device segment plus the
+        segment's billable period consumption. Resolution is monthly at the
+        finest; see *Meter readings and consumption* in the API overview.
       operationId: getMeasuringPointReadings
       security:
         - OAuth2: [read:readings]
+      x-codeSamples:
+        - lang: curl
+          label: curl
+          source: |
+            curl -s -H "Authorization: Bearer $TOKEN" \
+              "https://api.sandbox.messpunkt.io/v1/measuring-points/$MP_ID/readings?from=2025-01-01&to=2025-03-31"
+        - lang: Python
+          label: Python (httpx)
+          source: |
+            r = httpx.get(
+                f"https://api.sandbox.messpunkt.io/v1/measuring-points/{mp_id}/readings",
+                params={"from": "2025-01-01", "to": "2025-03-31"},
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            for seg in r.json()["segments"]:
+                for rd in seg["readings"]:
+                    flag = " (calculated)" if rd["is_synthetic"] else ""
+                    print(seg["serial"], rd["at"], rd["value"], flag)
       parameters:
-        - name: from
-          in: query
-          required: true
-          schema: { type: string, format: date }
-        - name: to
-          in: query
-          required: true
-          schema: { type: string, format: date }
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
       responses:
         "200":
           description: OK
@@ -977,71 +1198,168 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/MeasuringPointConsumption" }
               examples:
-                warmwater_with_replacement:
-                  summary: Warmwater MeasuringPoint with a meter replacement mid-year
+                hca_with_factor:
+                  summary: Heat cost allocator — raw units × factor = billable
                   value:
-                    measuring_point_id: "a45f8b4a-d595-49e0-8217-dd0b1c4a600f"
-                    metric: "water_warm"
-                    obis: "9-1:1.0.0"
-                    unit: "m3"
+                    measuring_point_id: "800332a8-30d7-445f-89ec-9a3a4606f451"
+                    metric: "hca"
+                    obis: null
+                    unit: "unit"
+                    is_difference_meter: false
                     data_gap: false
                     segments:
-                      - device_id: "613ee53e-e9dc-415f-a9d5-772422cedd23"
-                        serial: "12345"
-                        manufacturer: "SON"
-                        installed_at: "2025-07-01"
-                        deinstalled_at: "2026-06-30"
-                        replacement_reason: "EndOfLife"
-                        resolution: 0.001
-                        readings:
-                          - { at: "2026-01-01T00:00:00Z", value: 0.000,   status: "measured" }
-                          - { at: "2026-06-30T23:59:59Z", value: 700.000, status: "substituted", substitution_method: "linear_interpolation" }
-                      - device_id: "a263c9ee-8efa-4760-8be0-b6782e0f73d6"
-                        serial: "12347"
-                        manufacturer: "SON"
-                        installed_at: "2026-07-01"
+                      - device_id: "798f338c-6a3e-4b43-9960-ffe45d943904"
+                        serial: "60240777"
+                        manufacturer: "QDS"
+                        installed_at: "2023-10-01"
                         deinstalled_at: null
                         replacement_reason: null
-                        resolution: 0.001
+                        resolution: null
+                        factor: 0.625
+                        baseline_value: 0
+                        baseline_date: "2024-12-31"
                         readings:
-                          - { at: "2026-07-01T00:00:00Z", value: 1.000,   status: "measured" }
-                          - { at: "2026-12-31T23:59:59Z", value: 550.000, status: "measured" }
-                heat_meter_continuous:
-                  summary: Heat meter, no replacement — start + end of query range
+                          - { at: "2025-01-31", value: 214, status: "measured", is_synthetic: false }
+                          - { at: "2025-02-28", value: 391, status: "measured", is_synthetic: false }
+                          - { at: "2025-03-31", value: 522, status: "measured", is_synthetic: false }
+                        period_consumption:
+                          end_date: "2025-03-31"
+                          end_value: 522
+                          status: "measured"
+                          substitution_method: null
+                          value: 522
+                          billable_value: 326.25
+                heat_meter_substituted_end:
+                  summary: Heat meter — last value extrapolated because the device went quiet
                   value:
-                    measuring_point_id: "08d23bb4-0001-40f3-bd99-40bf33931365"
+                    measuring_point_id: "b1359209-f047-4d7d-9f64-a3a4c43fba30"
                     metric: "heat"
-                    obis: "6-1:1.0.0"
+                    obis: null
                     unit: "kWh"
+                    is_difference_meter: false
                     data_gap: false
                     segments:
                       - device_id: "34adf046-8bdb-434e-b6c1-d41ad2bb2079"
-                        serial: "HZ-0815-42"
+                        serial: "70815042"
                         manufacturer: "KAM"
                         installed_at: "2024-01-15"
                         deinstalled_at: null
                         replacement_reason: null
-                        resolution: 1
+                        resolution: null
+                        factor: 1
+                        baseline_value: 12480
+                        baseline_date: "2024-12-31"
                         readings:
-                          - { at: "2026-01-01T00:00:00Z", value: 12480, status: "measured" }
-                          - { at: "2026-11-30T23:59:59Z", value: 15640, status: "substituted", substitution_method: "degree_day_weighted" }
-                hca_with_gap:
-                  summary: Heat cost allocator with a data gap (device offline)
+                          - { at: "2025-01-31", value: 13391, status: "measured",   is_synthetic: false }
+                          - { at: "2025-02-28", value: 14172, status: "calculated", is_synthetic: true, substitution_method: "degree_day_weighted" }
+                          - { at: "2025-03-31", value: 14850, status: "substituted", is_synthetic: true, substitution_method: "weighted_recent_3values" }
+                        period_consumption:
+                          end_date: "2025-03-31"
+                          end_value: 14850
+                          status: "substituted"
+                          substitution_method: "weighted_recent_3values"
+                          value: 2370
+                          billable_value: 2370
+                calibration_expired:
+                  summary: Cold-water meter whose calibration period has ended — do not bill
                   value:
-                    measuring_point_id: "800332a8-30d7-445f-89ec-9a3a4606f451"
+                    measuring_point_id: "c2a1f0e3-7d44-4b0a-8e59-6a1b2c3d4e5f"
+                    metric: "water_cold"
+                    obis: null
+                    unit: "m3"
+                    is_difference_meter: false
+                    data_gap: false
+                    segments:
+                      - device_id: "e1d2c3b4-a596-4870-9a1b-2c3d4e5f6a7b"
+                        serial: "31700412"
+                        manufacturer: "DWZ"
+                        installed_at: "2018-03-01"
+                        deinstalled_at: null
+                        replacement_reason: null
+                        resolution: null
+                        factor: 1
+                        baseline_value: 301.550
+                        baseline_date: "2024-12-31"
+                        readings:
+                          - { at: "2025-01-31", value: 304.112, status: "calibration_expired", is_synthetic: false }
+                          - { at: "2025-02-28", value: 306.540, status: "calibration_expired", is_synthetic: false }
+                          - { at: "2025-03-31", value: 309.301, status: "calibration_expired", is_synthetic: false }
+                        period_consumption:
+                          end_date: "2025-03-31"
+                          end_value: 309.301
+                          status: "calibration_expired"
+                          substitution_method: null
+                          value: 7.751
+                          billable_value: 0
+                outdoor_water:
+                  summary: Outdoor water meter (garden) — separate metric, not billed to residents
+                  value:
+                    measuring_point_id: "d9e8f7a6-b5c4-4d3e-8f2a-1b0c9d8e7f6a"
+                    metric: "water_outdoor"
+                    obis: null
+                    unit: "m3"
+                    is_difference_meter: false
+                    data_gap: false
+                    segments:
+                      - device_id: "f0e1d2c3-b4a5-4968-8776-5a4b3c2d1e0f"
+                        serial: "36390118"
+                        manufacturer: "SON"
+                        installed_at: "2025-04-02"
+                        deinstalled_at: null
+                        replacement_reason: null
+                        resolution: null
+                        factor: 1
+                        baseline_value: 0.000
+                        baseline_date: "2025-04-02"
+                        readings:
+                          - { at: "2025-04-30", value: 0.412, status: "measured", is_synthetic: false }
+                          - { at: "2025-05-31", value: 1.938, status: "measured", is_synthetic: false }
+                          - { at: "2025-06-30", value: 2.604, status: "measured", is_synthetic: false }
+                        period_consumption:
+                          end_date: "2025-06-30"
+                          end_value: 2.604
+                          status: "measured"
+                          substitution_method: null
+                          value: 2.604
+                          billable_value: 2.604
+                data_gap:
+                  summary: Heat cost allocator without any value in the range
+                  value:
+                    measuring_point_id: "800332a8-30d7-445f-89ec-9a3a4606f452"
                     metric: "hca"
-                    obis: "4-1:1.0.0"
+                    obis: null
                     unit: "unit"
+                    is_difference_meter: false
                     data_gap: true
                     segments:
-                      - device_id: "798f338c-6a3e-4b43-9960-ffe45d943904"
-                        serial: "HKV-2024-0777"
-                        manufacturer: "TECH"
+                      - device_id: "798f338c-6a3e-4b43-9960-ffe45d943905"
+                        serial: "60240778"
+                        manufacturer: "QDS"
                         installed_at: "2024-10-01"
                         deinstalled_at: null
                         replacement_reason: null
-                        resolution: 1
+                        resolution: null
+                        factor: 1.25
+                        baseline_value: null
+                        baseline_date: null
                         readings: []
+                        period_consumption:
+                          end_date: "2025-03-31"
+                          end_value: null
+                          status: "missing"
+                          substitution_method: null
+                          value: null
+                          billable_value: null
+                difference_meter:
+                  summary: Difference meter — no device, no readings
+                  value:
+                    measuring_point_id: "5f0d6a3e-2b71-4c5e-9a8f-1d2c3b4a5e6f"
+                    metric: "water_warm"
+                    obis: null
+                    unit: "m3"
+                    is_difference_meter: true
+                    data_gap: false
+                    segments: []
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
@@ -1054,11 +1372,15 @@ components:
     OAuth2:
       type: oauth2
       description: |
-        OAuth 2.1 with PKCE (S256) required. Access tokens are DPoP-bound
-        (RFC 9449); callers must include a `DPoP` header with every request.
+        OAuth 2.1 Authorization Code with PKCE (S256, mandatory). Send
+        `resource=https://api.messpunkt.io` (RFC 8707) on `/oauth/authorize`
+        and `/oauth/token`. DPoP (RFC 9449) is supported and optional: a
+        token obtained with a DPoP proof is bound to your key and must then
+        be sent as `Authorization: DPoP` with a `DPoP` proof header on every
+        request. See *Authentication* in the API overview.
       flows:
         authorizationCode:
-          # Sandbox endpoints (live). Production will use auth.messpunkt.io —
+          # Sandbox endpoints (live). Production uses auth.messpunkt.io —
           # swap when V1 ships.
           authorizationUrl: https://auth.sandbox.messpunkt.io/oauth/authorize
           tokenUrl: https://auth.sandbox.messpunkt.io/oauth/token
@@ -1069,9 +1391,9 @@ components:
           # authentication.securitySchemes.OAuth2.flows.authorizationCode.selectedScopes.
           x-scalar-client-id: sandbox-demo-client
           scopes:
-            "read:units":    Read UsageUnits, Addresses and structural metadata.
+            "read:units":    Read Properties, UsageUnits, Addresses and structural metadata.
             "read:devices":  Read MeasuringPoints and Device lifecycle.
-            "read:readings": Read MeterReadings and consumption details.
+            "read:readings": Read month-end readings and period consumption.
 
   parameters:
     PageCursor:
@@ -1090,6 +1412,35 @@ components:
         minimum: 1
         maximum: 200
         default: 100
+    ExternalRef:
+      name: external_ref
+      in: query
+      required: false
+      description: |
+        Reserved for a later release. messpunkt.io does not store ERP
+        references yet, so `external_ref` is `null` on every resource and
+        this filter currently matches nothing (the response is an empty
+        page). Do not use it to look up resources.
+      schema: { type: string }
+    From:
+      name: from
+      in: query
+      required: true
+      description: |
+        Start of the query range (ISO 8601 date, inclusive). Widened to the
+        first day of its month.
+      schema: { type: string, format: date }
+      example: "2025-01-01"
+    To:
+      name: to
+      in: query
+      required: true
+      description: |
+        End of the query range (ISO 8601 date, inclusive). Widened to the
+        last day of its month and capped at the end of the last completed
+        month. Must not be before `from` (otherwise `400`).
+      schema: { type: string, format: date }
+      example: "2025-12-31"
     PropertyId:
       name: id
       in: path
@@ -1111,25 +1462,58 @@ components:
 
   responses:
     BadRequest:
-      description: Malformed request.
+      description: Malformed request — fix it, do not retry.
       content:
         application/problem+json:
           schema: { $ref: "#/components/schemas/Problem" }
+          example:
+            type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+            title: "Invalid request"
+            status: 400
+            detail: "to must be on or after from"
+            trace_id: "3f9c2a71b0d84e15"
     Unauthorized:
-      description: Missing or invalid token.
+      description: |
+        Missing, expired or invalid token — including a refresh token sent as
+        access token, a token for another audience, or a failed DPoP proof.
+        Refresh the token and retry once; if refresh fails, restart the
+        authorization flow.
+      headers:
+        WWW-Authenticate:
+          description: 'RFC 6750 / RFC 9449 challenge, e.g. `Bearer error="invalid_token"`.'
+          schema: { type: string }
       content:
         application/problem+json:
           schema: { $ref: "#/components/schemas/Problem" }
+          example:
+            type: "https://api.sandbox.messpunkt.io/errors/invalid-token"
+            title: "Missing or invalid token"
+            status: 401
+            trace_id: "a07e5d3c91f24b68"
     Forbidden:
-      description: Token valid but scope insufficient or resource out of tenant.
+      description: Token valid, but it lacks the scope this endpoint requires.
       content:
         application/problem+json:
           schema: { $ref: "#/components/schemas/Problem" }
+          example:
+            type: "https://api.sandbox.messpunkt.io/errors/insufficient-scope"
+            title: "Scope insufficient"
+            status: 403
+            detail: "This endpoint requires the read:readings scope."
+            trace_id: "5b1d8e20c7a94f33"
     NotFound:
-      description: Resource not found in this Tenant.
+      description: |
+        The resource does not exist, or it exists outside the Property scope
+        of this connection. The two cases are deliberately indistinguishable.
       content:
         application/problem+json:
           schema: { $ref: "#/components/schemas/Problem" }
+          example:
+            type: "https://api.sandbox.messpunkt.io/errors/resource-not-found"
+            title: "Resource not found"
+            status: 404
+            detail: "Property d490d09c-46cc-498e-a9ac-e031dd2402d2 not found in this Tenant's scope"
+            trace_id: "e9048b1072c8443b"
     TooManyRequests:
       description: Rate limit exceeded. Retry after the period in `Retry-After`.
       headers:
@@ -1139,6 +1523,11 @@ components:
       content:
         application/problem+json:
           schema: { $ref: "#/components/schemas/Problem" }
+          example:
+            type: "https://api.sandbox.messpunkt.io/errors/too-many-requests"
+            title: "Too many requests"
+            status: 429
+            detail: "Rate limit of 300 requests per 60s exceeded. Retry in 12s."
 
   schemas:
 
@@ -1147,8 +1536,8 @@ components:
       required: [tenant_id, tenant_name, client_id, granted_scopes, property_scope]
       properties:
         tenant_id:      { type: string, format: uuid }
-        tenant_name:    { type: string, example: "Hausverwaltung Müller GmbH" }
-        client_id:      { type: string, description: "ID of the ERP client holding the token." }
+        tenant_name:    { type: string, example: "Musterhausverwaltung GmbH" }
+        client_id:      { type: string, description: "ID of the client holding the token." }
         granted_scopes:
           type: array
           items: { type: string }
@@ -1156,9 +1545,10 @@ components:
         property_scope:
           description: |
             Property-level authorization. Either the literal string `"all"`
-            if the landlord exposed every Property in the Tenant, or an
-            array of Property UUIDs the ERP is permitted to access. See
-            *Authorization & Property scope* in the API overview.
+            if the landlord exposed every Property in the Tenant (including
+            Properties added later), or an array of Property UUIDs the client
+            is permitted to access. See *Authorization & Property scope* in
+            the API overview.
           oneOf:
             - type: string
               enum: ["all"]
@@ -1189,12 +1579,11 @@ components:
         id:             { type: string, format: uuid }
         tenant_id:      { type: string, format: uuid }
         external_ref:
-          type: [string, "null"]
-          description: Optional ERP-side identifier linked to this Property.
+          $ref: "#/components/schemas/ExternalRef"
         name:
           type: string
           description: Landlord-facing Liegenschafts-Name.
-          example: "Reichenstraße 12-14"
+          example: "Musterstraße 12-14"
         addresses:
           type: array
           description: One or more addresses belonging to this Property.
@@ -1212,12 +1601,21 @@ components:
         `/usage-units` response is self-describing without a second call.
       properties:
         id:              { type: string, format: uuid }
-        name:            { type: string, example: "Reichenstraße 12-14" }
+        name:            { type: string, example: "Musterstraße 12-14" }
         address_line:
           type: [string, "null"]
           description: One-line rendering of the primary Property address for UI display.
-          example: "Reichenstraße 12, 10999 Berlin"
-        external_ref:    { type: [string, "null"] }
+          example: "Musterstraße 12, 99999 Musterstadt"
+        external_ref:
+          $ref: "#/components/schemas/ExternalRef"
+
+    ExternalRef:
+      type: [string, "null"]
+      description: |
+        Reserved for an ERP-side identifier. **Always `null` today** —
+        messpunkt.io does not store ERP references yet and the API offers no
+        way to write one. A later minor release may populate it.
+      example: null
 
     UsageUnit:
       type: object
@@ -1229,12 +1627,13 @@ components:
         property:
           $ref: "#/components/schemas/PropertySummary"
         external_ref:
-          type: [string, "null"]
-          description: Optional ERP-side identifier linked to this unit.
+          $ref: "#/components/schemas/ExternalRef"
         name:
           type: string
-          description: Landlord-facing name, e.g. "WE 03, Müller".
-          example: "WE 03, Müller"
+          description: |
+            Label the landlord gave the unit, e.g. "WE 03". Free text entered
+            by the landlord; the API has no separate field for resident names.
+          example: "WE 03"
         floor:          { type: [string, "null"], example: "2" }
         position:       { type: [string, "null"], example: "links" }
         unit_type:
@@ -1258,12 +1657,20 @@ components:
       type: object
       required: [street, house_number, postal_code, city, country_code]
       properties:
-        street:             { type: string, example: "Reichenstraße" }
+        street:             { type: string, example: "Musterstraße" }
         house_number:       { type: string, example: "12" }
         house_number_addition: { type: [string, "null"], example: "A" }
-        postal_code:        { type: string, example: "10999" }
-        city:               { type: string, example: "Berlin" }
+        postal_code:        { type: string, example: "99999" }
+        city:               { type: string, example: "Musterstadt" }
         country_code:       { type: string, example: "DE", description: "ISO 3166-1 alpha-2" }
+
+    Obis:
+      type: [string, "null"]
+      description: |
+        Reserved for an OBIS code (IEC 62056-6-1). **Always `null` today** —
+        messpunkt.io does not store OBIS codes. Identify the quantity by
+        `metric` and `unit`.
+      example: null
 
     MeasuringPointSummary:
       type: object
@@ -1271,29 +1678,47 @@ components:
       properties:
         measuring_point_id: { type: string, format: uuid }
         metric: { $ref: "#/components/schemas/Metric" }
-        obis:
-          type: [string, "null"]
-          description: OBIS code identifying the physical quantity (IEC 62056-6-1). Format `A-B:C.D.E[*F]`.
-          example: "9-1:1.0.0"
+        obis:   { $ref: "#/components/schemas/Obis" }
         unit:   { $ref: "#/components/schemas/MetricUnit" }
-        active_device_serial: { type: [string, "null"] }
+        active_device_serial:
+          type: [string, "null"]
+          description: Serial of the installed device; `null` for difference meters and removed devices.
+        is_difference_meter: { $ref: "#/components/schemas/IsDifferenceMeter" }
+
+    IsDifferenceMeter:
+      type: boolean
+      default: false
+      description: |
+        `true` for a difference meter: a measuring point without a device of
+        its own whose consumption is the remainder of a sum meter minus all
+        other meters behind it. It has no device, no readings and — in V1 —
+        no consumption value. See *Canonical model* in the API overview.
 
     MeasuringPoint:
       type: object
       required: [id, usage_unit_id, metric, unit, active_device]
       properties:
         id:            { type: string, format: uuid }
-        usage_unit_id: { type: string, format: uuid }
+        usage_unit_id:
+          type: string
+          format: uuid
+          description: The UsageUnit this measuring point's sector is allocated to.
         metric:        { $ref: "#/components/schemas/Metric" }
-        obis:
-          type: [string, "null"]
-          description: OBIS code identifying the physical quantity (IEC 62056-6-1). Format `A-B:C.D.E[*F]`.
-          example: "9-1:1.0.0"
+        obis:          { $ref: "#/components/schemas/Obis" }
         unit:          { $ref: "#/components/schemas/MetricUnit" }
         localization:
           type: [string, "null"]
           description: Free-text mount info, e.g. "Badezimmer Steigstrang".
-        active_device: { $ref: "#/components/schemas/Device" }
+        is_difference_meter: { $ref: "#/components/schemas/IsDifferenceMeter" }
+        active_device:
+          description: |
+            The device currently installed. **`null`** for difference meters
+            (`is_difference_meter: true`) and for measuring points whose device
+            was removed without replacement. *(Changed in rc.3: was a required
+            object.)*
+          oneOf:
+            - $ref: "#/components/schemas/Device"
+            - type: "null"
 
     Device:
       type: object
@@ -1301,29 +1726,67 @@ components:
       properties:
         id:              { type: string, format: uuid }
         serial:          { type: string, example: "12345" }
-        manufacturer:    { type: string, example: "SON" }
-        device_type:     { type: string, example: "WarmWaterMeter" }
+        manufacturer:
+          type: string
+          description: Three-letter wM-Bus manufacturer code (FLAG ID), e.g. `SON`, `QDS`, `EFE`.
+          example: "SON"
+        device_type:
+          type: string
+          description: |
+            Device kind as recorded by messpunkt.io, e.g. `HeatCostAllocator`,
+            `HeatMeter`, `HotWaterMeter`, `ColdWaterMeter`, `WaterMeter`.
+            Informational — use `metric` for billing.
+          example: "HotWaterMeter"
         installed_at:    { type: string, format: date }
         deinstalled_at:  { type: [string, "null"], format: date }
-        replacement_reason:
-          type: [string, "null"]
-          enum: [null, EndOfLife, Defect, PeriodEnd, DeviceRemoval, Other]
-        resolution:
-          type: [number, "null"]
-          description: |
-            Smallest increment the meter can report, in the same unit as
-            the reading `value`. Partners should not display or bill at
-            finer precision than this. See *Precision* in the API overview.
-          example: 0.001
+        replacement_reason: { $ref: "#/components/schemas/ReplacementReason" }
+        resolution:      { $ref: "#/components/schemas/Resolution" }
+        factor:          { $ref: "#/components/schemas/Factor" }
+
+    ReplacementReason:
+      type: [string, "null"]
+      description: |
+        Why the device's segment ended. `null` while the device is installed.
+        - `DeviceReplacement` — the device was swapped for another one; the
+          next segment of the same measuring point belongs to the new device
+        - `DeviceRemoval` — the device was removed without replacement
+        - `EndOfLife`, `Defect`, `PeriodEnd`, `Other` — **not assigned
+          today**; messpunkt.io does not record why a device was swapped, and
+          a billing-period end does not end a device segment. Kept for
+          compatibility with rc.2.
+      enum: [null, DeviceReplacement, DeviceRemoval, EndOfLife, Defect, PeriodEnd, Other]
+
+    Resolution:
+      type: [number, "null"]
+      description: |
+        Reserved for the smallest increment the device can report. **Always
+        `null` today** — messpunkt.io does not record it. See *Precision* in
+        the API overview.
+      example: null
+
+    Factor:
+      type: number
+      description: |
+        Multiplier from raw to billable consumption: the K-factor
+        (Bewertungsfaktor) for heat cost allocators, usually `1` for all
+        other meters. `billable_value = value × factor`.
+      example: 0.625
 
     UnitConsumption:
       type: object
       required: [usage_unit_id, from, to, measuring_points]
       properties:
         usage_unit_id:   { type: string, format: uuid }
-        external_ref:    { type: [string, "null"] }
-        from:            { type: string, format: date }
-        to:              { type: string, format: date }
+        external_ref:
+          $ref: "#/components/schemas/ExternalRef"
+        from:
+          type: string
+          format: date
+          description: Effective start of the range (first day of a month).
+        to:
+          type: string
+          format: date
+          description: Effective end of the range (last day of a completed month).
         measuring_points:
           type: array
           items: { $ref: "#/components/schemas/MeasuringPointConsumption" }
@@ -1334,97 +1797,183 @@ components:
       properties:
         measuring_point_id: { type: string, format: uuid }
         metric:             { $ref: "#/components/schemas/Metric" }
-        obis:
-          type: [string, "null"]
-          description: |
-            OBIS code identifying the physical quantity of this MeasuringPoint,
-            per **IEC 62056-6-1** (DLMS/COSEM). Format: `A-B:C.D.E[*F]`.
-            See the `Meter identifiers (OBIS)` section in the API overview
-            for the typical mapping per `Metric`.
-          example: "9-1:1.0.0"
+        obis:               { $ref: "#/components/schemas/Obis" }
         unit:               { $ref: "#/components/schemas/MetricUnit" }
+        is_difference_meter: { $ref: "#/components/schemas/IsDifferenceMeter" }
         data_gap:
           type: boolean
           default: false
-          description: True when the range has no coverage at all (empty segments).
+          description: True when no segment has any value in the range.
         segments:
           type: array
           description: |
             One entry per continuous device installation window within the
-            queried range. A meter replacement produces two segments.
+            queried range. A meter replacement produces two segments. Empty
+            for difference meters.
           items: { $ref: "#/components/schemas/DeviceSegment" }
 
     DeviceSegment:
       type: object
-      required: [device_id, serial, manufacturer, installed_at, readings]
+      required: [device_id, serial, manufacturer, installed_at, factor, readings, period_consumption]
       properties:
         device_id:        { type: string, format: uuid }
         serial:           { type: string }
         manufacturer:     { type: string }
         installed_at:     { type: string, format: date }
         deinstalled_at:   { type: [string, "null"], format: date }
-        replacement_reason:
-          type: [string, "null"]
-          enum: [null, EndOfLife, Defect, PeriodEnd, DeviceRemoval, Other]
-        resolution:
+        replacement_reason: { $ref: "#/components/schemas/ReplacementReason" }
+        resolution:       { $ref: "#/components/schemas/Resolution" }
+        factor:           { $ref: "#/components/schemas/Factor" }
+        baseline_value:
           type: [number, "null"]
-          description: Smallest increment the device can report, in the unit of `value`. See `Device.resolution`.
-          example: 0.001
+          description: |
+            Value the segment's consumption is measured from: the month-end
+            value before `from` if the device was installed earlier, or the
+            device's start value at installation (not necessarily 0). `null`
+            if no start value is known.
+          example: 412.318
+        baseline_date:
+          type: [string, "null"]
+          format: date
+          description: Date of `baseline_value`. May lie before `from`.
+          example: "2024-12-31"
         readings:
           type: array
-          description: Ablesungen (readouts) for this device within its installation window.
+          description: |
+            One month-end reading per calendar month inside both the query
+            range and the installation window, ascending. Months without a
+            value are omitted. Never finer than monthly.
           items: { $ref: "#/components/schemas/MeterReading" }
+        period_consumption:
+          $ref: "#/components/schemas/PeriodConsumption"
+
+    PeriodConsumption:
+      type: object
+      description: |
+        Consumption of this device segment inside the query range, computed
+        the same way as in the landlord portal. `billable_value` is the
+        number to bill; sum it across the segments of a measuring point.
+      required: [end_date, end_value, status, value, billable_value]
+      properties:
+        end_date:
+          type: string
+          format: date
+          description: |
+            Date of `end_value`: the removal date if the device left inside the
+            range, otherwise the effective end of the range.
+          example: "2025-12-31"
+        end_value:
+          type: [number, "null"]
+          description: Meter value at `end_date`. `null` when `status = missing`.
+          example: 20.047
+        status: { $ref: "#/components/schemas/ReadingStatus" }
+        substitution_method: { $ref: "#/components/schemas/SubstitutionMethod" }
+        value:
+          type: [number, "null"]
+          description: Raw consumption, `end_value − baseline_value`. `null` when `status = missing`.
+          example: 20.043
+        billable_value:
+          type: [number, "null"]
+          description: |
+            `value × factor`. **`0` when `status = calibration_expired`** (the
+            device must not be billed), `null` when `status = missing`.
+          example: 20.043
 
     MeterReading:
       type: object
-      required: [at, value, status]
+      required: [at, value, status, is_synthetic]
+      description: A month-end value (Monatsendwert / Stichtagswert).
       properties:
-        at:    { type: string, format: date-time, description: "Reading timestamp (UTC)." }
+        at:
+          type: string
+          format: date
+          description: |
+            Last day of a calendar month; the value is the meter reading at
+            the end of that day. *(Changed in rc.3: was a date-time.)*
+          example: "2025-01-31"
         value: { type: number, example: 1234.567 }
-        status:              { $ref: "#/components/schemas/ReadingStatus" }
+        status:
+          $ref: "#/components/schemas/ReadingStatus"
+        is_synthetic:
+          type: boolean
+          description: |
+            `true` when messpunkt.io derived the value (interpolated at the
+            month boundary or extrapolated) instead of receiving it from the
+            device. `false` for values the device reported or stored itself.
         substitution_method: { $ref: "#/components/schemas/SubstitutionMethod" }
 
     ReadingStatus:
       type: string
       description: |
-        Reading quality. Maps 1:1 to the internal `ValueType`.
-        - `measured` — actual meter value from the device
-        - `substituted` — interpolated or forward-filled to the queried boundary
-        - `calculated` — derived (e.g. sum of sub-meters)
-        - `missing` — no data available at this timestamp
-      enum: [measured, substituted, calculated, missing]
+        How a value was obtained.
+        - `measured` — reported by the device for that date (telegram or
+          device-stored Stichtagswert)
+        - `calculated` — interpolated by messpunkt.io at a month boundary
+          between two real readings (`is_synthetic: true`)
+        - `substituted` — extrapolated from recent readings because the device
+          has not reported since (only at the end of a range, readings at most
+          20 days old; `is_synthetic: true`)
+        - `missing` — no value could be determined; appears only on
+          `period_consumption`
+        - `calibration_expired` — the device's statutory calibration period
+          (Eichfrist) had ended; the value is shown for information and
+          **must not be billed** *(added in rc.3)*
+      enum: [measured, substituted, calculated, missing, calibration_expired]
 
     SubstitutionMethod:
       type: [string, "null"]
       description: |
-        Present when `status = substituted`.
-        - `linear_interpolation` — day-proportional, used for water / electricity / gas
-        - `degree_day_weighted` — VDI 2067 monthly degree-day weighting, used for heat
-        - `last_value_forward` — last known value carried forward
-      enum: [null, linear_interpolation, degree_day_weighted, last_value_forward]
+        How a `calculated` or `substituted` value was derived; `null`
+        otherwise.
+
+        For `calculated` month-end values:
+        - `linear_interpolation` — day-proportional between the neighbouring
+          readings (water, electricity, gas)
+        - `degree_day_weighted` — weighted by monthly degree days (VDI 2067;
+          heat meters and heat cost allocators)
+
+        For `substituted` end values *(added in rc.3)*:
+        - `weighted_recent_2values`, `weighted_recent_3values` — daily rate
+          from the last 2 or 3 readings of the past 20 days, most recent
+          weighted highest, carried forward to the end date
+        - `baseline_fallback` — daily rate from the baseline to the last
+          reading (recent readings all on the same day)
+        - `baseline_single_value` — daily rate from the baseline to the only
+          recent reading
+
+        `last_value_forward` is **not assigned today** and kept for
+        compatibility with rc.2.
+      enum:
+        - null
+        - linear_interpolation
+        - degree_day_weighted
+        - weighted_recent_2values
+        - weighted_recent_3values
+        - baseline_fallback
+        - baseline_single_value
+        - last_value_forward
 
     Metric:
       type: string
       description: |
-        High-level metric family. Each value maps to a typical OBIS code
-        (see the `Meter identifiers (OBIS)` section in the API overview).
+        What a measuring point measures. See *Metrics and units* in the API
+        overview for the full table.
 
-        | Value | German meter type | Typical OBIS | Unit |
-        | --- | --- | --- | --- |
-        | `heat` | Wärmezähler (WMZ) | `6-1:1.0.0` | `kWh` |
-        | `hca` | Heizkostenverteiler (HKV) | `4-1:1.0.0` | `unit` |
-        | `water_cold` | Kaltwasserzähler | `8-1:1.0.0` | `m3` |
-        | `water_warm` | Warmwasserzähler | `9-1:1.0.0` | `m3` |
-        | `electricity` | Stromzähler | `1-1:1.8.0` | `kWh` |
-        | `gas` | Gaszähler | `7-1:3.0.0` | `m3` |
-
-        The authoritative OBIS code for an individual device is always the
-        value returned in the `obis` field on that MeasuringPoint.
+        | Value | German meter type | Unit |
+        | --- | --- | --- |
+        | `heat` | Wärmezähler (WMZ) | `kWh` |
+        | `hca` | Heizkostenverteiler (HKV) | `unit` |
+        | `water_cold` | Kaltwasserzähler | `m3` |
+        | `water_warm` | Warmwasserzähler | `m3` |
+        | `water_outdoor` | Außenwasserzähler — **not** part of the water billed to residents *(added in rc.3)* | `m3` |
+        | `electricity` | Stromzähler — reserved, no readable devices today | `kWh` |
+        | `gas` | Gaszähler — reserved, no readable devices today | `m3` |
       enum:
         - heat
         - hca
         - water_cold
         - water_warm
+        - water_outdoor
         - electricity
         - gas
 
@@ -1436,7 +1985,7 @@ components:
         need to perform unit conversion:
 
         - `kWh` — energy (`heat`, `electricity`)
-        - `m3`  — volume (`water_cold`, `water_warm`, `gas`)
+        - `m3`  — volume (`water_cold`, `water_warm`, `water_outdoor`, `gas`)
         - `unit` — dimensionless HKV-Einheiten (`hca`)
       enum:
         - kWh
@@ -1451,20 +2000,23 @@ components:
         type:
           type: string
           format: uri
-          example: "https://api.messpunkt.io/errors/invalid-date-range"
+          description: Stable error identifier; branch on its last path segment (see *Errors*).
+          example: "https://api.sandbox.messpunkt.io/errors/invalid-request"
         title:
           type: string
-          example: "Invalid date range"
+          description: Short English summary. May change; do not branch on it.
+          example: "Invalid request"
         status:
           type: integer
           example: 400
         detail:
           type: string
-          example: "`to` must be on or after `from`."
+          description: English explanation of this occurrence.
+          example: "to must be on or after from"
         instance:
           type: string
           format: uri
         trace_id:
           type: string
           description: Correlate with server logs when opening a support ticket.
-          example: "01HZ7K2XS9QJ0NB6K3GH7WN8XA"
+          example: "e9048b1072c8443b"
