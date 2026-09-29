@@ -31,21 +31,21 @@ docs {
   replacement scenario. The response has **two device segments** under the
   same `measuring_point_id`:
 
-  1. Old device `SND-297772`, installed 2025-07-01, deinstalled 2026-06-30,
-     `replacement_reason: EndOfLife`. Close-out reading is synthesised via
-     linear interpolation (`status: "substituted"`,
-     `substitution_method: "linear_interpolation"`).
-  2. Replacement device `SND-933596`, installed 2026-07-01, no deinstall date.
-     Both readings `status: "measured"`.
+  1. Old device, deinstalled mid-year, `replacement_reason: DeviceReplacement`.
+  2. Replacement device, no deinstall date. Its `baseline_value` is its own
+     start value at installation — not necessarily 0.
 
-  Every segment contains exactly **two readings** — the opening and closing
-  value for its installed window (clipped to the `from`/`to` range). ERPs
-  compute consumption by subtraction inside a segment and summing across
-  segments. See the OpenAPI spec for the full contract.
+  Each segment contains **one reading per calendar month end** (never finer;
+  `is_synthetic: true` marks values messpunkt.io interpolated) and a
+  `period_consumption` block. The number to bill is the sum of
+  `period_consumption.billable_value` across both segments — do not compute
+  it from the readings yourself. See the OpenAPI spec for the full contract.
 
   ## Query parameters
 
-  - `from` — ISO-8601 date, inclusive
-  - `to`   — ISO-8601 date, inclusive
-  - `metric` — one of `heat`, `water_warm`, `water_cold`, `hca`
+  - `from` — ISO-8601 date, inclusive; widened to the first day of its month
+  - `to`   — ISO-8601 date, inclusive; widened to the last day of its month,
+    capped at the last completed month
+  - `metric` — one or more of `heat`, `hca`, `water_cold`, `water_warm`,
+    `water_outdoor` (comma-separated)
 }

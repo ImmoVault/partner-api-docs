@@ -35,10 +35,14 @@ docs {
   - `measuring_points[0].data_gap: true`
   - `measuring_points[0].segments[0].readings: []` — empty, not omitted
   - The Device is still reported so the ERP knows the meter exists
+  - `period_consumption.status: "missing"`, with `billable_value: null`
 
-  ERPs should treat `data_gap: true` as a hard signal to either estimate
-  (`VDI 2067` degree-day weighting for heat/HCA, linear interpolation for
-  water/electricity) or exclude the unit from the billing period.
+  Treat `data_gap: true` as a hard signal: messpunkt.io already substitutes
+  where the readings allow it (`status: "substituted"`); where it reports
+  `missing`, there is nothing to bill from the meter. Clarify with the
+  landlord (estimate per HeizkostenV § 9a) instead of inventing a value.
 
-  HCA = Heat Cost Allocator (Heizkostenverteiler), unit-less, OBIS `4-1:1.0.0`.
+  HCA = Heat Cost Allocator (Heizkostenverteiler), unit `unit` (raw allocator
+  units). Billable = raw consumption × `factor` (K-factor) — the API does the
+  multiplication in `billable_value`.
 }

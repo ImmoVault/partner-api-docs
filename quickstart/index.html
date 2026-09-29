@@ -110,7 +110,7 @@
 
     <div class="preview-ribbon">
       <span class="badge">Preview</span>
-      <span>V1 in active development — target release <strong>Q2 2026</strong>. Become a pilot partner:
+      <span>V1 release candidate <strong>1.0.0-rc.3</strong> — GA ships with the first pilot partner. Become one:
         <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
       </span>
     </div>
@@ -181,9 +181,9 @@ echo "Access token (first 30 chars): ${TOKEN:0:30}..."</code></pre>
   | python3 -c "import json,sys; print(json.load(sys.stdin)['data'][0]['id'])")
 
 curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://api.sandbox.messpunkt.io/v1/usage-units/$UNIT/consumption?from=2026-01-01&to=2026-12-31&metric=water_warm" \
+  "https://api.sandbox.messpunkt.io/v1/usage-units/$UNIT/consumption?from=2025-01-01&to=2025-12-31&metric=water_warm" \
   | python3 -m json.tool</code></pre>
-      <p>The response gives you, per measuring point, exactly two readings per device segment — start and end of the installation window, clipped to your query range. Compute consumption as <code>readings[1].value - readings[0].value</code> and sum across segments when a meter was replaced mid-range. See the <a href="../#section/Meter-readings-(Ablesungen-/-readouts)">Readings section</a> in the Reference for the full contract.</p>
+      <p>The response gives you, per measuring point, one segment per device installation window. Each segment holds one reading per <strong>calendar month end</strong> (never finer) and a <code>period_consumption</code> block. The number to bill is <code>period_consumption.billable_value</code> — raw consumption × <code>factor</code>, measured from the segment's <code>baseline_value</code> — summed across segments when a meter was replaced mid-range. Do not compute <code>last − first</code> reading yourself: it misses the baseline, the start value of a replacement device and the K-factor. See <a href="../reference/#section/Meter-readings-and-consumption">Meter readings and consumption</a> in the Reference for the full contract.</p>
 
       <h2 id="refreshing">Refreshing silently</h2>
       <p>When the 1-hour access token expires, exchange the refresh token for a fresh pair — no user interaction needed:</p>
@@ -210,7 +210,7 @@ curl -s -H "Authorization: Bearer $TOKEN" \
             </a>
             <a class="side-card" href="../dpop/">
               <div class="title">DPoP proof</div>
-              <div class="desc">Sender-constraining tokens — C#, Node, Python, curl.</div>
+              <div class="desc">Optional sender-constrained tokens — C#, Node, Python, curl.</div>
             </a>
             <a class="side-card" href="../bruno/">
               <div class="title">Bruno collection</div>
@@ -218,7 +218,7 @@ curl -s -H "Authorization: Bearer $TOKEN" \
             </a>
             <a class="side-card" href="../reference/">
               <div class="title">Full reference</div>
-              <div class="desc">Every endpoint, schema, example, OBIS code.</div>
+              <div class="desc">Every endpoint, schema, example, error response.</div>
             </a>
             <a class="side-card" href="../changelog/">
               <div class="title">Changelog</div>
@@ -232,7 +232,7 @@ curl -s -H "Authorization: Bearer $TOKEN" \
     <footer class="site-footer">
       <div class="row">
         <div>
-          <strong>messpunkt.io Partner API</strong> · Preview · Target release Q2 2026
+          <strong>messpunkt.io Partner API</strong> · Preview · 1.0.0-rc.3 · GA with the first pilot partner
           <div class="muted">© 2026 messpunkt.io — <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
         </div>
         <div class="links">

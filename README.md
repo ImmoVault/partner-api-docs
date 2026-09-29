@@ -2,10 +2,10 @@
 
 ![OpenAPI](https://img.shields.io/badge/OpenAPI-3.1-1e534a?style=flat-square)
 ![OAuth](https://img.shields.io/badge/OAuth-2.1%20%2B%20PKCE-1e534a?style=flat-square)
-![DPoP](https://img.shields.io/badge/DPoP-RFC%209449-1e534a?style=flat-square)
+![DPoP](https://img.shields.io/badge/DPoP-optional%20(RFC%209449)-1e534a?style=flat-square)
 ![AI-ready](https://img.shields.io/badge/AI--ready-tool%20schemas%20%2B%20llms.txt-1e534a?style=flat-square)
 ![Status](https://img.shields.io/badge/status-preview-f2c94c?style=flat-square)
-![Target](https://img.shields.io/badge/V1%20target-Q2%202026-2d9cdb?style=flat-square)
+![Version](https://img.shields.io/badge/V1-1.0.0--rc.3-2d9cdb?style=flat-square)
 
 **Partner-facing API documentation for [messpunkt.io](https://messpunkt.io)** — the metering platform for German real estate. This repo hosts the OpenAPI 3.1 specification and the rendered documentation at **https://developer.messpunkt.io**.
 
@@ -14,8 +14,8 @@
 Property-management ERPs (Immobilienverwaltungs-Software) traditionally pull consumption data via legacy file exchanges or bespoke connectors. messpunkt.io exposes a **single, partner-agnostic REST/OAuth 2.1 API** that lets ERPs:
 
 - List Liegenschaften (Properties) and Wohneinheiten (UsageUnits) under a landlord's Tenant
-- Query meter readings (Ablesungen) with explicit meter-replacement semantics, estimated-vs-measured flags, and OBIS-coded metrics
-- Connect via user-delegated OAuth (PKCE + DPoP) — no API keys on clipboards
+- Query monthly meter readings (Ablesungen) and billable period consumption with explicit meter-replacement semantics and measured-vs-calculated flags
+- Connect via user-delegated OAuth (PKCE, DPoP optional) — no API keys on clipboards
 - Limit exposure to a subset of Properties per connection via a token-scoped whitelist
 
 One spec. One canonical data model. Multiple renderings (REST today; BVED 3.10 push for the ARGE-speaking long tail is designed in but deferred to V2).
@@ -36,14 +36,14 @@ Raw OpenAPI YAML: [erp-api-openapi.yaml](./erp-api-openapi.yaml).
 
 | | |
 |---|---|
-| **Release target** | **Q2 2026** |
-| **Current draft** | 0.1 · April 2026 |
-| **Status** | Preview — specification frozen for pilot-partner review; implementation in progress |
+| **Release** | GA ships with the first pilot partner and is announced in the [changelog](./changelog/) |
+| **Current version** | `1.0.0-rc.3` · September 2026 |
+| **Status** | Preview — release candidate for pilot-partner review; sandbox live, production in preparation |
 | **Source of truth** | Mirrored from an internal engineering repository |
 
 ## Become a pilot partner
 
-messpunkt.io is actively onboarding pilot ERP partners for Q2 2026. If you operate a property-management or billing ERP and want to integrate:
+messpunkt.io is actively onboarding pilot ERP partners. If you operate a property-management or billing ERP and want to integrate:
 
 - **Email:** [kontakt@messpunkt.io](mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration)
 - **What we'll send back:** sandbox credentials, OAuth app registration, a dedicated integration contact, pilot-phase feedback loop
@@ -51,12 +51,12 @@ messpunkt.io is actively onboarding pilot ERP partners for Q2 2026. If you opera
 
 ## Design highlights
 
-- **OAuth 2.1 + PKCE + DPoP** — sender-constrained tokens, no static API keys. Authorization Code flow with mandatory PKCE (S256) and DPoP-bound access tokens per [RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449).
+- **OAuth 2.1 + PKCE, DPoP optional** — no static API keys. Authorization Code flow with mandatory PKCE (S256); sender-constrained tokens per [RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449) when the client sends a DPoP proof.
 - **Per-Property authorization scope** — each token carries an explicit Property whitelist; out-of-scope resources return `404 Not Found` (not `403`) so no information about other Properties leaks.
 - **Explicit meter-replacement semantics** — responses are nested per-MeasuringPoint with `DeviceSegment[]`; ERPs never have to diff serials to detect a swap.
-- **OBIS-aligned metrics** — every reading carries an [OBIS code](https://en.wikipedia.org/wiki/IEC_62056) per IEC 62056-6-1 so partners can unambiguously identify what a value represents.
-- **Two readings per segment** — simple billing contract: start value + end value per device, clipped to the query range. Intermediate snapshots (charting) are a future `granularity=` extension.
-- **RFC 7807** problem-details for errors, ISO 8601 UTC for timestamps, cursor-based pagination, per-client rate limiting.
+- **Monthly, never finer** — month-end readings plus the billable consumption per device segment, computed like the landlord portal. No daily or per-telegram series: that would be a behavioural profile of residents.
+- **Honest statuses** — `measured`, `calculated` (interpolated, `is_synthetic`), `substituted`, `missing`, `calibration_expired`; K-factor and start values per segment, so a mid-year meter swap bills correctly.
+- **RFC 7807** problem-details for errors, ISO 8601 UTC for timestamps, cursor-based pagination, rate limiting with `Retry-After`.
 
 ## AI-ready
 
@@ -68,7 +68,7 @@ Discovery artifacts so the API is usable by AI assistants and LLM-based agents o
 
 Full detail and constraints for agent authors are in the [*For AI agents*](https://developer.messpunkt.io/#section/For-AI-agents) section of the rendered docs.
 
-**Roadmap:** Tier 2 is an **MCP server** (Model Context Protocol) for native Claude Desktop, Cursor, ChatGPT Desktop and IDE integrations — planned as a follow-up spike.
+**MCP server:** `https://mcp.messpunkt.io/v1` lets landlords ask their own AI assistant (Claude, ChatGPT, Codex) about their data — read-only tools, same consent and data rules as the REST API. Part of V1; goes live together with production.
 
 ## Legal
 

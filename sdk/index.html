@@ -98,14 +98,14 @@
 
     <div class="preview-ribbon">
       <span class="badge">Preview</span>
-      <span>V1 in active development — target release <strong>Q2 2026</strong>. Become a pilot partner:
+      <span>V1 release candidate <strong>1.0.0-rc.3</strong> — GA ships with the first pilot partner. Become one:
         <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
       </span>
     </div>
 
     <main>
       <h1>SDK &amp; client generation</h1>
-      <p class="lead">Generate a strongly-typed client for the messpunkt.io Partner API from the <a href="../erp-api-openapi.yaml">OpenAPI 3.1 spec</a>. One command, any language your stack speaks — C#, Java, TypeScript, Python, Go, PHP, Ruby. First-party SDK packages on NuGet/npm/PyPI arrive with GA in Q2 2026.</p>
+      <p class="lead">Generate a strongly-typed client for the messpunkt.io Partner API from the <a href="../erp-api-openapi.yaml">OpenAPI 3.1 spec</a>. One command, any language your stack speaks — C#, Java, TypeScript, Python, Go, PHP, Ruby. First-party SDK packages on NuGet/npm/PyPI arrive with GA.</p>
 
       <div class="note">
         <strong>Why generate instead of wait for us?</strong> Every generated client tracks the <em>exact</em> field names, types and enum values from the spec you see on this site. When we add a field, you regenerate — the compiler tells you where the new field is available. There is no drift between docs and client.
@@ -212,7 +212,7 @@ nswag openapi2csclient \
         <tbody>
           <tr>
             <td><code><a href="../erp-api-openapi.yaml">https://developer.messpunkt.io/erp-api-openapi.yaml</a></code></td>
-            <td>The canonical spec. Version field in the document tracks <code>1.0.0-rc.2</code>.</td>
+            <td>The canonical spec. Version field in the document tracks <code>1.0.0-rc.3</code>.</td>
           </tr>
           <tr>
             <td><code>https://api.sandbox.messpunkt.io/v1</code></td>
@@ -226,14 +226,14 @@ nswag openapi2csclient \
       </table>
 
       <h2>OAuth setup after generation</h2>
-      <p>Generators emit the HTTP layer, not the OAuth layer. You handle the token exchange once and inject the resulting access token into the generated client's default headers. See the <a href="../quickstart/">Quickstart</a> for the PKCE flow and the <a href="../dpop/">DPoP guide</a> when you move to production (production will require sender-constrained tokens; the sandbox accepts plain <code>Bearer</code>).</p>
+      <p>Generators emit the HTTP layer, not the OAuth layer. You handle the token exchange once and inject the resulting access token into the generated client's default headers. See the <a href="../quickstart/">Quickstart</a> for the PKCE flow and the <a href="../dpop/">DPoP guide</a> if you want sender-constrained tokens (optional in sandbox and production; plain <code>Bearer</code> works everywhere).</p>
 
       <div class="note">
         <strong>Token refresh is your client's responsibility.</strong> Access tokens last 1 h; wrap your generated client with a thin interceptor that refreshes before calls and retries <code>401</code> once. See the <a href="../errors/">Error-handling guide</a> for the exact action matrix.
       </div>
 
       <h2>Coming with GA</h2>
-      <p>For Q2 2026 we plan to publish first-party SDK packages on:</p>
+      <p>With GA we plan to publish first-party SDK packages on:</p>
       <ul>
         <li><strong>NuGet</strong> — <code>Messpunkt.PartnerApi</code></li>
         <li><strong>npm</strong> — <code>@messpunkt/partner-api</code></li>
@@ -245,7 +245,7 @@ nswag openapi2csclient \
     <footer class="site-footer">
       <div class="row">
         <div>
-          <strong>messpunkt.io Partner API</strong> · Preview · Target release Q2 2026
+          <strong>messpunkt.io Partner API</strong> · Preview · 1.0.0-rc.3 · GA with the first pilot partner
           <div class="muted">© 2026 messpunkt.io — <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
         </div>
         <div class="links">

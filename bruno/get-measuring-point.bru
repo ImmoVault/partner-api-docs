@@ -24,10 +24,12 @@ docs {
   A MeasuringPoint is the **stable identifier** across device replacements.
   Devices come and go; the MeasuringPoint persists. Use this endpoint when
   you already have the `measuring_point_id` (e.g. from a prior consumption
-  response) and want the metadata plus full device history.
+  response) and want its metadata plus the currently installed device.
 
-  The response contains every `DeviceSegment` ever installed at this point —
-  not clipped by a time range — so ERPs can reconcile long-term history.
+  `active_device` is the current device, or `null` for difference meters
+  (`is_difference_meter: true`) and removed devices. The device history
+  (one segment per installation window) comes from
+  `GET /v1/measuring-points/{id}/readings`.
 
   ## Default `id`
 

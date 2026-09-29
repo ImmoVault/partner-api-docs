@@ -8,20 +8,20 @@ sequenceDiagram
     rect rgba(229,246,253,0.7)
     Note over L,OA: Phase 1 — Authentication & Consent (one-off per connect)
     L->>EB: click "Connect messpunkt.io"
-    EB-->>L: redirect to /oauth/authorize<br/>response_type=code · PKCE S256<br/>scope=read:units read:devices read:readings
+    EB-->>L: redirect to /oauth/authorize<br/>response_type=code · PKCE S256<br/>scope=read:units read:devices read:readings<br/>resource=https://api.messpunkt.io
     L->>OA: GET /oauth/authorize
-    OA-->>L: login (Entra SSO)
-    OA-->>L: consent screen:<br/>scopes + Property picker<br/>(nothing pre-selected)
+    OA-->>L: login (messpunkt.io portal account)
+    OA-->>L: consent screen:<br/>application + scopes<br/>all Properties (incl. future) or a selection
     L->>OA: approve + pick 2 of 50 Properties
-    OA-->>EB: redirect ?code=...&state=...
-    EB->>OA: POST /oauth/token<br/>code + code_verifier + DPoP key
-    OA-->>EB: access_token (≤1 h, DPoP-bound)<br/>property_scope: [uuid-A, uuid-B]<br/>+ rotating refresh_token
+    OA-->>EB: redirect ?code=...&state=...&iss=...
+    EB->>OA: POST /oauth/token<br/>code + code_verifier + resource<br/>(optional: DPoP proof)
+    OA-->>EB: access_token (≤1 h, aud = resource)<br/>property_scope: [uuid-A, uuid-B]<br/>+ rotating refresh_token
     end
 
     rect rgba(232,245,233,0.7)
     Note over EB,API: Phase 2 — Authorized API calls (per request)
-    EB->>API: GET /whoami<br/>Authorization: DPoP <token><br/>DPoP: <proof JWT>
-    API->>API: verify DPoP proof<br/>read property_scope claim
+    EB->>API: GET /whoami<br/>Authorization: Bearer <token><br/>(or DPoP <token> + DPoP proof)
+    API->>API: verify token (+ proof if bound)<br/>check connection still active<br/>read property_scope claim
     API-->>EB: 200 OK · property_scope=[A,B]
     EB->>API: GET /properties/{A}
     API-->>EB: 200 OK (Property A)
@@ -31,8 +31,8 @@ sequenceDiagram
     end
 
     rect rgba(255,243,224,0.7)
-    Note over L,API: Phase 3 — Landlord edits scope later
-    L->>OA: dashboard: remove Property B<br/>add Property D
-    OA->>OA: update connection<br/>+ audit-log entry
-    Note over EB,API: next token refresh (≤1 h)<br/>carries new property_scope [A, D]
+    Note over L,API: Phase 3 — Landlord disconnects later
+    L->>OA: portal "Verbundene Anwendungen":<br/>disconnect ERP
+    OA->>OA: revoke connection<br/>+ audit-log entry
+    Note over EB,API: within 60 s: API calls → 401,<br/>refresh → invalid_grant
     end
