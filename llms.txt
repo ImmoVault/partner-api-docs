@@ -42,6 +42,7 @@ Under a single OAuth token scoped per Tenant **and** per Property (selection cho
 - `status`: `measured` · `calculated` (interpolated month end, `is_synthetic: true`) · `substituted` (extrapolated end value) · `missing` · `calibration_expired` (never bill).
 - Metrics: `heat` (kWh) · `hca` (unit) · `water_cold` · `water_warm` · `water_outdoor` (m3, not part of residents' water). `electricity` and `gas` are reserved — there are no readable devices for them today.
 - `obis`, `resolution` and `external_ref` are always `null` today. Identify quantities by `metric` + `unit`.
+- `installed_at` is `null` when the installation date is not documented — never a placeholder date.
 - Difference meters: `is_difference_meter: true`, `active_device: null`, no readings. Pre-metering points (Vorerfassung) are not exposed.
 
 ## Authentication

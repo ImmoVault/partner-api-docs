@@ -112,12 +112,13 @@
           <span class="date">2026-09-29</span>
           <span class="status rc">Release candidate</span>
         </div>
-        <p>rc.3 makes the contract describe the data messpunkt.io really has, and sets the data resolution to <strong>monthly</strong>. It contains <strong>two breaking changes</strong>. rc.2 promised that core types would no longer be reshaped; we break that promise once, deliberately, because no partner has gone live yet — after the first one, the same correction would be a <code>/v2</code> with six months of parallel operation. From rc.3 on, <code>UsageUnit</code>, <code>MeasuringPoint</code>, <code>DeviceSegment</code> and <code>MeterReading</code> change only additively.</p>
+        <p>rc.3 makes the contract describe the data messpunkt.io really has, and sets the data resolution to <strong>monthly</strong>. It contains <strong>three breaking changes</strong>. rc.2 promised that core types would no longer be reshaped; we break that promise once, deliberately, because no partner has gone live yet — after the first one, the same correction would be a <code>/v2</code> with six months of parallel operation. From rc.3 on, <code>UsageUnit</code>, <code>MeasuringPoint</code>, <code>DeviceSegment</code> and <code>MeterReading</code> change only additively.</p>
         <div class="change-group removed">
           <h3>Breaking</h3>
           <ul>
             <li><strong>Monthly resolution.</strong> <code>GET /usage-units/{id}/consumption</code> and <code>GET /measuring-points/{id}/readings</code> now return one reading per <strong>calendar month end</strong> instead of two readings at arbitrary dates. <code>MeterReading.at</code> is a <code>date</code> (was <code>date-time</code>); <code>from</code>/<code>to</code> are widened to whole months and capped at the last completed month. <em>Why:</em> radio meters report several times a day; a series that fine, per apartment, is a behavioural profile of the residents. Billing needs period values, and GDPR data minimisation (Art. 5(1)(c)) does not let us hand out more. The landlord portal follows the same rule, so an ERP sees what the landlord sees. There is no parameter to get finer data, and the announced <code>granularity=</code> parameter will not come.</li>
             <li><strong><code>MeasuringPoint.active_device</code> is nullable.</strong> Difference meters (new <code>is_difference_meter: true</code>) have no device of their own, and a measuring point whose device was removed without replacement has none either. rc.2 declared the field required, which made both unrepresentable.</li>
+            <li><strong><code>installed_at</code> is nullable</strong> on <code>Device</code> and <code>DeviceSegment</code>. For many devices the installation date is not documented; rc.2 forced us to either invent one or fail the response. It is now <code>null</code> when unknown and set only when the date is documented — never a placeholder such as <code>1900-01-01</code>, and never the date a record was created. For such segments, <code>baseline_value</code> is the first value known for the device.</li>
           </ul>
         </div>
         <div class="change-group added">
@@ -171,6 +172,7 @@
           <ul>
             <li>Parse <code>MeterReading.at</code> as a date; do not expect exactly two readings per segment.</li>
             <li>Bill the sum of <code>period_consumption.billable_value</code> per measuring point; never bill a segment whose status is <code>calibration_expired</code> or <code>missing</code>.</li>
+            <li>Handle <code>installed_at: null</code>; do not replace it with a date of your own.</li>
             <li>Handle <code>active_device: null</code> and measuring points with <code>is_difference_meter: true</code> and no segments.</li>
             <li>Keep <code>water_outdoor</code> out of residents' water; tolerate unknown enum values from now on.</li>
             <li>Stop relying on <code>obis</code>, <code>resolution</code> and <code>external_ref</code>.</li>

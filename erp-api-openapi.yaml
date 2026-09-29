@@ -17,8 +17,8 @@ info:
     pilot partner and will be announced in the [changelog](./changelog/) ·
     feedback from pilot partners explicitly invited.
 
-    **Coming from rc.2?** rc.3 contains two breaking changes (monthly data
-    resolution, nullable `active_device`). Read *Migrating from rc.2* below
+    **Coming from rc.2?** rc.3 contains three breaking changes (monthly data
+    resolution, nullable `active_device`, nullable `installed_at`). Read *Migrating from rc.2* below
     before you upgrade.
 
     # API stability & versioning
@@ -60,6 +60,7 @@ info:
     | **Data resolution** *(breaking)* | two readings per segment at arbitrary dates (`at` = date-time) | one reading per **calendar month end** (`at` = date); `from`/`to` widened to whole months | Parse `at` as a date. Stop expecting exactly two readings. Use `period_consumption` for billing. |
     | **Billable consumption** | ERP computed `last − first` | `period_consumption.billable_value` per segment (raw consumption × `factor`) | Sum `billable_value` across segments. Do not subtract readings yourself for billing. |
     | **`MeasuringPoint.active_device`** *(breaking)* | required object | object **or `null`** (difference meters, removed devices) | Handle `null`. |
+    | **`installed_at`** on `Device` / `DeviceSegment` *(breaking)* | required date | date **or `null`** (installation date not documented) | Handle `null`; never substitute a made-up date. |
     | `ReadingStatus` | 4 values | + `calibration_expired` | Never bill a value with this status. |
     | `SubstitutionMethod` | 3 values | + `weighted_recent_2values`, `weighted_recent_3values`, `baseline_fallback`, `baseline_single_value` | Treat as informational. |
     | `replacement_reason` | `EndOfLife`, `Defect`, … | + `DeviceReplacement` (the value you will actually see) | Map `DeviceReplacement` to "meter swap". |
@@ -449,7 +450,12 @@ info:
       before the range, this is the month-end value of the month before
       `from` (so it lies **before** `from`). If the device was installed
       inside the range, it is the device's start value at installation —
-      **not necessarily 0**.
+      **not necessarily 0**. If the installation date is unknown
+      (`installed_at: null`), the segment starts with the first value known
+      for the device.
+    - `installed_at` / `deinstalled_at` — set only when the date is
+      documented. An unknown installation date is `null`, never a
+      placeholder.
     - `readings[]` — one `MeterReading` per calendar month end inside both
       the range and the installation window, in ascending order. Months
       without any value are omitted.
@@ -1335,7 +1341,7 @@ paths:
                       - device_id: "798f338c-6a3e-4b43-9960-ffe45d943905"
                         serial: "60240778"
                         manufacturer: "QDS"
-                        installed_at: "2024-10-01"
+                        installed_at: null
                         deinstalled_at: null
                         replacement_reason: null
                         resolution: null
@@ -1737,11 +1743,22 @@ components:
             `HeatMeter`, `HotWaterMeter`, `ColdWaterMeter`, `WaterMeter`.
             Informational — use `metric` for billing.
           example: "HotWaterMeter"
-        installed_at:    { type: string, format: date }
+        installed_at:    { $ref: "#/components/schemas/InstalledAt" }
         deinstalled_at:  { type: [string, "null"], format: date }
         replacement_reason: { $ref: "#/components/schemas/ReplacementReason" }
         resolution:      { $ref: "#/components/schemas/Resolution" }
         factor:          { $ref: "#/components/schemas/Factor" }
+
+    InstalledAt:
+      type: [string, "null"]
+      format: date
+      description: |
+        Installation date of the device at this measuring point. Set only
+        when it is documented. **`null` when the date is unknown** —
+        messpunkt.io never delivers a placeholder (such as `1900-01-01`) or
+        the date a record was created as an installation date. The field is
+        always present. *(Changed in rc.3: was a required date.)*
+      example: "2025-06-12"
 
     ReplacementReason:
       type: [string, "null"]
@@ -1819,7 +1836,7 @@ components:
         device_id:        { type: string, format: uuid }
         serial:           { type: string }
         manufacturer:     { type: string }
-        installed_at:     { type: string, format: date }
+        installed_at:     { $ref: "#/components/schemas/InstalledAt" }
         deinstalled_at:   { type: [string, "null"], format: date }
         replacement_reason: { $ref: "#/components/schemas/ReplacementReason" }
         resolution:       { $ref: "#/components/schemas/Resolution" }
