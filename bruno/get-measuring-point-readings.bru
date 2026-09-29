@@ -26,8 +26,9 @@ settings {
 docs {
   # GET /v1/measuring-points/{id}/readings
 
-  Lower-level drill-down: one MeasuringPoint, segmented by device, with
-  readings clipped to the `from`/`to` range.
+  Lower-level drill-down: one MeasuringPoint, segmented by device, with one
+  month-end reading per month of the `from`/`to` range and the billable
+  `period_consumption` per segment. Nothing finer than monthly.
 
   Use this when you want finer control than `GET /v1/usage-units/{id}/consumption`
   (which aggregates across all MeasuringPoints of a unit). Output shape is
@@ -41,6 +42,7 @@ docs {
 
   ## Query parameters
 
-  - `from` — ISO-8601 date, inclusive
-  - `to`   — ISO-8601 date, inclusive
+  - `from` — ISO-8601 date, inclusive; widened to the first day of its month
+  - `to`   — ISO-8601 date, inclusive; widened to the last day of its month,
+    capped at the last completed month
 }

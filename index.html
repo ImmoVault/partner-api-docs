@@ -4,13 +4,13 @@
     <meta charset="utf-8" />
     <title>messpunkt.io Partner API — Metering data for property-management ERPs</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="The messpunkt.io Partner API lets property-management ERPs read consumption and meter-reading data on behalf of landlords. OAuth 2.1 + PKCE + DPoP, OBIS-aligned metrics, OpenAPI 3.1." />
+    <meta name="description" content="The messpunkt.io Partner API lets property-management ERPs read consumption and meter-reading data on behalf of landlords. OAuth 2.1 + PKCE, monthly values with billing-grade semantics, OpenAPI 3.1." />
     <meta name="theme-color" content="#1e534a" />
     <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
     <link rel="alternate icon" type="image/x-icon" href="./assets/favicon.ico" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
     <meta property="og:title" content="messpunkt.io Partner API" />
-    <meta property="og:description" content="The metering API for German property-management ERPs. OAuth 2.1 · OBIS · OpenAPI 3.1." />
+    <meta property="og:description" content="The metering API for German property-management ERPs. OAuth 2.1 · monthly data · OpenAPI 3.1." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://developer.messpunkt.io/" />
     <meta property="og:image" content="https://developer.messpunkt.io/assets/messpunkt-quer.svg" />
@@ -192,8 +192,8 @@
     </header>
 
     <div class="preview-ribbon">
-      <span class="badge">Preview · 1.0.0-rc.2</span>
-      <span>V1 release candidate — target GA <strong>Q2 2026</strong>. Become a pilot partner:
+      <span class="badge">Preview · 1.0.0-rc.3</span>
+      <span>V1 release candidate — GA ships with the first pilot partner. Become one:
         <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
       </span>
     </div>
@@ -203,7 +203,7 @@
         <div>
           <span class="eyebrow">For property-management ERPs</span>
           <h1>Metering data, <span class="accent">by the book.</span></h1>
-          <p class="lead">messpunkt.io runs the ETL and aggregation layer for German sub-metering — Wärme, Wasser, Heizkostenverteiler, Strom. Our Partner API lets your ERP read consumption and meter-reading data on behalf of a landlord, with an auth model a compliance officer will sign off on.</p>
+          <p class="lead">messpunkt.io runs the ETL and aggregation layer for German sub-metering — Wärme, Wasser, Heizkostenverteiler. Our Partner API lets your ERP read consumption and meter-reading data on behalf of a landlord, with an auth model a compliance officer will sign off on.</p>
           <div class="cta-row">
             <a class="btn btn-primary" href="./quickstart/">Start the Quickstart <span class="arrow">→</span></a>
             <a class="btn btn-ghost" href="./reference/">Read the reference</a>
@@ -211,7 +211,7 @@
           </div>
           <div class="meta-row">
             <div><strong>OpenAPI 3.1</strong> · fully typed</div>
-            <div><strong>OAuth 2.1</strong> + PKCE + DPoP</div>
+            <div><strong>OAuth 2.1</strong> + PKCE · DPoP optional</div>
             <div><strong>Live sandbox</strong> · zero PII</div>
           </div>
         </div>
@@ -227,9 +227,9 @@ curl -s -X POST https://auth.sandbox.messpunkt.io<span class="str">/oauth/token<
 curl -H <span class="str">"Authorization: Bearer $TOKEN"</span> \
   <span class="str">"https://api.sandbox.messpunkt.io/v1/</span>
 <span class="str">   usage-units/$UNIT/consumption?</span>
-<span class="str">   from=2026-01-01&amp;to=2026-12-31&amp;metric=water_warm"</span>
+<span class="str">   from=2025-01-01&amp;to=2025-12-31&amp;metric=water_warm"</span>
 
-<span class="comment"># → returns two readings per device segment</span>
+<span class="comment"># → month-end readings + billable consumption per segment</span>
 <span class="comment">#   meter replacement? you get two segments</span>
 <span class="comment">#   data gap? data_gap: true on the MeasuringPoint</span>
         </div>
@@ -242,7 +242,7 @@ curl -H <span class="str">"Authorization: Bearer $TOKEN"</span> \
         <div class="trust-grid">
           <div class="trust-item">
             <div class="trust-label">API version</div>
-            <div class="trust-value"><code>1.0.0-rc.2</code> · SemVer · <a href="./changelog/">changelog</a></div>
+            <div class="trust-value"><code>1.0.0-rc.3</code> · SemVer · <a href="./changelog/">changelog</a></div>
           </div>
           <div class="trust-item">
             <div class="trust-label">Stability contract</div>
@@ -250,7 +250,7 @@ curl -H <span class="str">"Authorization: Bearer $TOKEN"</span> \
           </div>
           <div class="trust-item">
             <div class="trust-label">Standards</div>
-            <div class="trust-value">OAuth 2.1 · RFC 9449 · RFC 7807 · IEC 62056 OBIS</div>
+            <div class="trust-value">OAuth 2.1 · RFC 8707 · RFC 9449 · RFC 7807</div>
           </div>
           <div class="trust-item">
             <div class="trust-label">Security contact</div>
@@ -273,8 +273,8 @@ curl -H <span class="str">"Authorization: Bearer $TOKEN"</span> \
           </div>
           <div class="feat">
             <div class="feat-icon">⚒</div>
-            <h3>OAuth 2.1 + PKCE + DPoP</h3>
-            <p>User-delegated tokens, scoped per Tenant, sender-constrained against token theft. <a href="./dpop/">DPoP guide →</a></p>
+            <h3>OAuth 2.1 + PKCE, DPoP optional</h3>
+            <p>User-delegated tokens, scoped per Tenant. Send a DPoP proof and the token is bound to your key. <a href="./dpop/">DPoP guide →</a></p>
           </div>
           <div class="feat">
             <div class="feat-icon">⚙</div>
@@ -283,8 +283,8 @@ curl -H <span class="str">"Authorization: Bearer $TOKEN"</span> \
           </div>
           <div class="feat">
             <div class="feat-icon">◉</div>
-            <h3>OBIS-aligned metrics</h3>
-            <p>Every reading carries an OBIS code (IEC 62056-6-1). Compare across vendors without bespoke mapping tables.</p>
+            <h3>Monthly, never finer</h3>
+            <p>Month-end readings and the billable consumption per device, computed like the landlord portal. No behavioural profiles of residents.</p>
           </div>
           <div class="feat">
             <div class="feat-icon">↻</div>
@@ -313,12 +313,12 @@ curl -H <span class="str">"Authorization: Bearer $TOKEN"</span> \
 <span class="lvl-2">└─ UsageUnit</span>      <span style="color:#64748b">// Wohn-/Gewerbeeinheit</span>
 <span class="lvl-3">└─ MeasuringPoint</span>   <span style="color:#64748b">// stable across swaps</span>
 <span class="lvl-4">└─ Device</span>       <span style="color:#64748b">// installation window</span>
-<span class="lvl-4">   └─ Reading</span>    <span style="color:#64748b">// timestamped value</span>
+<span class="lvl-4">   └─ Reading</span>    <span style="color:#64748b">// month-end value</span>
             </div>
           </div>
           <div>
             <h2>Endpoints at a glance</h2>
-            <p class="section-lead">Read-only in V1. Write endpoints (ERP pushes its <code>external_ref</code>) are planned for V1.1.</p>
+            <p class="section-lead">Read-only in V1. Linking your own <code>external_ref</code> is planned for a later release.</p>
             <ul class="endpoint-list">
               <li><span class="method">GET</span><span class="path">/v1/whoami</span><span class="note-inline">Verify token + scope</span></li>
               <li><span class="method">GET</span><span class="path">/v1/properties</span><span class="note-inline">List Liegenschaften</span></li>
@@ -335,9 +335,9 @@ curl -H <span class="str">"Authorization: Bearer $TOKEN"</span> \
     <section class="block authflow" style="padding-top:0">
       <div class="wrap">
         <h2>How the auth flow works</h2>
-        <p class="section-lead">The one-picture version: landlord consent with a Property picker, runtime requests with DPoP-bound tokens + server-side scope filtering, and later scope edits via the dashboard — all three phases in one sequence.</p>
+        <p class="section-lead">The one-picture version: landlord consent with a Property picker, runtime requests with server-side scope filtering, and disconnecting from the landlord portal — all three phases in one sequence.</p>
         <div class="diagram-wrap">
-          <img src="./auth-flow.svg" alt="Sequence diagram: consent with Property picker, authorized runtime requests with DPoP-bound tokens, scope updates from the landlord dashboard." loading="lazy" />
+          <img src="./auth-flow.svg" alt="Sequence diagram: consent with Property picker, authorized runtime requests with server-side scope filtering, disconnecting from the landlord portal." loading="lazy" />
         </div>
         <p class="caption">Source: <a href="./auth-flow.mmd">auth-flow.mmd</a> (Mermaid sequence diagram) · SVG generated via mermaid-cli.</p>
       </div>
@@ -358,7 +358,7 @@ curl -H <span class="str">"Authorization: Bearer $TOKEN"</span> \
           <a class="path-card" href="./reference/">
             <div class="path-kicker">Reference</div>
             <h3>Full API documentation</h3>
-            <p>Every endpoint, schema, example, OBIS code, error response — rendered in Redoc with search and code samples.</p>
+            <p>Every endpoint, schema, example, error response — rendered in Redoc with search and code samples.</p>
             <span class="cta">Open the reference</span>
           </a>
           <a class="path-card" href="./bruno/">
@@ -402,7 +402,7 @@ curl -H <span class="str">"Authorization: Bearer $TOKEN"</span> \
     <footer class="site-footer">
       <div class="row">
         <div>
-          <strong>messpunkt.io Partner API</strong> · Preview · Target release Q2 2026
+          <strong>messpunkt.io Partner API</strong> · Preview · 1.0.0-rc.3 · GA with the first pilot partner
           <div class="muted">© 2026 messpunkt.io — Questions &amp; pilot inquiries: <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
         </div>
         <div class="links">
