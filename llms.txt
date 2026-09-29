@@ -44,6 +44,9 @@ Under a single OAuth token scoped per Tenant **and** per Property (selection cho
 - `obis`, `resolution` and `external_ref` are always `null` today. Identify quantities by `metric` + `unit`.
 - `installed_at` is `null` when the installation date is not documented — never a placeholder date.
 - Difference meters: `is_difference_meter: true`, `active_device: null`, no readings. Pre-metering points (Vorerfassung) are not exposed.
+- A missing value at the end of the range is never filled from an earlier month: `period_consumption.status` is then `missing` (unless `substituted`). A device removed inside the range ends with the value on the removal day.
+- Invalid parameters (`limit`, `page_cursor`, `property_id`, dates, unknown `metric`, a range after the last completed month) return `400` with a `detail`; `500`/`503` carry no detail — retry with backoff.
+- Sandbox data is static up to 2026-12-31 and contains no `substituted` values.
 
 ## Authentication
 

@@ -179,6 +179,20 @@
             <li>The sandbox keeps serving the rc.2 shape until its rc.3 update, which will be announced here.</li>
           </ul>
         </div>
+        <div class="change-group changed">
+          <h3>rc.3 — Clarifications (not breaking)</h3>
+          <p>Documentation of the same rc.3 contract, written down while building the rc.3 sandbox. No field, type or enum value changed, so the version number stays <code>1.0.0-rc.3</code>.</p>
+          <ul>
+            <li><strong>Errors:</strong> <code>GET /properties</code> and <code>GET /usage-units</code> document <code>400 invalid-request</code> for an invalid <code>limit</code>, <code>page_cursor</code> or <code>property_id</code>. A consumption range that lies entirely after the last completed month is <code>400</code>, and so is an unknown <code>metric</code> value (named in <code>detail</code>). Every operation now lists <code>500 internal-error</code> and <code>503 service-unavailable</code> — no <code>detail</code>, retry with backoff.</li>
+            <li><strong><code>/whoami</code></strong> answers <code>401 invalid-token</code> when the landlord's API access has ended — never <code>404</code>.</li>
+            <li><strong>Device removed inside the range:</strong> <code>period_consumption.end_value</code> is the value on the removal day, status <code>measured</code>; if the removal day is a month end, the value also appears as that month's reading.</li>
+            <li><strong>Unknown installation date:</strong> <code>baseline_date</code> is the month-end before <code>from</code> if known, otherwise the first known value — which can lie inside the range, not only before <code>from</code>.</li>
+            <li><strong>No value at the end of the range:</strong> nothing is carried forward from an earlier month; unless the value is <code>substituted</code>, <code>period_consumption.status</code> is <code>missing</code>.</li>
+            <li><strong><code>token_expires_at</code></strong> is omitted when unknown, never <code>null</code>.</li>
+            <li><strong>Shared Sectors:</strong> how measuring points of a Sector shared by several UsageUnits appear under <code>usage_unit_id</code> will be fixed before GA.</li>
+            <li><strong>Sandbox:</strong> the data is static up to 2026-12-31, and the fixture contains no <code>substituted</code> values.</li>
+          </ul>
+        </div>
       </section>
 
       <section class="release">
