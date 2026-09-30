@@ -152,14 +152,8 @@ info:
       the examples of `GET /measuring-points/{id}/readings`, but not try it
       out against the sandbox.
 
-    **Sandbox and production differ today in these points** (the sandbox
-    catches up with the rc.3 sandbox release, announced in the changelog):
-
-    - The sandbox still serves the rc.2 response shape until the rc.3 sandbox
-      release. Build against this document, test the auth flow against the
-      sandbox.
-    - `resource` (RFC 8707) and `/oauth/revoke` are not yet available in the
-      sandbox.
+    **Since 2026-09-30 the sandbox serves the rc.3 contract**, including
+    `resource` (RFC 8707) and `/oauth/revoke` (announced in the changelog).
 
     # Authentication
 
@@ -442,8 +436,10 @@ info:
     | Auth | same authorization server and consent screen as this API; token audience `https://mcp.messpunkt.io/v1` |
     | Data rules | same as this API — monthly values, Property scope, `404` outside the scope |
 
-    The MCP server is part of V1 and goes live together with the production
-    REST API; the setup guide for each client is published at the same time.
+    The MCP server is live since 2026-09-30 (access enabled per customer
+    organisation); the setup guide for each client is published at
+    developer.messpunkt.io/connect/. The production REST API goes live with
+    the first pilot partner.
     Tokens for the MCP server are not accepted by this REST API and vice versa.
 
     ## REST API from agents

@@ -176,8 +176,10 @@ for (const [file, needles] of [
 }
 for (const file of ['index.html', 'llms.txt', 'README.md', ...GUIDES]) {
   const text = read(file);
-  if (/MCP[^.\n]{0,80}\b(is|now) available\b|verfügbar/i.test(text.replace(/nicht verfügbar|not yet available/gi, '')))
-    errors.push(`${file}: announces something as available`);
+  // Seit 2026-09-30 ist der MCP-Server live; die produktive REST-API geht erst mit dem ersten Pilotpartner live.
+  // Der Waechter haelt fest, dass keine Seite die REST-Produktion vorzeitig als verfuegbar ankuendigt.
+  if (/(api\.messpunkt\.io|production REST API|Produktions-Schnittstelle)[^.\n]{0,80}\b(is|now) (live|available)\b/i.test(text))
+    errors.push(`${file}: announces the production REST API as available`);
 }
 
 // 7: verified / unverified per client
