@@ -197,6 +197,8 @@ Content-Type: application/problem+json</code></pre>
         <li>All tools are read-only (<code>readOnlyHint: true</code>, <code>idempotentHint: true</code>, <code>openWorldHint: false</code>). Each returns structured content matching its <code>outputSchema</code> plus a short text summary for clients that ignore structured content.</li>
         <li>Tool and field names are English. Descriptions, summaries and error texts are German, because landlords read them. The reference below quotes them as delivered.</li>
         <li>Properties can be named by ID or by a part of their name or address. If several match, the result lists the candidates instead of failing. “Not found” and “not shared with you” produce the same answer.</li>
+        <li><code>list_properties</code> pages with a <code>cursor</code>, with or without a search: <code>query</code> (part of the name or address, case-insensitive, <code>%</code> and <code>_</code> taken literally) narrows the list, and the next page is fetched with the <code>cursor</code> of the previous answer <strong>and the same <code>query</code></strong>. The cursor is not bound to the query, so a different <code>query</code> gives a shifted page, never other data.</li>
+        <li><code>get_property_overview</code> returns <code>difference_meter_count</code>: difference meters have no value of their own and are missing from <code>get_consumption</code> and <code>get_device_status</code>; <code>0</code> means the difference-meter note in the tool descriptions does not apply to this Property.</li>
         <li>Validation problems (for example a range longer than 36 months) come back as a tool result with <code>isError: true</code> and a German explanation, not as a protocol error.</li>
         <li>Data rules as in the REST API: monthly values at the finest; one unit per metric (<code>kWh</code>, <code>m3</code>, <code>unit</code> = heat-cost-allocator units), never summed across metrics; <code>water_outdoor</code> separate; difference meters without a value; calibration status <code>unknown</code> never means “fine”.</li>
         <li>Nothing is left out silently. <code>get_consumption</code> names the months of the range without values (<code>months_without_values</code>) and, when some are missing, the first month the Property has values at all (<code>first_month_with_values</code>). Measuring points of a requested metric that are not evaluated are listed in <code>not_evaluated_measuring_points</code> with a <code>reason</code> (today only <code>no_system</code>: assigned to no heating or water system); <code>get_property_overview</code> and <code>get_device_status</code> always list them. Clients must tolerate new <code>reason</code> values.</li>
@@ -208,7 +210,7 @@ Content-Type: application/problem+json</code></pre>
 
       <h2 id="tools">Tool reference</h2>
 <!-- BEGIN GENERATED: scripts/render-tools.mjs -->
-      <p>5 tools. Generated from <a href="./tools-list.json">tools-list.json</a> (sha256 <code>f815eb92df1c…</code>, azure-functions PartnerMcp.Tests/Snapshots/tools-list.json (308/int) at <code>2983489</code>). Descriptions are quoted exactly as the server delivers them (German).</p>
+      <p>5 tools. Generated from <a href="./tools-list.json">tools-list.json</a> (sha256 <code>656f32439333…</code>, azure-functions PartnerMcp.Tests/Snapshots/tools-list.json (308/int) at <code>ff26534</code>). Descriptions are quoted exactly as the server delivers them (German).</p>
       <div class="table-wrap"><table>
           <tr><th>Tool</th><th>Title</th><th>Required scope</th></tr>
           <tr><td><a href="#tool-get_connection_info"><code>get_connection_info</code></a></td><td lang="de">Meine Verbindung</td><td><code>read:units</code></td></tr>
@@ -1140,6 +1142,14 @@ Content-Type: application/problem+json</code></pre>
         &quot;null&quot;
       ]
     },
+    &quot;difference_meter_count&quot;: {
+      &quot;default&quot;: null,
+      &quot;description&quot;: &quot;Davon Differenzzähler-Messpunkte. Sie tragen keinen eigenen Wert und fehlen deshalb in get_consumption und get_device_status (sie sind nicht null). 0 heißt: der Differenzzähler-Hinweis in den Tool-Beschreibungen betrifft diese Liegenschaft nicht; nur bei ok.&quot;,
+      &quot;type&quot;: [
+        &quot;integer&quot;,
+        &quot;null&quot;
+      ]
+    },
     &quot;measuring_point_count&quot;: {
       &quot;default&quot;: null,
       &quot;description&quot;: &quot;Anzahl der aktiven Messpunkte (nicht der Geräte); nur bei ok.&quot;,
@@ -1320,10 +1330,10 @@ Content-Type: application/problem+json</code></pre>
       <section class="tool" id="tool-list_properties">
         <h3>list_properties</h3>
         <div class="meta"><span lang="de">Liegenschaften auflisten</span> · scope <code>read:units</code> · <code>readOnlyHint: true</code> · <code>idempotentHint: true</code> · <code>destructiveHint: false</code> · <code>openWorldHint: false</code></div>
-        <blockquote lang="de">Listet die Liegenschaften, die für diese Verbindung freigegeben sind: ID, Name, Adresse, Anzahl Nutzeinheiten und Anlagen. Mit query (Teil des Namens oder der Adresse, Groß-/Kleinschreibung egal) wird gesucht; dann kommen höchstens 10 Treffer und keine weitere Seite. Ohne query wird seitenweise geblättert (cursor aus der vorigen Antwort, limit 1 bis 100, Standard 25). Die Namen der Liegenschaften können bei allen anderen Tools statt der ID verwendet werden. Benötigt das Recht read:units.</blockquote>
+        <blockquote lang="de">Listet die Liegenschaften, die für diese Verbindung freigegeben sind: ID, Name, Adresse, Anzahl Nutzeinheiten und Anlagen. Mit query (Teil des Namens oder der Adresse, Groß-/Kleinschreibung egal, Zeichen wie % gelten wörtlich) werden nur die passenden Liegenschaften gelistet. Es wird seitenweise geblättert (cursor aus der vorigen Antwort, mit demselben query; limit 1 bis 100, Standard 25). Die Namen der Liegenschaften können bei allen anderen Tools statt der ID verwendet werden. Benötigt das Recht read:units.</blockquote>
         <div class="table-wrap"><table>
           <tr><th>Input</th><th>Type</th><th>Required</th><th>Description (as delivered)</th></tr>
-          <tr><td><code>cursor</code></td><td>string | null<br><span class="meta">default null</span></td><td>no</td><td lang="de">Optional: cursor aus der vorigen Antwort, um die nächste Seite zu holen. Nicht zusammen mit query.</td></tr>
+          <tr><td><code>cursor</code></td><td>string | null<br><span class="meta">default null</span></td><td>no</td><td lang="de">Optional: cursor aus der vorigen Antwort, um die nächste Seite zu holen; bei einer Suche mit demselben query wie zuvor.</td></tr>
           <tr><td><code>limit</code></td><td>integer | null<br><span class="meta">default null</span></td><td>no</td><td lang="de">Optional: Anzahl je Seite, 1 bis 100, Standard 25.</td></tr>
           <tr><td><code>query</code></td><td>string | null<br><span class="meta">default null</span></td><td>no</td><td lang="de">Optional: Teil des Namens oder der Adresse, z. B. „Gartenweg“.</td></tr>
         </table></div>
@@ -1331,7 +1341,7 @@ Content-Type: application/problem+json</code></pre>
   &quot;properties&quot;: {
     &quot;cursor&quot;: {
       &quot;default&quot;: null,
-      &quot;description&quot;: &quot;Optional: cursor aus der vorigen Antwort, um die nächste Seite zu holen. Nicht zusammen mit query.&quot;,
+      &quot;description&quot;: &quot;Optional: cursor aus der vorigen Antwort, um die nächste Seite zu holen; bei einer Suche mit demselben query wie zuvor.&quot;,
       &quot;type&quot;: [
         &quot;string&quot;,
         &quot;null&quot;

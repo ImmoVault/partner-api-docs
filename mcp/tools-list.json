@@ -928,6 +928,14 @@
             "null"
           ]
         },
+        "difference_meter_count": {
+          "default": null,
+          "description": "Davon Differenzzähler-Messpunkte. Sie tragen keinen eigenen Wert und fehlen deshalb in get_consumption und get_device_status (sie sind nicht null). 0 heißt: der Differenzzähler-Hinweis in den Tool-Beschreibungen betrifft diese Liegenschaft nicht; nur bei ok.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "measuring_point_count": {
           "default": null,
           "description": "Anzahl der aktiven Messpunkte (nicht der Geräte); nur bei ok.",
@@ -1114,12 +1122,12 @@
       "readOnlyHint": true,
       "title": "Liegenschaften auflisten"
     },
-    "description": "Listet die Liegenschaften, die für diese Verbindung freigegeben sind: ID, Name, Adresse, Anzahl Nutzeinheiten und Anlagen. Mit query (Teil des Namens oder der Adresse, Groß-/Kleinschreibung egal) wird gesucht; dann kommen höchstens 10 Treffer und keine weitere Seite. Ohne query wird seitenweise geblättert (cursor aus der vorigen Antwort, limit 1 bis 100, Standard 25). Die Namen der Liegenschaften können bei allen anderen Tools statt der ID verwendet werden. Benötigt das Recht read:units.",
+    "description": "Listet die Liegenschaften, die für diese Verbindung freigegeben sind: ID, Name, Adresse, Anzahl Nutzeinheiten und Anlagen. Mit query (Teil des Namens oder der Adresse, Groß-/Kleinschreibung egal, Zeichen wie % gelten wörtlich) werden nur die passenden Liegenschaften gelistet. Es wird seitenweise geblättert (cursor aus der vorigen Antwort, mit demselben query; limit 1 bis 100, Standard 25). Die Namen der Liegenschaften können bei allen anderen Tools statt der ID verwendet werden. Benötigt das Recht read:units.",
     "inputSchema": {
       "properties": {
         "cursor": {
           "default": null,
-          "description": "Optional: cursor aus der vorigen Antwort, um die nächste Seite zu holen. Nicht zusammen mit query.",
+          "description": "Optional: cursor aus der vorigen Antwort, um die nächste Seite zu holen; bei einer Suche mit demselben query wie zuvor.",
           "type": [
             "string",
             "null"
