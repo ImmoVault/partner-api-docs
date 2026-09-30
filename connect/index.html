@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>messpunkt.io — Mit Claude, ChatGPT oder Codex verbinden</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="So verbindest du deinen KI-Assistenten (Claude, ChatGPT, Codex) mit deinen messpunkt.io-Daten: Schritte, Freigabe, Grenzen und Trennen." />
+    <meta name="theme-color" content="#1e534a" />
+    <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+    <link rel="alternate icon" type="image/x-icon" href="../assets/favicon.ico" />
+    <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <style>
+    <style>
+      :root {
+        --brand-primary: #1e534a;
+        --brand-primary-hover: #16403a;
+        --brand-dark: #172636;
+        --brand-gray-bg: #eaf0f6;
+        --brand-gray-border: #d1d5dc;
+        --brand-accent: #f7fafa;
+        --brand-white: #ffffff;
+      }
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--brand-dark); background: var(--brand-white); line-height: 1.65; }
+
+      .topbar { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 24px; padding: 14px 28px; background: var(--brand-white); border-bottom: 1px solid var(--brand-gray-border); }
+      .topbar .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--brand-dark); }
+      .topbar .brand img { height: 28px; width: auto; display: block; }
+      .topbar .brand .subtitle { font-size: 13px; font-weight: 500; padding-left: 12px; border-left: 1px solid var(--brand-gray-border); line-height: 1; }
+      .topbar nav { display: flex; gap: 4px; margin-left: auto; align-items: center; flex-wrap: wrap; }
+      .topbar nav a { font-size: 13px; font-weight: 500; padding: 6px 12px; border-radius: 6px; color: var(--brand-dark); text-decoration: none; transition: background 0.15s; }
+      .topbar nav a:hover { background: var(--brand-accent); color: var(--brand-primary); }
+      .topbar nav a.current { background: var(--brand-primary); color: var(--brand-white); }
+      .topbar nav .divider { width: 1px; height: 18px; background: var(--brand-gray-border); margin: 0 6px; }
+
+      .preview-ribbon { background: var(--brand-accent); color: var(--brand-dark); border-bottom: 1px solid var(--brand-gray-border); padding: 10px 28px; font-size: 13px; line-height: 1.5; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+      .preview-ribbon .badge { background: var(--brand-primary); color: var(--brand-white); font-weight: 600; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
+      .preview-ribbon a { color: var(--brand-primary); font-weight: 500; text-decoration: none; border-bottom: 1px solid currentColor; }
+
+      main { max-width: 1200px; margin: 0 auto; padding: 48px 28px 72px; }
+      .layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 56px; align-items: start; }
+      .content { min-width: 0; }
+      .side-nav { position: sticky; top: 84px; align-self: start; }
+      .side-nav h3 { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; margin: 0 0 12px; }
+      .side-nav .side-cards { display: flex; flex-direction: column; gap: 8px; }
+      .side-nav .side-card { display: block; border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 12px 14px; text-decoration: none; color: inherit; transition: border-color 0.15s, background 0.15s, transform 0.05s; }
+      .side-nav .side-card:hover { border-color: var(--brand-primary); background: var(--brand-accent); transform: translateX(2px); }
+      .side-nav .side-card .title { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; color: var(--brand-primary); margin-bottom: 2px; }
+      .side-nav .side-card .title::after { content: '→'; font-weight: 400; color: var(--brand-primary); opacity: 0.55; transition: transform 0.15s, opacity 0.15s; }
+      .side-nav .side-card:hover .title::after { opacity: 1; transform: translateX(2px); }
+      .side-nav .side-card .desc { font-size: 12px; color: #64748b; line-height: 1.45; }
+      @media (max-width: 960px) {
+        .layout { grid-template-columns: 1fr; gap: 32px; }
+        .side-nav { position: static; max-width: 100%; margin-top: 16px; }
+      }
+      h1 { font-size: 36px; line-height: 1.15; margin: 0 0 12px; letter-spacing: -0.015em; }
+      .lead { color: #3f4c5c; font-size: 18px; margin: 0 0 40px; max-width: 700px; }
+      h2 { font-size: 24px; margin: 48px 0 8px; letter-spacing: -0.005em; }
+      h2 .step-num { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: var(--brand-primary); color: var(--brand-white); border-radius: 50%; font-size: 14px; font-weight: 600; margin-right: 10px; vertical-align: middle; }
+      h3 { font-size: 15px; font-weight: 600; margin: 20px 0 8px; color: var(--brand-dark); letter-spacing: 0.01em; }
+      p { margin: 0 0 14px; }
+      a { color: var(--brand-primary); }
+      a:hover { color: var(--brand-primary-hover); }
+      code { font-family: 'JetBrains Mono', monospace; font-size: 13.5px; background: var(--brand-gray-bg); padding: 1px 6px; border-radius: 4px; }
+      pre { position: relative; background: var(--brand-dark); color: #e8eef5; padding: 16px 18px; border-radius: 8px; overflow: auto; font-size: 13px; line-height: 1.55; margin: 10px 0 18px; }
+      pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+      .copy-btn { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.06); color: #e8eef5; border: 1px solid rgba(255,255,255,0.14); padding: 4px 10px; font-size: 11px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 4px; cursor: pointer; opacity: 0.5; transition: opacity 0.15s, background 0.15s, border-color 0.15s, color 0.15s; z-index: 2; }
+      pre:hover .copy-btn, .copy-btn:focus-visible { opacity: 1; }
+      .copy-btn:hover { background: rgba(255,255,255,0.16); }
+      .copy-btn:focus-visible { outline: none; border-color: rgba(255,255,255,0.4); }
+      .copy-btn.copied { opacity: 1; background: rgba(16,124,63,0.3); border-color: rgba(16,124,63,0.5); color: #a0d5a5; }
+      .note { background: var(--brand-accent); border-left: 3px solid var(--brand-primary); padding: 12px 16px; margin: 14px 0; font-size: 14px; border-radius: 4px; }
+      .note strong { color: var(--brand-primary); }
+
+      .time-badge { display: inline-block; background: var(--brand-accent); color: var(--brand-primary); font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 4px 10px; border-radius: 4px; margin-bottom: 16px; }
+
+      .next-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 24px; }
+      .next-step-card { border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 16px; text-decoration: none; color: inherit; transition: border-color 0.15s, transform 0.05s; display: block; }
+      .next-step-card:hover { border-color: var(--brand-primary); color: inherit; transform: translateY(-1px); }
+      .next-step-card .title { font-size: 15px; font-weight: 600; color: var(--brand-primary); margin-bottom: 4px; }
+      .next-step-card .desc { font-size: 13px; color: #64748b; line-height: 1.5; }
+
+      .site-footer { padding: 24px 28px; border-top: 1px solid var(--brand-gray-border); background: var(--brand-white); color: var(--brand-dark); font-size: 13px; line-height: 1.6; }
+      .site-footer .row { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; justify-content: space-between; max-width: 860px; margin: 0 auto; }
+      .site-footer a { color: var(--brand-primary); text-decoration: none; }
+      .site-footer .links { display: flex; gap: 18px; flex-wrap: wrap; }
+      .site-footer .muted { color: #64748b; }
+
+      .status { background: #fff8e1; border: 1px solid #f2c94c; border-radius: 8px; padding: 14px 18px; margin: 0 0 32px; font-size: 14.5px; }
+      .status strong { color: #7a5b00; }
+      .placeholder { font-family: 'JetBrains Mono', monospace; font-size: 13px; background: #fff3cd; color: #7a5b00; border: 1px dashed #d4a72c; padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
+      table { border-collapse: collapse; width: 100%; margin: 10px 0 20px; font-size: 14px; }
+      th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--brand-gray-border); }
+      th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; font-weight: 600; }
+      .table-wrap { overflow-x: auto; }
+      .checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 12px 0 24px; }
+      .checks > div { border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 12px 14px; font-size: 14px; }
+      .checks .verified { border-left: 4px solid #1f7a3f; }
+      .checks .unverified { border-left: 4px solid #d4a72c; }
+      .checks h4 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; }
+      .checks .verified h4 { color: #1f7a3f; }
+      .checks .unverified h4 { color: #7a5b00; }
+      .checks ul { margin: 0; padding-left: 18px; }
+      ol.steps li, ul.plain li { margin-bottom: 6px; }
+      details.tech { border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 12px 16px; margin: 24px 0; background: var(--brand-accent); }
+      details.tech summary { cursor: pointer; font-weight: 600; color: var(--brand-primary); }
+      .qa { border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 12px 16px; margin: 12px 0; }
+      .qa .q { font-weight: 600; margin-bottom: 6px; }
+      .qa .a { color: #3f4c5c; font-size: 14.5px; }
+      .tool { border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 16px 18px; margin: 18px 0; }
+      .tool h3 { margin-top: 0; font-family: 'JetBrains Mono', monospace; font-size: 16px; }
+      .tool blockquote { margin: 8px 0 12px; padding: 8px 14px; border-left: 3px solid var(--brand-gray-border); color: #3f4c5c; white-space: pre-line; font-size: 14px; }
+      .tool .meta { font-size: 13px; color: #64748b; margin-bottom: 8px; }
+      .tool details summary { cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--brand-primary); }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="https://messpunkt.io/" target="_blank" rel="noopener">
+        <img src="../assets/messpunkt-quer.svg" alt="messpunkt.io" />
+        <span class="subtitle">KI-Assistent verbinden</span>
+      </a>
+      <nav aria-label="Navigation">
+        <a href="../">Home</a>
+        <a href="../reference/">Reference</a>
+        <span class="divider" aria-hidden="true"></span>
+        <a href="../connect/" class="current">Connect AI</a>
+        <a href="../erp/">ERP guide</a>
+        <a href="../mcp/">MCP</a>
+        <span class="divider" aria-hidden="true"></span>
+        <a href="../quickstart/">Quickstart</a>
+        <a href="../changelog/">Changelog</a>
+        <a href="../erp-api-openapi.yaml">OpenAPI YAML</a>
+      </nav>
+    </header>
+
+    <div class="preview-ribbon">
+      <span class="badge">Preview</span>
+      <span>V1 in Vorbereitung (<strong>1.0.0-rc.3</strong>) — der Server für KI-Assistenten geht zusammen mit der Produktions-Schnittstelle live.
+      </span>
+    </div>
+
+    <main>
+      <div class="layout">
+        <article class="content">
+      <span class="time-badge">Anleitung für Vermieter</span>
+      <h1>Mit Claude, ChatGPT oder Codex verbinden</h1>
+      <p class="lead">Frag deinen eigenen KI-Assistenten nach deinen Liegenschaften, Verbräuchen und Geräten, zum Beispiel: „Wie hoch war der Wärmeverbrauch 2025 in der Musterstraße 12?“ Der Assistent liest dafür dieselben Daten, die du im Vermieter-Portal siehst.</p>
+
+      <div class="status">
+        <strong>Noch nicht live.</strong> Der messpunkt.io-Zugang für KI-Assistenten gehört zu Version 1 und geht zusammen mit der Produktions-Schnittstelle in Betrieb. Den Termin geben wir im <a href="../changelog/">Changelog</a> bekannt. Diese Seite beschreibt schon jetzt, wie das Verbinden dann abläuft.
+      </div>
+
+      <h2 id="voraussetzungen">Was du brauchst</h2>
+      <ul class="plain">
+        <li><strong>Dein Konto im Vermieter-Portal.</strong> Du meldest dich beim Verbinden mit denselben Zugangsdaten an.</li>
+        <li><strong>Freigeschalteter API-Zugang für deinen Kunden.</strong> Der Zugang gehört zu deinem Vertrag mit messpunkt.io und wird je Kunde freigeschaltet. Fehlt die Freigabe, zeigt die Anmeldeseite „API-Zugang nicht freigeschaltet“ an, und es werden keine Daten geteilt. Wende dich in dem Fall an <span class="placeholder">&lt;SUPPORT_KONTAKT&gt;</span>.</li>
+        <li><strong>Einen KI-Assistenten, der „Connectoren“ oder „MCP-Server“ einbinden kann.</strong> Das sind zum Beispiel Claude (im Browser, in der App oder als Claude Code), ChatGPT und Codex.</li>
+      </ul>
+      <p>Diese Adresse trägst du im Assistenten ein:</p>
+      <pre><code>https://mcp.messpunkt.io/v1</code></pre>
+
+      <h2 id="schritte">Schritte je Assistent</h2>
+      <p>Jeder Abschnitt trennt zwei Dinge: Was wir bei messpunkt.io <strong>selbst geprüft</strong> haben, und was aus der Anleitung des Anbieters stammt und mit messpunkt.io <strong>noch nicht geprüft</strong> ist. Die Menüs der Anbieter ändern sich gelegentlich. Wenn ein Menüpunkt anders heißt, sieh in der verlinkten Anbieter-Hilfe nach.</p>
+
+      <section id="claude" data-client="claude.ai">
+        <h3>Claude (claude.ai, Claude Desktop)</h3>
+        <ol class="steps">
+          <li>Öffne <strong>Anpassen › Connectoren</strong> („Customize › Connectors“).</li>
+          <li>Klicke auf <strong>+</strong> und dann auf <strong>Benutzerdefinierten Connector hinzufügen</strong> („Add custom connector“).</li>
+          <li>Gib als Adresse <code>https://mcp.messpunkt.io/v1</code> ein. Die „Erweiterten Einstellungen“ lässt du leer.</li>
+          <li>Klicke auf <strong>Hinzufügen</strong> und danach auf <strong>Verbinden</strong>. Es öffnet sich die messpunkt.io-Anmeldung (siehe <a href="#ablauf">Was beim Verbinden passiert</a>).</li>
+        </ol>
+        <p>Bei Claude Team und Enterprise muss zuerst ein Organisations-Owner den Connector unter <strong>Organisationseinstellungen › Connectoren</strong> anlegen. Danach verbindet sich jedes Mitglied selbst über <strong>Anpassen › Connectoren</strong>. Quelle: <a href="https://support.claude.com/en/articles/11175166" target="_blank" rel="noopener">Claude-Hilfe zu Custom Connectors</a>.</p>
+        <div class="checks">
+          <div class="verified"><h4>Bei uns geprüft</h4><ul><li>Noch nichts, was speziell Claude betrifft.</li></ul></div>
+          <div class="unverified"><h4>Noch nicht geprüft</h4><ul><li>Der ganze Ablauf mit claude.ai gegen den messpunkt.io-Server.</li><li>Ob sich claude.ai bei uns ohne eigene Client-ID anmelden kann. messpunkt.io erwartet, dass der Assistent sich über ein öffentliches Beschreibungsdokument ausweist; eine automatische Registrierung bieten wir nicht an.</li></ul></div>
+        </div>
+      </section>
+
+      <section id="claude-code" data-client="claude-code">
+        <h3>Claude Code (Terminal)</h3>
+        <ol class="steps">
+          <li>Füge den Server hinzu:
+            <pre><code>claude mcp add --transport http messpunkt https://mcp.messpunkt.io/v1</code></pre></li>
+          <li>Starte die Anmeldung in Claude Code mit <code>/mcp</code> (oder im Terminal mit <code>claude mcp login messpunkt</code>). Dein Browser öffnet die messpunkt.io-Anmeldung.</li>
+          <li>Nach dem Zustimmen kehrt der Browser zu Claude Code zurück. Die Anmeldung ist damit gespeichert.</li>
+        </ol>
+        <p>Quelle: <a href="https://code.claude.com/docs/en/mcp" target="_blank" rel="noopener">Claude-Code-Dokumentation zu MCP</a>.</p>
+        <div class="checks">
+          <div class="verified"><h4>Bei uns geprüft</h4><ul><li>Die Rückleitungsadresse, die Claude Code benutzt (<code>http://localhost:PORT/callback</code>), nimmt unser Anmeldeserver an. Das belegt ein automatischer Test.</li><li>Der Server spricht das MCP-Protokoll mit dem offiziellen Referenzwerkzeug (MCP Inspector), lokal getestet.</li></ul></div>
+          <div class="unverified"><h4>Noch nicht geprüft</h4><ul><li>Der ganze Ablauf mit Claude Code gegen den laufenden messpunkt.io-Server.</li></ul></div>
+        </div>
+      </section>
+
+      <section id="codex" data-client="codex">
+        <h3>Codex (Terminal)</h3>
+        <ol class="steps">
+          <li>Füge den Server hinzu:
+            <pre><code>codex mcp add messpunkt --url https://mcp.messpunkt.io/v1</code></pre>
+            oder trage ihn in <code>~/.codex/config.toml</code> ein:
+            <pre><code>[mcp_servers.messpunkt]
+url = "https://mcp.messpunkt.io/v1"</code></pre></li>
+          <li>Melde dich an:
+            <pre><code>codex mcp login messpunkt</code></pre>
+            Dein Browser öffnet die messpunkt.io-Anmeldung.</li>
+        </ol>
+        <p>Für die heutigen Funktionen (nur lesen) brauchst du keine weitere Einstellung. Die Codex-Option <code>mcp_elicitations</code> (Rückfragen des Servers erlauben) wird erst für spätere Funktionen wichtig, bei denen der Assistent dich vor einer Änderung um Bestätigung bittet. Quelle: <a href="https://learn.chatgpt.com/docs/extend/mcp?surface=cli" target="_blank" rel="noopener">Codex-Dokumentation zu MCP</a>.</p>
+        <div class="checks">
+          <div class="verified"><h4>Bei uns geprüft</h4><ul><li>Die Rückleitungsadresse, die Codex benutzt (<code>http://127.0.0.1:PORT/callback/…</code>), nimmt unser Anmeldeserver an. Das belegt ein automatischer Test.</li></ul></div>
+          <div class="unverified"><h4>Noch nicht geprüft</h4><ul><li>Der ganze Ablauf mit Codex gegen den laufenden messpunkt.io-Server.</li></ul></div>
+        </div>
+      </section>
+
+      <section id="chatgpt" data-client="chatgpt">
+        <h3>ChatGPT</h3>
+        <ol class="steps">
+          <li>Schalte unter <strong>Einstellungen › Sicherheit und Anmeldung</strong> den <strong>Entwicklermodus</strong> ein („Developer mode“; laut OpenAI für Plus, Pro, Business, Enterprise und Education im Browser).</li>
+          <li>Lege über das Plus-Zeichen eine App für einen entfernten MCP-Server an und gib <code>https://mcp.messpunkt.io/v1</code> als Adresse ein. Als Anmeldeart wählst du „OAuth“ (so heißt der Punkt im Menü).</li>
+          <li>Verbinde die App. Es öffnet sich die messpunkt.io-Anmeldung.</li>
+        </ol>
+        <p>Quelle: <a href="https://developers.openai.com/api/docs/guides/developer-mode" target="_blank" rel="noopener">OpenAI-Dokumentation zum Entwicklermodus</a>.</p>
+        <div class="checks">
+          <div class="verified"><h4>Bei uns geprüft</h4><ul><li>Noch nichts, was speziell ChatGPT betrifft.</li></ul></div>
+          <div class="unverified"><h4>Noch nicht geprüft</h4><ul><li>Der ganze Ablauf mit ChatGPT gegen den messpunkt.io-Server.</li><li>Die genauen Menübezeichnungen. OpenAI ändert sie häufig.</li></ul></div>
+        </div>
+      </section>
+
+      <h2 id="ablauf">Was beim Verbinden passiert</h2>
+      <ol class="steps">
+        <li><strong>Anmelden.</strong> Dein Browser öffnet die messpunkt.io-Anmeldung. Melde dich mit deinem Konto aus dem Vermieter-Portal an. Deine Zugangsdaten bekommt der KI-Assistent nie zu sehen.</li>
+        <li><strong>Freigabe-Seite.</strong> Dort steht, welche Anwendung zugreifen möchte (Art der Anwendung: „KI-Assistent“), und du entscheidest:
+          <ul>
+            <li><strong>Für welchen Kunden</strong>, wenn du mehrere betreust. Kunden ohne freigeschalteten API-Zugang sind ausgegraut.</li>
+            <li><strong>Welche Liegenschaften:</strong> „Alle Liegenschaften, auch künftige“ ist vorausgewählt. Neu angelegte Liegenschaften sind dann automatisch dabei. Alternativ wählst du „Nur ausgewählte Liegenschaften“ und hakst sie einzeln an. Künftige sind dann nicht eingeschlossen.</li>
+            <li><strong>Was geteilt wird</strong>, in einfachen Sätzen: die Struktur deiner Liegenschaften mit Adressen, Wohn- und Nutzeinheiten und <strong>den Namen deiner Mieter</strong>, genau wie im Vermieter-Portal; der Gerätestatus einschließlich Eichung; die Verbräuche als monatliche Werte. Ein eigener Hinweiskasten erinnert daran, dass Mieternamen personenbezogene Daten sind.</li>
+          </ul>
+        </li>
+        <li><strong>Zustimmen oder Ablehnen.</strong> Nach „Zustimmen“ kehrt der Browser zu deinem Assistenten zurück und die Verbindung steht. Nach „Ablehnen“ wird nichts geteilt.</li>
+      </ol>
+      <div class="note">
+        <strong>Warnung bei Claude Code und Codex ist normal.</strong> Diese Programme laufen auf deinem eigenen Computer. Die Freigabe-Seite zeigt deshalb: „Diese Anwendung läuft auf Ihrem eigenen Computer … Ihre Identität wird nicht überprüft.“ Stimme nur zu, wenn du das Programm gerade selbst gestartet hast.
+      </div>
+
+      <h2 id="beispiele">Beispielfragen</h2>
+      <p>Du kannst ganz normal fragen und Liegenschaften mit ihrem Namen oder einem Teil der Adresse nennen. Passen mehrere, fragt der Assistent nach.</p>
+      <!-- P08B-BEISPIELE: gekürzte Beispielantworten aus P08B-BERICHT.md (Inspector-Durchlauf, synthetische Daten) -->
+      <div class="qa"><div class="q">„Welche Liegenschaften habe ich?“</div><div class="a"><span class="placeholder">Beispielantwort folgt</span></div></div>
+      <div class="qa"><div class="q">„Wie hoch war der Wärmeverbrauch 2025 in der Musterstraße 12?“</div><div class="a"><span class="placeholder">Beispielantwort folgt</span></div></div>
+      <div class="qa"><div class="q">„Welche Geräte sind stumm?“</div><div class="a"><span class="placeholder">Beispielantwort folgt</span></div></div>
+      <!-- /P08B-BEISPIELE -->
+
+      <h2 id="grenzen">Was der Assistent nicht kann und was die Antworten nicht bedeuten</h2>
+      <ul class="plain">
+        <li><strong>Nur lesen.</strong> Der Assistent kann nichts ändern, zum Beispiel keinen Mieterwechsel eintragen. Das machst du weiter im Vermieter-Portal.</li>
+        <li><strong>Höchstens monatliche Werte.</strong> Tages- oder Stundenwerte gibt es nicht, auch nicht auf Nachfrage. Feinere Werte je Wohnung würden verraten, wann Bewohner zu Hause sind.</li>
+        <li><strong>„Eichstatus unbekannt“ heißt nicht, dass die Eichung in Ordnung ist.</strong> Es bedeutet nur, dass uns für dieses Gerät keine Eichdaten vorliegen. Geräte ohne Eichpflicht, etwa Heizkostenverteiler, erscheinen als „keine Eichpflicht“.</li>
+        <li><strong>Jede Verbrauchsart in ihrer eigenen Einheit.</strong> Wärme in kWh, Wasser in m³, Heizkostenverteiler in HKV-Einheiten. Der Assistent zählt diese nicht zusammen.</li>
+        <li><strong>Außenwasser getrennt.</strong> Wasser von Außenzapfstellen (zum Beispiel Gartenwasser) wird getrennt ausgewiesen und nicht zum Wasser der Wohnungen gezählt.</li>
+        <li><strong>Differenzzähler ohne Wert.</strong> Messpunkte, deren Verbrauch als Rest aus anderen Zählern entsteht, zeigen in Version 1 keinen Wert. Das ist nicht dasselbe wie „0“.</li>
+        <li><strong>Die Summe aller Wohnungen ist nicht der Gesamtverbrauch des Hauses.</strong> Allgemein- und Vorerfassungswerte sind nicht enthalten.</li>
+        <li><strong>KI-Assistenten können sich irren.</strong> Prüfe Zahlen, auf die es ankommt, zum Beispiel für eine Abrechnung, im Vermieter-Portal.</li>
+      </ul>
+
+      <h2 id="trennen">Verbindung trennen</h2>
+      <p>Im Vermieter-Portal unter <strong>Einstellungen › Verbundene Anwendungen</strong> siehst du jede Anwendung, die auf deine Daten zugreifen darf, mit den freigegebenen Liegenschaften und dem Datum der letzten Nutzung. Mit <strong>Trennen</strong> beendest du den Zugriff. Er endet innerhalb einer Minute.</p>
+      <ul class="plain">
+        <li>Deine eigenen Verbindungen kannst du immer trennen. Administratoren deines Kontos können alle Verbindungen trennen.</li>
+        <li>Du möchtest andere Liegenschaften freigeben? Dann trenne die Verbindung und verbinde den Assistenten neu. Auf der Freigabe-Seite triffst du die Auswahl dann neu.</li>
+        <li>Wenn du den Connector nur im Assistenten entfernst, bleibt die Freigabe bei messpunkt.io bestehen, bis du sie im Portal trennst.</li>
+      </ul>
+
+      <h2 id="datenschutz">Datenschutz</h2>
+      <p>Wenn du einen KI-Assistenten verbindest, gehen die Daten, nach denen du fragst, an den Anbieter, den du gewählt hast, zum Beispiel Anthropic oder OpenAI. Dafür gelten dessen Bedingungen. Das schließt die Namen deiner Mieter ein, wenn du die Struktur deiner Liegenschaften freigibst.</p>
+      <div class="note"><span class="placeholder">&lt;AVV_HINWEIS&gt;</span></div>
+
+      <details class="tech">
+        <summary>Für Technikinteressierte</summary>
+        <ul class="plain">
+          <li>Die Anmeldung ist OAuth 2.1 mit PKCE (S256). Der Assistent bekommt ein Zugriffstoken, das höchstens eine Stunde gilt. Es ist auf die Ressource <code>https://mcp.messpunkt.io/v1</code> ausgestellt und gilt nicht für die REST-Schnittstelle.</li>
+          <li>Assistenten weisen sich über ein Client-ID-Metadatendokument aus (eine https-Adresse als <code>client_id</code>). Eine dynamische Client-Registrierung gibt es nicht.</li>
+          <li>Freigegebene Rechte: <code>read:units</code> (Struktur mit Mieternamen), <code>read:devices</code> (Geräte und Eichung), <code>read:readings</code> (Monatswerte).</li>
+          <li>Die Verbindung wird bei jeder Anfrage geprüft. Deshalb wirkt das Trennen spätestens nach 60 Sekunden.</li>
+          <li>Die Werkzeuge, ihre Beschreibungen und Schemas stehen in der <a href="../mcp/">MCP-Referenz</a> (englisch).</li>
+        </ul>
+      </details>
+        </article>
+
+        <aside class="side-nav" aria-label="Auf dieser Seite">
+          <h3>Auf dieser Seite</h3>
+          <div class="side-cards">
+            <a class="side-card" href="#schritte"><div class="title">Schritte je Assistent</div><div class="desc">Claude, Claude Code, Codex, ChatGPT</div></a>
+            <a class="side-card" href="#ablauf"><div class="title">Anmelden und freigeben</div><div class="desc">Was die Freigabe-Seite zeigt</div></a>
+            <a class="side-card" href="#grenzen"><div class="title">Grenzen</div><div class="desc">Was die Antworten nicht bedeuten</div></a>
+            <a class="side-card" href="#trennen"><div class="title">Trennen</div><div class="desc">Einstellungen › Verbundene Anwendungen</div></a>
+            <a class="side-card" href="../mcp/"><div class="title">MCP-Referenz</div><div class="desc">Werkzeuge und Schemas (englisch)</div></a>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="row">
+        <div>
+          <strong>messpunkt.io Partner API</strong> · Preview · 1.0.0-rc.3 · GA with the first pilot partner
+          <div class="muted">© 2026 messpunkt.io — <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
+        </div>
+        <div class="links">
+          <a href="https://messpunkt.io/impressum" target="_blank" rel="noopener">Impressum</a>
+          <a href="https://messpunkt.io/datenschutz" target="_blank" rel="noopener">Datenschutz</a>
+          <a href="../.well-known/security.txt">Security</a>
+          <a href="../erp-api-openapi.yaml">OpenAPI 3.1 spec</a>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      document.querySelectorAll('pre').forEach(pre => {
+        if (pre.querySelector('.copy-btn')) return;
+        const btn = document.createElement('button');
+        btn.className = 'copy-btn';
+        btn.type = 'button';
+        btn.setAttribute('aria-label', 'In die Zwischenablage kopieren');
+        btn.textContent = 'Kopieren';
+        btn.addEventListener('click', async () => {
+          const code = pre.querySelector('code');
+          const text = (code ? code.innerText : pre.innerText).replace(/\s*$/, '');
+          try {
+            await navigator.clipboard.writeText(text);
+            btn.textContent = 'Kopiert';
+            btn.classList.add('copied');
+          } catch (err) {
+            btn.textContent = 'Fehler';
+          }
+          setTimeout(() => { btn.textContent = 'Kopieren'; btn.classList.remove('copied'); }, 1600);
+        });
+        pre.appendChild(btn);
+      });
+    </script>
+  </body>
+  </body>
+</html>
