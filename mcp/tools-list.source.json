@@ -1,9 +1,9 @@
 {
-  "source": "azure-functions PartnerMcp.Tests/Snapshots/tools-list.json (308/int)",
-  "commit": "ff26534",
-  "snapshot_last_changed_in": "f4d7d82",
-  "sha256": "656f324393331cfdeff2eb9dca785e21db162237f5a38e54a1fdf036620d9dfa",
-  "scopes_from": "[RequiresScope(McpScopes.*)] in azure-functions PartnerMcp/Tools/*.cs and PartnerMcp/Security/McpScopes.cs at ff26534",
+  "source": "azure-functions PartnerMcp.Tests/Snapshots/tools-list.json (main)",
+  "commit": "fb5c773",
+  "snapshot_last_changed_in": "fb5c773",
+  "sha256": "1359687bd075eef358944c67cfbf1672a209836f523d8ed12fc45744fd610aff",
+  "scopes_from": "[RequiresScope(McpScopes.*)] in azure-functions PartnerMcp/Tools/*.cs and PartnerMcp/Security/McpScopes.cs at fb5c773",
   "scopes": {
     "get_connection_info": "read:units",
     "get_consumption": "read:readings",
