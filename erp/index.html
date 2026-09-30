@@ -175,7 +175,7 @@
       </ul>
       <p>You receive a <code>client_id</code> of the form <code>erp_</code> followed by 32 hex characters.</p>
       <div class="note">
-        <strong>Confidential-client authentication goes live with production.</strong> The sandbox has only the public demo client, so you cannot test <code>private_key_jwt</code> or <code>client_secret_basic</code> there yet. Before you rely on either method, check that <code>token_endpoint_auth_methods_supported</code> in the production discovery document lists it.
+        <strong>Confidential clients go live with production.</strong> The sandbox has only the public demo client, so you cannot try <code>private_key_jwt</code> or <code>client_secret_basic</code> there. The rules below are what the authorization server enforces; the production discovery document lists them in <code>token_endpoint_auth_methods_supported</code> and <code>token_endpoint_auth_signing_alg_values_supported</code>.
       </div>
 
       <h2 id="landlord"><span class="step-num">2</span>Make sure the landlord can consent</h2>
@@ -224,7 +224,19 @@ RETURNED_STATE=...</code></pre>
 TOKEN=$(python3 -c "import json; print(json.load(open('token.json'))['access_token'])")
 REFRESH_TOKEN=$(python3 -c "import json; print(json.load(open('token.json'))['refresh_token'])")</code></pre>
       <p>The code is single-use and short-lived. Redeeming it twice revokes the connection. The response carries <code>access_token</code> (<code>expires_in</code>: 3600), <code>refresh_token</code>, <code>scope</code> and <code>token_type</code> (<code>Bearer</code>, or <code>DPoP</code> if you sent a proof).</p>
-      <p><strong>Production, confidential client:</strong> authenticate the same request with your registered method instead of relying on <code>client_id</code> alone: HTTP Basic (<code>-u "$CLIENT_ID:$CLIENT_SECRET"</code>) for <code>client_secret_basic</code>, or <code>client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer</code> plus a signed <code>client_assertion</code> (RFC 7523) for <code>private_key_jwt</code>. These cannot be tried in the sandbox yet (see <a href="#register">step 1</a>).</p>
+      <h3 id="client-auth">3e · Authenticate a confidential client (production)</h3>
+      <p>A registered ERP client authenticates every request to <code>/oauth/token</code> and <code>/oauth/revoke</code> with exactly one method. A request that combines methods is refused with <code>400 invalid_request</code>; a failed authentication with <code>401 invalid_client</code>. A failed authentication never uses up the authorization code.</p>
+      <p><strong><code>private_key_jwt</code></strong> (RFC 7523). Send these form fields instead of a secret:</p>
+      <pre><code>client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer
+client_assertion=&lt;signed JWT&gt;</code></pre>
+      <ul class="plain">
+        <li>Header: <code>alg</code> is <code>RS256</code>, <code>PS256</code> or <code>ES256</code>. <code>kid</code> names a key in your registered JWKS. Do not include <code>jwk</code>, <code>jku</code>, <code>x5u</code>, <code>x5c</code> or <code>crit</code>.</li>
+        <li>Claims: <code>iss</code> = <code>sub</code> = your <code>client_id</code>. <code>aud</code> is the token endpoint URL (<code>https://auth.messpunkt.io/oauth/token</code>); the issuer identifier is accepted too. <code>iat</code> and <code>exp</code> are required, at most 5 minutes apart. <code>jti</code> is required and must be <strong>new for every request</strong>, including a revocation right after a token request.</li>
+        <li>JWKS: served over <code>https</code> on port 443 from a public DNS name (no IP literal, no redirect), JSON, at most 64 KB. Keys are RSA with at least 2048 bits or EC P-256. To rotate, publish the new key under a new <code>kid</code> next to the old one; the server reloads your JWKS at most every 30 seconds.</li>
+        <li><code>client_id</code> in the form is optional; if you send it, it must equal <code>iss</code>.</li>
+      </ul>
+      <p><strong><code>client_secret_basic</code></strong>. Send the secret only in the <code>Authorization</code> header: <code>Basic base64(urlencode(client_id) ":" urlencode(client_secret))</code>, for example <code>curl -u "$CLIENT_ID:$CLIENT_SECRET"</code>. A secret in the form body (<code>client_secret_post</code>) is not supported and is refused.</p>
+      <p>The public demo client of the sandbox sends only <code>client_id</code>. A public client that sends a secret or an assertion is refused.</p>
 
       <h2 id="read"><span class="step-num">4</span>Read data</h2>
       <pre><code>curl -s -H "Authorization: Bearer $TOKEN" https://api.sandbox.messpunkt.io/v1/whoami | python3 -m json.tool
@@ -273,7 +285,7 @@ curl -s -H "Authorization: Bearer $TOKEN" \
       <pre><code>curl -s -o /dev/null -w "%{http_code}\n" -X POST https://auth.sandbox.messpunkt.io/oauth/revoke \
   -d "token=$REFRESH_TOKEN" \
   -d "client_id=sandbox-demo-client"</code></pre>
-      <p>Revocation (RFC 7009) accepts an access or a refresh token and ends the <strong>whole connection</strong>. The answer is <code>200</code> whether or not the token was known. An unknown <code>client_id</code> gets <code>401 invalid_client</code>. The landlord can also disconnect your application in the portal (<em>Einstellungen › Verbundene Anwendungen</em>); your tokens and refresh token then stop working within 60 seconds, because the connection is checked on every request.</p>
+      <p>Revocation (RFC 7009) accepts an access or a refresh token and ends the <strong>whole connection</strong>. The answer is <code>200</code> whether or not the token was known. Authenticate the request exactly as at the token endpoint; an unknown, disabled or unauthenticated client gets <code>401 invalid_client</code>. The landlord can also disconnect your application in the portal (<em>Einstellungen › Verbundene Anwendungen</em>); your tokens and refresh token then stop working within 60 seconds, because the connection is checked on every request.</p>
 
       <h2 id="dpop">DPoP (optional)</h2>
       <p>DPoP (RFC 9449) is optional, but when you use it the server checks it fully: <code>htm</code>, <code>htu</code>, <code>iat</code> (±60 s), <code>jti</code> replay, <code>ath</code> and the key thumbprint. Send a proof to <code>/oauth/token</code> and the access token is bound to your key (<code>token_type: DPoP</code>). Every API request must then use <code>Authorization: DPoP &lt;token&gt;</code> plus a fresh <code>DPoP</code> proof, and the same token sent as <code>Bearer</code> is rejected. The <code>htu</code> is the public URL you called, without query. The server does not issue DPoP nonces; do not put a <code>nonce</code> claim in your proofs. Code in C#, Node, Python and curl: <a href="../dpop/">DPoP guide</a>.</p>
@@ -289,7 +301,7 @@ curl -s -H "Authorization: Bearer $TOKEN" \
         <tr><td><code>429</code> <code>too-many-requests</code></td><td>rate limit</td><td>wait <code>Retry-After</code> seconds</td></tr>
         <tr><td><code>500</code> / <code>503</code></td><td>server or dependency problem; no <code>detail</code></td><td>retry with exponential backoff</td></tr>
       </table></div>
-      <p>OAuth endpoints (<code>/oauth/*</code>) answer in the OAuth format (<code>error</code>, <code>error_description</code>): <code>invalid_request</code>, <code>invalid_client</code>, <code>invalid_grant</code> (code or refresh token invalid, reused, revoked or inactive), <code>invalid_target</code> (unknown <code>resource</code>), <code>invalid_scope</code>, <code>invalid_dpop_proof</code>, <code>unsupported_grant_type</code>. On <code>/oauth/authorize</code>, an unknown client or unregistered <code>redirect_uri</code> is never redirected: the browser gets an error page. Full table with client actions: <a href="../errors/">Error handling</a>.</p>
+      <p>OAuth endpoints (<code>/oauth/*</code>) answer in the OAuth format (<code>error</code>, <code>error_description</code>): <code>invalid_request</code>, <code>invalid_client</code> (401; for <code>client_secret_basic</code> with <code>WWW-Authenticate: Basic</code>), <code>invalid_grant</code> (code or refresh token invalid, reused, revoked or inactive), <code>invalid_target</code> (unknown <code>resource</code>), <code>invalid_scope</code>, <code>invalid_dpop_proof</code>, <code>unsupported_grant_type</code>. On <code>/oauth/authorize</code>, an unknown client or unregistered <code>redirect_uri</code> is never redirected: the browser gets an error page. Full table with client actions: <a href="../errors/">Error handling</a>.</p>
 
       <h2 id="limits">Rate limits</h2>
       <ul class="plain">
@@ -310,6 +322,7 @@ curl -s -H "Authorization: Bearer $TOKEN" \
           <div class="side-cards">
             <a class="side-card" href="#register"><div class="title">Register a client</div><div class="desc">What to send us</div></a>
             <a class="side-card" href="#flow"><div class="title">Authorization flow</div><div class="desc">PKCE, consent, iss check, token</div></a>
+            <a class="side-card" href="#client-auth"><div class="title">Client authentication</div><div class="desc">private_key_jwt, client_secret_basic</div></a>
             <a class="side-card" href="#refresh"><div class="title">Refresh and replay</div><div class="desc">Rotation, 90-day inactivity</div></a>
             <a class="side-card" href="#errors"><div class="title">Errors</div><div class="desc">Problem+JSON and OAuth errors</div></a>
             <a class="side-card" href="../dpop/"><div class="title">DPoP guide</div><div class="desc">Optional, fully verified</div></a>
