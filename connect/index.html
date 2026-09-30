@@ -11,7 +11,6 @@
     <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <style>
-    <style>
       :root {
         --brand-primary: #1e534a;
         --brand-primary-hover: #16403a;
@@ -122,15 +121,15 @@
         <span class="subtitle">KI-Assistent verbinden</span>
       </a>
       <nav aria-label="Navigation">
-        <a href="../">Home</a>
-        <a href="../reference/">Reference</a>
+        <a href="../">Start</a>
+        <a href="../reference/">Referenz</a>
         <span class="divider" aria-hidden="true"></span>
-        <a href="../connect/" class="current">Connect AI</a>
-        <a href="../erp/">ERP guide</a>
+        <a href="../connect/" class="current">KI verbinden</a>
+        <a href="../erp/">ERP-Anleitung</a>
         <a href="../mcp/">MCP</a>
         <span class="divider" aria-hidden="true"></span>
         <a href="../quickstart/">Quickstart</a>
-        <a href="../changelog/">Changelog</a>
+        <a href="../changelog/">Änderungen</a>
         <a href="../erp-api-openapi.yaml">OpenAPI YAML</a>
       </nav>
     </header>
@@ -183,7 +182,8 @@
         <h3>Claude Code (Terminal)</h3>
         <ol class="steps">
           <li>Füge den Server hinzu:
-            <pre><code>claude mcp add --transport http messpunkt https://mcp.messpunkt.io/v1</code></pre></li>
+            <pre><code>claude mcp add --transport http --scope user messpunkt https://mcp.messpunkt.io/v1</code></pre>
+            Mit <code>--scope user</code> steht messpunkt.io dir in jedem Ordner zur Verfügung. Ohne diese Angabe gilt der Eintrag nur für den Ordner, in dem du den Befehl ausführst.</li>
           <li>Starte die Anmeldung in Claude Code mit <code>/mcp</code> (oder im Terminal mit <code>claude mcp login messpunkt</code>). Dein Browser öffnet die messpunkt.io-Anmeldung.</li>
           <li>Nach dem Zustimmen kehrt der Browser zu Claude Code zurück. Die Anmeldung ist damit gespeichert.</li>
         </ol>
@@ -266,6 +266,15 @@ url = "https://mcp.messpunkt.io/v1"</code></pre></li>
         <li><strong>KI-Assistenten können sich irren.</strong> Prüfe Zahlen, auf die es ankommt, zum Beispiel für eine Abrechnung, im Vermieter-Portal.</li>
       </ul>
 
+      <h2 id="probleme">Wenn etwas nicht klappt</h2>
+      <ul class="plain">
+        <li><strong>„Kein Zugang“ oder nicht dein Kunde auf der Anmeldeseite.</strong> Du bist vermutlich mit einem anderen Konto angemeldet als dem, mit dem du das Vermieter-Portal nutzt. Melde dich mit deinem Portal-Konto an. Merkt sich dein Browser noch das andere Konto, melde dich dort zuerst ab und starte die Verbindung im Assistenten neu.</li>
+        <li><strong>„API-Zugang nicht freigeschaltet“.</strong> Die Freigabe gehört zu deinem Vertrag und fehlt für diesen Kunden noch. Schreib an <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a>, dann schalten wir sie frei.</li>
+        <li><strong>Keine oder weniger Werte als erwartet, etwa für 2025.</strong> Werte gibt es erst ab dem Monat, seit dem die Geräte deiner Liegenschaft bei messpunkt.io Daten liefern, und immer nur bis zum letzten abgeschlossenen Monat. Eine Summe über einen Zeitraum umfasst nur die Monate, für die Werte vorliegen. Frag den Assistenten, für welche Monate es Werte gibt.</li>
+        <li><strong>Der Assistent sagt, ihm fehle ein Recht.</strong> Die Verbindung umfasst diesen Bereich (etwa die Verbräuche) nicht. Verbinde den Assistenten neu und gib den Bereich auf der Freigabe-Seite frei, siehe <a href="#trennen">Verbindung trennen</a>.</li>
+      </ul>
+      <p>Hilft das nicht weiter, schreib an <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a>.</p>
+
       <h2 id="trennen">Verbindung trennen</h2>
       <p>Im Vermieter-Portal unter <strong>Einstellungen › Verbundene Anwendungen</strong> siehst du jede Anwendung, die auf deine Daten zugreifen darf, mit den freigegebenen Liegenschaften und dem Datum der letzten Nutzung. Mit <strong>Trennen</strong> beendest du den Zugriff. Er endet innerhalb einer Minute.</p>
       <ul class="plain">
@@ -277,7 +286,7 @@ url = "https://mcp.messpunkt.io/v1"</code></pre></li>
       <h2 id="datenschutz">Datenschutz</h2>
       <p>Wenn du einen KI-Assistenten verbindest, gehen die Daten, nach denen du fragst, an den Anbieter, den du gewählt hast, zum Beispiel Anthropic oder OpenAI. Dafür gelten dessen Bedingungen. Das schließt die Namen deiner Mieter ein, wenn du die Struktur deiner Liegenschaften freigibst.</p>
       <!-- <AVV_HINWEIS> Entwurf FX-D (2026-09-30), juristisch zu prüfen: Text und Vermerk erst nach der Prüfung ersetzen. -->
-      <div class="note"><span class="placeholder">Entwurf, juristisch zu prüfen</span><br>Für die Verarbeitung deiner Daten durch messpunkt.io gilt die Vereinbarung zur Auftragsverarbeitung (AVV) aus deinem Vertrag mit messpunkt.io. Die Weitergabe an den KI-Anbieter, den du verbindest, deckt sie nicht ab: Darüber entscheidest du selbst, als Verantwortlicher für die Daten deiner Mieter. Prüfe deshalb vor dem Verbinden, ob du mit dem Anbieter eine eigene Vereinbarung zur Auftragsverarbeitung brauchst (viele Anbieter bieten sie für Geschäftskonten an) und ob du die Namen deiner Mieter weitergeben darfst. Fragen dazu beantworten wir unter <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a>.</div>
+      <div class="note"><span class="placeholder">Entwurf, juristisch zu prüfen</span><br>Für die Verarbeitung deiner Daten durch messpunkt.io gilt die Vereinbarung zur Auftragsverarbeitung (AVV) aus deinem Vertrag mit messpunkt.io. Die Weitergabe an den KI-Anbieter, den du verbindest, deckt sie nicht ab: Darüber entscheidest du selbst, als Verantwortlicher für die Daten deiner Mieter. Prüfe deshalb vor dem Verbinden, ob du mit dem Anbieter eine eigene Vereinbarung zur Auftragsverarbeitung brauchst (viele Anbieter bieten sie für Geschäftskonten an) und ob du die Namen deiner Mieter weitergeben darfst. Fragen dazu beantworten wir unter <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a>.<br><br><strong>Zugriffsprotokoll.</strong> Jeden Abruf einer verbundenen Anwendung (KI-Assistent oder Hausverwaltungssoftware) protokollieren wir mit Zeitpunkt, Anwendung, Verbindung, deinem Benutzerkonto, dem aufgerufenen Werkzeug oder Endpunkt und dem Ergebnis. Nicht protokolliert werden die Inhalte der Antworten, Mieternamen und die Eingaben selbst; von den Eingaben speichern wir nur einen nicht umkehrbaren Prüfwert. Das Protokoll dient der Sicherheit und der Nachvollziehbarkeit. Wir bewahren es <strong>90 Tage</strong> auf und löschen ältere Einträge danach automatisch.</div>
 
       <details class="tech">
         <summary>Für Technikinteressierte</summary>
@@ -297,6 +306,7 @@ url = "https://mcp.messpunkt.io/v1"</code></pre></li>
             <a class="side-card" href="#schritte"><div class="title">Schritte je Assistent</div><div class="desc">Claude, Claude Code, Codex, ChatGPT</div></a>
             <a class="side-card" href="#ablauf"><div class="title">Anmelden und freigeben</div><div class="desc">Was die Freigabe-Seite zeigt</div></a>
             <a class="side-card" href="#grenzen"><div class="title">Grenzen</div><div class="desc">Was die Antworten nicht bedeuten</div></a>
+            <a class="side-card" href="#probleme"><div class="title">Wenn etwas nicht klappt</div><div class="desc">Konto, Freigabe, fehlende Werte</div></a>
             <a class="side-card" href="#trennen"><div class="title">Trennen</div><div class="desc">Einstellungen › Verbundene Anwendungen</div></a>
             <a class="side-card" href="../mcp/"><div class="title">MCP-Referenz</div><div class="desc">Werkzeuge und Schemas (englisch)</div></a>
           </div>
@@ -307,14 +317,14 @@ url = "https://mcp.messpunkt.io/v1"</code></pre></li>
     <footer class="site-footer">
       <div class="row">
         <div>
-          <strong>messpunkt.io Partner API</strong> · Preview · 1.0.0-rc.3 · GA with the first pilot partner
+          <strong>messpunkt.io Partner-Schnittstelle</strong> · Vorschau · 1.0.0-rc.3 · Start mit dem ersten Pilotpartner
           <div class="muted">© 2026 messpunkt.io — <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
         </div>
         <div class="links">
           <a href="https://messpunkt.io/impressum" target="_blank" rel="noopener">Impressum</a>
           <a href="https://messpunkt.io/datenschutz" target="_blank" rel="noopener">Datenschutz</a>
-          <a href="../.well-known/security.txt">Security</a>
-          <a href="../erp-api-openapi.yaml">OpenAPI 3.1 spec</a>
+          <a href="../.well-known/security.txt">Sicherheit</a>
+          <a href="../erp-api-openapi.yaml">OpenAPI-3.1-Spezifikation</a>
         </div>
       </div>
     </footer>
@@ -342,6 +352,5 @@ url = "https://mcp.messpunkt.io/v1"</code></pre></li>
         pre.appendChild(btn);
       });
     </script>
-  </body>
   </body>
 </html>
