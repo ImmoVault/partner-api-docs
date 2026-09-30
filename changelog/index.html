@@ -97,7 +97,7 @@
 
     <div class="preview-ribbon">
       <span class="badge">Preview</span>
-      <span>V1 in active development — target release <strong>Q2 2026</strong>. Become a pilot partner:
+      <span>V1 release candidate <strong>1.0.0-rc.3</strong> — GA ships with the first pilot partner. Become one:
         <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
       </span>
     </div>
@@ -105,6 +105,131 @@
     <main>
       <h1>Changelog</h1>
       <p class="lead">Release history of the messpunkt.io Partner API. We follow <a href="https://semver.org/" target="_blank" rel="noopener">Semantic Versioning</a> and use the category labels from <a href="https://keepachangelog.com/" target="_blank" rel="noopener">Keep a Changelog</a>.</p>
+
+      <section class="release">
+        <div class="release-header">
+          <span class="version">1.0.0-rc.3</span>
+          <span class="date">2026-09-29</span>
+          <span class="status rc">Release candidate</span>
+        </div>
+        <p>rc.3 makes the contract describe the data messpunkt.io really has, and sets the data resolution to <strong>monthly</strong>. It contains <strong>four breaking changes</strong>. rc.2 promised that core types would no longer be reshaped; we break that promise once, deliberately, because no partner has gone live yet — after the first one, the same correction would be a <code>/v2</code> with six months of parallel operation. From rc.3 on, <code>UsageUnit</code>, <code>MeasuringPoint</code>, <code>DeviceSegment</code> and <code>MeterReading</code> change only additively.</p>
+        <div class="change-group removed">
+          <h3>Breaking</h3>
+          <ul>
+            <li><strong>Monthly resolution.</strong> <code>GET /usage-units/{id}/consumption</code> and <code>GET /measuring-points/{id}/readings</code> now return one reading per <strong>calendar month end</strong> instead of two readings at arbitrary dates. <code>MeterReading.at</code> is a <code>date</code> (was <code>date-time</code>); <code>from</code>/<code>to</code> are widened to whole months and capped at the last completed month. <em>Why:</em> radio meters report several times a day; a series that fine, per apartment, is a behavioural profile of the residents. Billing needs period values, and GDPR data minimisation (Art. 5(1)(c)) does not let us hand out more. The landlord portal follows the same rule, so an ERP sees what the landlord sees. There is no parameter to get finer data, and the announced <code>granularity=</code> parameter will not come.</li>
+            <li><strong><code>MeasuringPoint.active_device</code> is nullable.</strong> Difference meters (new <code>is_difference_meter: true</code>) have no device of their own, and a measuring point whose device was removed without replacement has none either. rc.2 declared the field required, which made both unrepresentable.</li>
+            <li><strong><code>MeasuringPoint.usage_unit_id</code> is nullable</strong> (named breaking change, decided before rc.3 is published). Measuring points in areas that are allocated to <strong>no</strong> usage unit — a plant room, a main water meter, above all the <strong>total heat meter</strong> — used to be invisible: they belonged to no unit, so no endpoint returned them. A heating-cost statement cannot be built without them. They are now delivered with <code>usage_unit_id: null</code> and an empty <code>allocations</code>, found through the new <code>GET /properties/{id}/measuring-points</code>, and readable with <code>GET /measuring-points/{id}</code> and <code>…/readings</code>. <code>MeasuringPoint.property_id</code> is required and always set. They are never part of a unit or of <code>/usage-units/{id}/consumption</code>. <em>Why now:</em> rc.3 is not published and no partner has gone live, so the type change costs nobody anything; after the first partner it would be a <code>/v2</code>. <em>Action:</em> handle <code>null</code>.</li>
+            <li><strong><code>installed_at</code> is nullable</strong> on <code>Device</code> and <code>DeviceSegment</code>. For many devices the installation date is not documented; rc.2 forced us to either invent one or fail the response. It is now <code>null</code> when unknown and set only when the date is documented — never a placeholder such as <code>1900-01-01</code>, and never the date a record was created. For such segments, <code>baseline_value</code> is the first value known for the device.</li>
+          </ul>
+        </div>
+        <div class="change-group added">
+          <h3>Added</h3>
+          <ul>
+            <li><code>DeviceSegment.period_consumption</code> — end value, raw consumption and <strong><code>billable_value</code></strong> per segment, computed like the landlord portal. Sum <code>billable_value</code> across segments; do not bill <code>last − first</code> reading.</li>
+            <li><code>DeviceSegment.baseline_value</code> / <code>baseline_date</code> — the value consumption is measured from. It can lie before <code>from</code>, and a replacement device starts at its own start value, not 0. Without it, a swap in mid-year silently under-reports consumption.</li>
+            <li><code>DeviceSegment.factor</code> / <code>Device.factor</code> — K-factor (Bewertungsfaktor) for heat cost allocators, usually <code>1</code> otherwise. Raw HCA units without the factor bill wrongly.</li>
+            <li><code>MeterReading.is_synthetic</code> — <code>true</code> when messpunkt.io interpolated the month-end value instead of receiving it from the device.</li>
+            <li><code>ReadingStatus</code> value <code>calibration_expired</code> — the device's statutory calibration period had ended; the value must not be billed (<code>billable_value</code> is <code>0</code>). Reporting it as <code>measured</code> or <code>missing</code> would both lead to wrong bills.</li>
+            <li><code>SubstitutionMethod</code> values <code>weighted_recent_2values</code>, <code>weighted_recent_3values</code>, <code>baseline_fallback</code>, <code>baseline_single_value</code> — the methods our aggregation actually uses when it extrapolates an end value.</li>
+            <li><code>replacement_reason</code> value <code>DeviceReplacement</code> — the meter swap, which is the case you will actually see.</li>
+            <li><code>Metric</code> value <code>water_outdoor</code> — outdoor/garden water (Außenwasser, Sprengwasser). It must not be added to the water billed to residents, so mapping it onto <code>water_cold</code> would be a billing error.</li>
+            <li><code>GET /properties/{id}/measuring-points</code> (scope <code>read:devices</code>, paginated) — every measuring point of one Property with and without a usage unit; <code>MeasuringPoint.property_id</code>.</li>
+            <li><code>MeasuringPoint.is_difference_meter</code> (also on <code>MeasuringPointSummary</code> and <code>MeasuringPointConsumption</code>).</li>
+            <li>Documentation: <em>Data resolution</em>, <em>Migrating from rc.2</em>, <em>Metrics and units</em>, <em>Errors</em> sections; error examples (<code>application/problem+json</code>) and code samples for every operation; the MCP server <code>https://mcp.messpunkt.io/v1</code> for landlords' own AI assistants, announced as part of V1.</li>
+          </ul>
+        </div>
+        <div class="change-group changed">
+          <h3>Changed</h3>
+          <ul>
+            <li><strong>DPoP is supported and optional</strong> (was "required in production"). A token obtained with a DPoP proof is bound to your key and must then always be sent with a valid proof; plain bearer tokens work otherwise. DPoP can be made mandatory per registered client on request.</li>
+            <li>Consent: the landlord chooses <em>all Properties, including future ones</em> (<code>property_scope: "all"</code>) or a selection. Disconnecting in the portal takes effect within 60 seconds; changing the selection means reconnecting. The previously described in-place scope editing is not offered.</li>
+            <li>Authentication section documents <code>resource</code> (RFC 8707), <code>iss</code> in the authorization response (RFC 9207), <code>/oauth/revoke</code> (RFC 7009), registered ERP clients (<code>private_key_jwt</code>, <code>client_secret_basic</code>) and the per-Tenant API activation.</li>
+            <li>Canonical model corrected: measuring points hang off a Sector under the Address, and Sectors are allocated to UsageUnits — not <code>UsageUnit → Sector</code> as drawn before.</li>
+            <li><code>ReadingStatus</code> no longer claims to map 1:1 to an internal type; each value is described by what it means.</li>
+            <li><code>linear_interpolation</code> / <code>degree_day_weighted</code> now describe how <code>calculated</code> month-end values were interpolated.</li>
+            <li>Rate limits clarified and published, the same in production and sandbox: <code>/v1/*</code> 300 requests/min per connection (grant, the token's <code>sid</code>), counted after the token is validated, requests whose token fails validation per caller address; <code>/oauth/token</code> and <code>/oauth/revoke</code> 60/min per <code>client_id</code> after successful client authentication, <strong>in addition</strong> 60/min per caller address; <code>/oauth/authorize</code> 60/min per caller address; the MCP server 60/min per connection. <code>429</code> with <code>Retry-After</code>; counted in memory per server instance (best effort). rc.2 said "per <code>client_id</code>" in one place and "per caller IP" in another; neither described <code>/v1/*</code>, which is counted per connection because one ERP system serves many landlords from one address.</li>
+            <li>Examples use fictional addresses (<em>Musterstraße</em>, <em>Musterstadt</em>) and unit labels without names.</li>
+          </ul>
+        </div>
+        <div class="change-group deprecated">
+          <h3>Not populated today</h3>
+          <ul>
+            <li><code>obis</code> is always <code>null</code>. messpunkt.io does not store OBIS codes; the OBIS mapping table and the advice to prefer OBIS over <code>metric</code> are withdrawn.</li>
+            <li><code>resolution</code> is always <code>null</code>; messpunkt.io does not record device resolution.</li>
+            <li><code>external_ref</code> is always <code>null</code> and cannot be written; the <code>external_ref</code> filter matches nothing.</li>
+            <li><code>electricity</code> and <code>gas</code> stay in <code>Metric</code> (removing them would be breaking) but there are no readable devices for them today.</li>
+            <li><code>replacement_reason</code> values <code>EndOfLife</code>, <code>Defect</code>, <code>PeriodEnd</code>, <code>Other</code> and <code>SubstitutionMethod</code> value <code>last_value_forward</code> are not assigned today.</li>
+            <li>Pre-metering points (Vorerfassung) are not exposed — they would double-count the meters behind them. Unit sums therefore do not add up to a building total; the total meters of a plant room are delivered separately (<code>usage_unit_id: null</code>).</li>
+          </ul>
+        </div>
+        <div class="change-group removed">
+          <h3>Removed</h3>
+          <ul>
+            <li>The expired GA target date (second quarter of 2026). GA ships with the first pilot partner and will be announced here.</li>
+            <li>The <code>granularity=</code> roadmap item (conflicts with monthly resolution).</li>
+          </ul>
+        </div>
+        <div class="change-group changed">
+          <h3>Migration from rc.2</h3>
+          <ul>
+            <li>Parse <code>MeterReading.at</code> as a date; do not expect exactly two readings per segment.</li>
+            <li>Bill the sum of <code>period_consumption.billable_value</code> per measuring point; never bill a segment whose status is <code>calibration_expired</code> or <code>missing</code>.</li>
+            <li>Handle <code>installed_at: null</code>; do not replace it with a date of your own.</li>
+            <li>Handle <code>usage_unit_id: null</code>; read the total meters of a plant room from <code>GET /properties/{id}/measuring-points</code>.</li>
+            <li>Handle <code>active_device: null</code> and measuring points with <code>is_difference_meter: true</code> and no segments.</li>
+            <li>Keep <code>water_outdoor</code> out of residents' water; tolerate unknown enum values from now on.</li>
+            <li>Stop relying on <code>obis</code>, <code>resolution</code> and <code>external_ref</code>.</li>
+            <li>The sandbox keeps serving the rc.2 shape until its rc.3 update, which will be announced here.</li>
+          </ul>
+        </div>
+        <div class="change-group changed">
+          <h3>rc.3 — Clarifications (not breaking)</h3>
+          <p>Documentation of the same rc.3 contract, written down while building the rc.3 sandbox. No field, type or enum value changed, so the version number stays <code>1.0.0-rc.3</code>.</p>
+          <ul>
+            <li><strong>Errors:</strong> <code>GET /properties</code> and <code>GET /usage-units</code> document <code>400 invalid-request</code> for an invalid <code>limit</code>, <code>page_cursor</code> or <code>property_id</code>. A consumption range that lies entirely after the last completed month is <code>400</code>, and so is an unknown <code>metric</code> value (named in <code>detail</code>). Every operation now lists <code>500 internal-error</code> and <code>503 service-unavailable</code> — no <code>detail</code>, retry with backoff.</li>
+            <li><strong><code>/whoami</code></strong> answers <code>401 invalid-token</code> when the landlord's API access has ended — never <code>404</code>.</li>
+            <li><strong>Device removed inside the range:</strong> <code>period_consumption.end_value</code> is the value on the removal day, status <code>measured</code>; if the removal day is a month end, the value also appears as that month's reading.</li>
+            <li><strong>Unknown installation date:</strong> <code>baseline_date</code> is the month-end before <code>from</code> if known, otherwise the first known value — which can lie inside the range, not only before <code>from</code>.</li>
+            <li><strong>No value at the end of the range:</strong> nothing is carried forward from an earlier month; unless the value is <code>substituted</code>, <code>period_consumption.status</code> is <code>missing</code>.</li>
+            <li><strong><code>token_expires_at</code></strong> is omitted when unknown, never <code>null</code>.</li>
+            <li><strong>Shared Sectors:</strong> how measuring points of a Sector shared by several UsageUnits appear under <code>usage_unit_id</code> will be fixed before GA.</li>
+            <li><strong>Sandbox:</strong> the data is static up to 2026-12-31, and the fixture contains no <code>substituted</code> values.</li>
+          </ul>
+        </div>
+        <div class="change-group added">
+          <h3>rc.3 — Addendum (additive)</h3>
+          <p>Additions to the same rc.3 contract before its publication. Only new optional fields, new schemas and descriptions — no field removed, no type changed, no new required field — so the version number stays <code>1.0.0-rc.3</code>. One statement changes meaning (shared Sectors, see <em>Changed meaning</em> below).</p>
+          <ul>
+            <li><strong>For AI agents:</strong> the MCP server lists five read-only tools — <code>list_properties</code>, <code>get_property_overview</code>, <code>get_consumption</code>, <code>get_device_status</code> and <code>get_connection_info</code>. Their schemas are in the <a href="../mcp/#tools">MCP tool reference</a>.</li>
+            <li><strong><code>DeviceSegment.baseline_origin</code></strong> (new, optional): where <code>baseline_value</code> comes from — <code>recorded</code>, <code>assumed_zero</code>, <code>first_reading</code>, <code>portal_rule</code>, <code>month_end_before_range</code>, <code>first_known_in_range</code> or <code>none</code>. <code>assumed_zero</code> means the start value of a replacement heat cost allocator was <strong>not recorded</strong> and is assumed to be 0 — the consumption of that segment rests on this assumption.</li>
+            <li><strong><code>is_system_linked</code></strong> (new, optional, default <code>true</code>) on <code>MeasuringPoint</code> and <code>MeasuringPointConsumption</code>: <code>false</code> for a measuring point without an active assignment to a heating or water system. It is delivered with its values; the landlord portal shows 0 for it.</li>
+            <li><strong><code>substituted</code> is not produced today:</strong> ranges end at a completed month end, where messpunkt.io stores only <code>calculated</code> values. <code>substitution_method</code> therefore appears only on <code>calculated</code> values (<code>degree_day_weighted</code> for heat meters and heat cost allocators, <code>linear_interpolation</code> otherwise). The status stays in the contract.</li>
+            <li><strong><code>calibration_expired</code></strong> can come with <code>is_synthetic: true</code> (an interpolated value of a device whose calibration has expired); <code>substitution_method</code> is then <code>null</code>. The value-status table said <code>false</code> only.</li>
+            <li><strong>Usage units:</strong> <code>floor</code>, <code>position</code> and <code>unit_type</code> are taken from the unit's Sector with the highest allocation share; <code>country_code</code> is currently always <code>DE</code>.</li>
+            <li><strong>Shared Sectors</strong> (new, optional): <code>MeasuringPoint.allocations[]</code> (<code>usage_unit_id</code>, <code>share</code>), <code>MeasuringPointConsumption.unit_share</code> and <code>PeriodConsumption.weighted_billable_value</code> (= <code>billable_value</code> × <code>unit_share</code>, only in <code>/usage-units/{id}/consumption</code>).</li>
+          </ul>
+        </div>
+        <div class="change-group changed">
+          <h3>rc.3 — Addendum: error <code>type</code> and smaller corrections</h3>
+          <p>Changed before rc.3 is published, so the version number stays <code>1.0.0-rc.3</code>.</p>
+          <ul>
+            <li><strong>Problem <code>type</code></strong> is now <code>https://developer.messpunkt.io/errors/#&lt;code&gt;</code>, the same in sandbox and production, and each value opens the explanation on <a href="../errors/">Error handling</a>. It used to be <code>https://api(.sandbox).messpunkt.io/errors/&lt;code&gt;</code>, an address where no page lives. The codes are unchanged. <strong>Action:</strong> branch on the fragment after <code>#</code> instead of the last path segment. The authorization server's <code>429</code> uses the same form.</li>
+            <li><strong><code>404 resource-not-found</code></strong> is also the answer for an <code>{id}</code> in the path that is not a UUID. It used to be an empty <code>404</code> without <code>application/problem+json</code>.</li>
+            <li><strong><code>Property.addresses</code></strong> lists every address of the Property, including addresses without usage units; before, only addresses that carried a unit appeared.</li>
+            <li><strong>Error texts:</strong> <code>403</code> says how to get the missing scope; an invalid date echoes the value (<code>from must be an ISO 8601 date (yyyy-MM-dd); got '2025-13-01'.</code>). <code>detail</code> stays free text — do not parse it.</li>
+          </ul>
+        </div>
+        <div class="change-group changed">
+          <h3>rc.3 — Addendum: changed meaning (shared Sectors)</h3>
+          <p>rc.3 said that values are “per device and never pre-weighted” and left open how a measuring point of a Sector shared by several usage units appears. messpunkt.io has such Sectors in production — 46 partial allocations, with 12 Sectors split between three to five units each — so the open point is now fixed:</p>
+          <ul>
+            <li><code>MeasuringPoint.usage_unit_id</code> is the <strong>primary unit</strong> (highest share; tie: the smallest id). <code>allocations[]</code> lists every unit with its share.</li>
+            <li>The measuring point is listed under <strong>every</strong> unit with a share, with that unit's <code>unit_share</code>. Before, rc.3 did not say that one measuring point can appear under several units.</li>
+            <li>Device values stay unweighted (readings, <code>value</code>, <code>billable_value</code>). The number to bill <strong>for a unit</strong> is now <code>weighted_billable_value</code> — the same weighting as the residents' portal; summed over the units of a Sector it gives the Sector's consumption, so a shared meter is never billed twice.</li>
+            <li><strong>Action:</strong> sum <code>weighted_billable_value</code> (fall back to <code>billable_value</code> while it is absent) when you bill a unit. A client that keeps summing <code>billable_value</code> per unit bills a shared meter in full to every unit that shares it.</li>
+          </ul>
+        </div>
+      </section>
 
       <section class="release">
         <div class="release-header">
@@ -178,7 +303,7 @@
     <footer class="site-footer">
       <div class="row">
         <div>
-          <strong>messpunkt.io Partner API</strong> · Preview · Target release Q2 2026
+          <strong>messpunkt.io Partner API</strong> · Preview · 1.0.0-rc.3 · GA with the first pilot partner
           <div class="muted">© 2026 messpunkt.io — <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
         </div>
         <div class="links">

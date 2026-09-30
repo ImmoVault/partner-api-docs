@@ -97,7 +97,7 @@
 
     <div class="preview-ribbon">
       <span class="badge">Preview</span>
-      <span>V1 in active development — target release <strong>Q2 2026</strong>. Become a pilot partner:
+      <span>V1 release candidate <strong>1.0.0-rc.3</strong> — GA ships with the first pilot partner. Become one:
         <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
       </span>
     </div>
@@ -111,13 +111,13 @@
 content-type: application/problem+json
 
 {
-  "type":      "https://api.sandbox.messpunkt.io/errors/resource-not-found",
+  "type":      "https://developer.messpunkt.io/errors/#resource-not-found",
   "title":     "Resource not found",
   "status":    404,
   "detail":    "Property d490d09c-46cc-498e-a9ac-e031dd2402d2 not found in this Tenant's scope",
   "trace_id":  "e9048b1072c8443b"
 }</code></pre>
-      <p><code>type</code> is a stable identifier you can branch on in code; <code>title</code> is human-readable but may be localised in the future; <code>trace_id</code> is the single best thing to include when you open a support ticket.</p>
+      <p><code>type</code> is a stable identifier you can branch on in code: <code>https://developer.messpunkt.io/errors/#&lt;code&gt;</code> in sandbox and production, pointing at the row for that code below — branch on the fragment after <code>#</code>; <code>title</code> is human-readable but may be localised in the future; <code>trace_id</code> is the single best thing to include when you open a support ticket.</p>
 
       <h2>Status-code matrix</h2>
       <p>Applies to all <code>/v1/*</code> data endpoints. OAuth endpoints (<code>/oauth/*</code>) use the OAuth 2.0 error format (RFC 6749 §5.2) — see the OAuth table below.</p>
@@ -125,63 +125,57 @@ content-type: application/problem+json
         <thead>
           <tr>
             <th>Status</th>
-            <th><code>type</code> suffix</th>
+            <th><code>type</code> fragment</th>
             <th>Retryable?</th>
             <th>Recommended client action</th>
           </tr>
         </thead>
         <tbody>
-          <tr>
+          <tr id="invalid-request">
             <td class="status"><code>400</code></td>
             <td><code>invalid-request</code></td>
             <td class="retry"><span class="pill no">No</span></td>
-            <td>Malformed request — missing required query parameter, bad date format, etc. Fix the request, do not retry.</td>
+            <td>Malformed or invalid request — missing required query parameter, bad date format, <code>to</code> before <code>from</code>, a range that lies entirely after the last completed month, unknown <code>metric</code> value (named in <code>detail</code>), <code>limit</code> outside 1–200, a <code>page_cursor</code> not issued by the API, a <code>property_id</code> that is not a UUID. <code>detail</code> says which. Fix the request, do not retry.</td>
           </tr>
-          <tr>
+          <tr id="invalid-token">
             <td class="status"><code>401</code></td>
             <td><code>invalid-token</code></td>
             <td class="retry"><span class="pill cond">After refresh</span></td>
-            <td>Access token missing, expired, or malformed. Refresh the token via <code>grant_type=refresh_token</code> and retry once. If refresh also fails, restart the authorization flow.</td>
+            <td>Access token missing, expired, malformed, issued for another audience, a refresh token sent as access token, or the landlord's API access has ended (also on <code>/whoami</code> — never <code>404</code>). Refresh the token via <code>grant_type=refresh_token</code> and retry once. If refresh also fails, restart the authorization flow. For tokens bound to a DPoP key, a failed proof (wrong <code>htu</code>/<code>htm</code>, clock skew, reused <code>jti</code>, key not matching <code>cnf.jkt</code>) also returns <code>401</code>, with <code>WWW-Authenticate: DPoP error="invalid_dpop_proof"</code> — fix the proof generation instead of refreshing, see the <a href="../dpop/">DPoP guide</a>.</td>
           </tr>
-          <tr>
-            <td class="status"><code>401</code></td>
-            <td><code>invalid-dpop-proof</code></td>
-            <td class="retry"><span class="pill no">No</span></td>
-            <td>DPoP proof failed validation (wrong <code>htu</code>/<code>htm</code>, clock skew, reused <code>jti</code>, missing <code>cnf.jkt</code> match). Fix the proof generation — see the <a href="../dpop/">DPoP guide</a>.</td>
-          </tr>
-          <tr>
+          <tr id="insufficient-scope">
             <td class="status"><code>403</code></td>
             <td><code>insufficient-scope</code></td>
             <td class="retry"><span class="pill no">No</span></td>
             <td>Token is valid but lacks a scope required for this endpoint (e.g. calling a <code>read:readings</code> endpoint with only <code>read:units</code>). Re-authorize requesting the missing scope.</td>
           </tr>
-          <tr>
+          <tr id="resource-not-found">
             <td class="status"><code>404</code></td>
             <td><code>resource-not-found</code></td>
             <td class="retry"><span class="pill no">No</span></td>
-            <td>Either the resource doesn't exist, <strong>or it exists but is outside your Property scope</strong>. The API deliberately does not distinguish these — see <em>Property scope</em> in the Reference. Treat <code>404</code> on a previously-known ID as "access revoked"; refresh your Property list via <code>/whoami</code> and re-fetch <code>/properties</code>.</td>
+            <td>Either the resource doesn't exist, <strong>or it exists but is outside your Property scope</strong>; an ID in the path that is not a UUID gets the same answer. The API deliberately does not distinguish these — see <em>Property scope</em> in the Reference. Treat <code>404</code> on a previously-known ID as "access revoked"; refresh your Property list via <code>/whoami</code> and re-fetch <code>/properties</code>.</td>
           </tr>
-          <tr>
-            <td class="status"><code>422</code></td>
-            <td><code>validation-failed</code></td>
-            <td class="retry"><span class="pill no">No</span></td>
-            <td>Query was well-formed but semantically invalid (<code>from</code> after <code>to</code>, unknown <code>metric</code> value). Response includes a field-level breakdown. Fix and do not retry.</td>
-          </tr>
-          <tr>
+          <tr id="too-many-requests">
             <td class="status"><code>429</code></td>
             <td><code>too-many-requests</code></td>
             <td class="retry"><span class="pill yes">Yes</span></td>
-            <td>Rate limit exceeded. Honour the <code>Retry-After</code> header (seconds). Use exponential backoff for bursty loads — see <em>Retry strategy</em> below.</td>
+            <td>Rate limit exceeded, on <code>/v1/*</code> and on the OAuth endpoints alike (both answer with this <code>type</code>). Honour the <code>Retry-After</code> header (seconds). Use exponential backoff for bursty loads — see <em>Retry strategy</em> below.</td>
           </tr>
-          <tr>
+          <tr id="internal-error">
             <td class="status"><code>500</code></td>
             <td><code>internal-error</code></td>
             <td class="retry"><span class="pill yes">Yes</span></td>
-            <td>Unexpected server error. Retry with exponential backoff. Include <code>trace_id</code> if you escalate.</td>
+            <td>Unexpected server error. No <code>detail</code>, no stack trace. Retry with exponential backoff. Include <code>trace_id</code> if you escalate.</td>
+          </tr>
+          <tr id="service-unavailable">
+            <td class="status"><code>503</code></td>
+            <td><code>service-unavailable</code></td>
+            <td class="retry"><span class="pill yes">Yes</span></td>
+            <td>A dependency needed to check the token or the connection is temporarily unavailable. The request was refused, not served — the API never answers with data it could not authorize. No <code>detail</code>. Retry with exponential backoff.</td>
           </tr>
           <tr>
             <td class="status"><code>502</code> / <code>503</code> / <code>504</code></td>
-            <td><em>(platform-level)</em></td>
+            <td><em>(platform-level, may not be <code>problem+json</code>)</em></td>
             <td class="retry"><span class="pill yes">Yes</span></td>
             <td>Gateway or cold-start transient. Retry with exponential backoff. Usually resolves within a few seconds.</td>
           </tr>
@@ -218,6 +212,11 @@ content-type: application/problem+json
             <td><code>invalid_scope</code></td>
             <td>Requested a scope that's not in the original grant (refresh-time scope narrowing only).</td>
             <td>Request a subset of the original scopes, or re-authorize to widen.</td>
+          </tr>
+          <tr>
+            <td><code>invalid_target</code></td>
+            <td>The <code>resource</code> parameter (RFC 8707) names a resource this server does not issue tokens for.</td>
+            <td>Use <code>https://api.messpunkt.io</code> for this REST API (the MCP server has its own resource).</td>
           </tr>
           <tr>
             <td><code>unsupported_grant_type</code></td>
@@ -260,7 +259,7 @@ content-type: application/problem+json
     <footer class="site-footer">
       <div class="row">
         <div>
-          <strong>messpunkt.io Partner API</strong> · Preview · Target release Q2 2026
+          <strong>messpunkt.io Partner API</strong> · Preview · 1.0.0-rc.3 · GA with the first pilot partner
           <div class="muted">© 2026 messpunkt.io — <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
         </div>
         <div class="links">

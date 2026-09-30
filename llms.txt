@@ -1,8 +1,8 @@
 # messpunkt.io Partner API
 
-> REST / OAuth 2.1 API that lets property-management ERPs read consumption and meter-reading data from messpunkt.io on behalf of a landlord. messpunkt.io is a metering platform for German real estate (sub-metering: heat, water, electricity, gas, heat cost allocators).
+> REST / OAuth 2.1 API that lets property-management ERPs read monthly consumption and meter-reading data from messpunkt.io on behalf of a landlord, plus an MCP server that lets landlords ask their own AI assistant about the same data. messpunkt.io is a metering platform for German real estate (sub-metering: heat, heat cost allocators, cold, warm and outdoor water).
 
-**Status:** Preview · V1 in active development · target release Q2 2026
+**Status:** Preview · V1 release candidate `1.0.0-rc.3` · GA ships with the first pilot partner and is announced in the changelog
 **Hosted at:** https://developer.messpunkt.io
 
 This file follows the [llms.txt standard](https://llmstxt.org) — a Markdown index for LLMs and AI agents.
@@ -10,27 +10,54 @@ This file follows the [llms.txt standard](https://llmstxt.org) — a Markdown in
 ## Documentation
 
 - [OpenAPI 3.1 spec (YAML)](https://developer.messpunkt.io/erp-api-openapi.yaml): the authoritative machine-readable contract
-- [Reference documentation (Redoc)](https://developer.messpunkt.io/): narrative documentation in English
+- [Reference documentation (Redoc)](https://developer.messpunkt.io/reference/): narrative documentation in English
 - [Endpoint explorer (Swagger UI)](https://developer.messpunkt.io/swagger-ui/): request builder with try-it-out
 - [Modern explorer (Scalar)](https://developer.messpunkt.io/scalar/): code samples in curl / JavaScript / Python / C#
+- [Changelog](https://developer.messpunkt.io/changelog/): release history, including the rc.2 → rc.3 migration notes
+- [ERP integration guide](https://developer.messpunkt.io/erp/): client registration, consent, PKCE, `iss` check, refresh rotation, revocation, DPoP, errors, rate limits
+- [Error handling](https://developer.messpunkt.io/errors/): `application/problem+json` types and client actions
 - [Plugin manifest](https://developer.messpunkt.io/.well-known/ai-plugin.json): OAuth + OpenAPI pointer for plugin-style integrations
 - [Authentication & authorization flow diagram](https://developer.messpunkt.io/auth-flow.svg): Mermaid sequence diagram
 
-## Capabilities
+## MCP server (for landlords' own AI assistants)
 
-Under a single OAuth token scoped per Tenant **and** per Property (whitelist chosen at consent time):
+- Server URL: `https://mcp.messpunkt.io/v1` — part of V1, goes live together with the production REST API
+- [MCP server reference](https://developer.messpunkt.io/mcp/): transport, auth challenge, scopes per tool, tool reference generated from `tools/list`
+- [Landlord guide (German): Mit Claude, ChatGPT oder Codex verbinden](https://developer.messpunkt.io/connect/): connect steps per client, consent, limits, disconnecting
+- Clients: Claude (claude.ai, Claude Code), ChatGPT, Codex and other MCP clients with OAuth support
+- Read-only tools: `list_properties`, `get_property_overview`, `get_consumption`, `get_device_status`, `get_connection_info` — schemas in the [tool reference](https://developer.messpunkt.io/mcp/#tools)
+- Same authorization server, consent screen and data rules as the REST API; tokens are issued for one resource (`aud`) and are not interchangeable between MCP and REST
 
-- **Properties (Liegenschaften)** — `GET /properties`, `GET /properties/{id}`
+## Capabilities (REST)
+
+Under a single OAuth token scoped per Tenant **and** per Property (selection chosen at consent time):
+
+- **Properties (Liegenschaften)** — `GET /properties`, `GET /properties/{id}`, `GET /properties/{id}/measuring-points` (every measuring point of a Property, including plant-room and main meters that belong to no unit)
 - **Usage units (Wohneinheiten)** — `GET /usage-units`, `GET /usage-units/{id}` with inline Property summary for self-describing responses
-- **Consumption per unit** — `GET /usage-units/{id}/consumption?from=…&to=…` returns readings grouped per MeasuringPoint, segmented per device installation window (meter replacements are explicit)
-- **Measuring points** — `GET /measuring-points/{id}`, `GET /measuring-points/{id}/readings`
-- **Token introspection** — `GET /whoami` returns tenant, scopes and the current `property_scope` whitelist
+- **Consumption per unit** — `GET /usage-units/{id}/consumption?from=…&to=…` returns, per MeasuringPoint and device installation window, month-end readings and the billable period consumption (meter replacements are explicit)
+- **Measuring points** — `GET /measuring-points/{id}`, `GET /measuring-points/{id}/readings` (also for measuring points without a usage unit)
+- **Token introspection** — `GET /whoami` returns tenant, scopes and the current `property_scope`
 
-Every reading carries an **OBIS code** per IEC 62056-6-1 (medium codes: `1` electricity · `4` HCA · `6` heat · `7` gas · `8` cold water · `9` hot water). AI agents should prefer OBIS over the string `metric` field when comparing readings across partners.
+## Data rules
+
+- **Monthly at the finest.** Readings are month-end values (`at` is a date); there are no daily, hourly or per-telegram values and no parameter to request them. Finer series per apartment would be a behavioural profile of residents.
+- Bill `period_consumption.billable_value` (raw consumption × `factor`), summed over segments — not `last − first` reading. For a usage unit, bill `weighted_billable_value` (= `billable_value` × `unit_share`) from `/usage-units/{id}/consumption`.
+- Shared Sectors: a measuring point shared by several units appears under each of them with its `unit_share`; `usage_unit_id` is the primary unit (highest share), `allocations[]` lists all units. Device values are never weighted.
+- `status`: `measured` · `calculated` (interpolated month end, `is_synthetic: true`) · `substituted` (extrapolated end value; not produced today) · `missing` · `calibration_expired` (never bill; can be `is_synthetic: true`).
+- `usage_unit_id` is `null` (and `allocations` empty) for a measuring point whose area is allocated to no unit, e.g. a total heat meter in a plant room. Such measuring points are not part of any unit or `/usage-units/{id}/consumption`; list them with `GET /properties/{id}/measuring-points`. `property_id` is always set. *(Breaking change in rc.3 — rc.3 is unpublished.)*
+- `baseline_origin` on a segment says where the start value comes from; `assumed_zero` means the start value of a replacement heat cost allocator was not recorded and is assumed to be 0 — that segment's consumption rests on this assumption.
+- `is_system_linked: false` marks a measuring point without an active system assignment: delivered with its values, while the landlord portal shows 0 for it — clarify before billing.
+- Metrics: `heat` (kWh) · `hca` (unit) · `water_cold` · `water_warm` · `water_outdoor` (m3, not part of residents' water). `electricity` and `gas` are reserved — there are no readable devices for them today.
+- `obis`, `resolution` and `external_ref` are always `null` today. Identify quantities by `metric` + `unit`.
+- `installed_at` is `null` when the installation date is not documented — never a placeholder date.
+- Difference meters: `is_difference_meter: true`, `active_device: null`, no readings. Pre-metering points (Vorerfassung) are not exposed.
+- A missing value at the end of the range is never filled from an earlier month: `period_consumption.status` is then `missing` (unless `substituted`). A device removed inside the range ends with the value on the removal day.
+- Invalid parameters (`limit`, `page_cursor`, `property_id`, dates, unknown `metric`, a range after the last completed month) return `400` with a `detail`; `500`/`503` carry no detail — retry with backoff.
+- Sandbox data is static up to 2026-12-31 and contains no `substituted` values.
 
 ## Authentication
 
-OAuth 2.1 Authorization Code + PKCE (S256). Access tokens are DPoP-bound (RFC 9449) and scoped per Tenant. At consent time the landlord picks which Properties are exposed — the token carries a `property_scope` claim (`"all"` or a list of UUIDs). Out-of-scope resources return `404 Not Found` (never `403`, to avoid leaking the existence of other Properties).
+OAuth 2.1 Authorization Code + PKCE (S256), with `resource` (RFC 8707) and `iss` in the authorization response (RFC 9207). Tokens are issued for one Tenant. DPoP (RFC 9449) is supported and optional: a token obtained with a DPoP proof is bound to the key and must then be sent with a proof on every request. At consent time the landlord chooses all Properties (including future ones) or a selection — the token carries a `property_scope` claim (`"all"` or a list of UUIDs). Out-of-scope resources return `404 Not Found` (never `403`, to avoid leaking the existence of other Properties). Landlords can disconnect an application in the portal; it stops working within 60 seconds.
 
 See the *Authentication* and *Authorization & Property scope* sections of the OpenAPI spec for the full flow and the sequence diagram.
 
@@ -44,28 +71,23 @@ The OpenAPI 3.1 operation schemas map cleanly to:
 
 Typical queries an LLM can answer by calling one or two endpoints:
 
-- "How much warm water did apartment WE 03 use from January to March 2026 compared to last year?"
-- "Are any units in Reichenstraße 12 showing unusually high heat consumption?"
+- "How much warm water did apartment WE 03 use in 2025 compared to 2024?"
+- "Are any units in Musterstraße 12 showing unusually high heat consumption?"
 - "When was the water meter in WE 03 last replaced?"
 - "Which Properties does this landlord expose to our ERP?"
 
 ## Constraints for agent authors
 
-- Rate limits apply per `client_id`, not per token
-- Always call `GET /whoami` after a token refresh — landlords may edit the `property_scope` without re-consent
-- Treat `404` on previously-known IDs as a scope revocation, not a retry condition
-- V1 responses contain **no tenant (Mieter) names or contact details** — only structural and consumption data
-- Two readings per DeviceSegment (start + end of the segment within the query range); intermediate snapshots are not in V1
-
-## Roadmap for AI integration
-
-Tier 1 (shipped, this page): Discovery artifacts — `llms.txt`, `ai-plugin.json`, OpenAPI-to-tool-schema mapping.
-Tier 2 (planned): **Model Context Protocol (MCP) server** — native integration with Claude Desktop, Cursor, ChatGPT Desktop, Zed, JetBrains, VS Code.
-Tier 3 (product-decision): Conversational-analytics layer with server-side LLM translating NL queries into API calls; LLM-assisted dispute-resolution for Heizkostenabrechnung.
+- Always call `GET /whoami` after a token refresh and reconcile the current `property_scope`
+- Problem `type` is `https://developer.messpunkt.io/errors/#<code>` (sandbox and production alike); branch on the fragment. `/oauth/*` answers `429` the same way, its other errors in the OAuth format
+- Treat `404` on previously-known IDs as a scope revocation, not a retry condition; an ID that is not a UUID is also `404`
+- The REST API has no fields for resident (Mieter) names or contact details; `UsageUnit.name` is the landlord's label for the unit
+- Values are monthly at the finest; do not try to reconstruct finer series
+- Rate limits (production and sandbox): REST `/v1/*` 300/min per connection (grant, the token's `sid`) after token validation, requests with an invalid token per caller address; `/oauth/token` and `/oauth/revoke` 60/min per `client_id` after client authentication, in addition 60/min per caller address; MCP 60/min per connection; `429` with `Retry-After`; counted in memory per server instance (best effort)
 
 ## Contact
 
 - **Pilot partnerships & integration support:** [kontakt@messpunkt.io](mailto:kontakt@messpunkt.io)
 - **Legal:** [Impressum](https://messpunkt.io/impressum) · [Datenschutz](https://messpunkt.io/datenschutz)
 
-AI agents retrieving data on behalf of a landlord must respect the landlord's consent and the per-connection Property whitelist — do not attempt to bypass or broaden `property_scope` programmatically.
+AI agents retrieving data on behalf of a landlord must respect the landlord's consent and the per-connection Property selection — do not attempt to bypass or broaden `property_scope` programmatically.

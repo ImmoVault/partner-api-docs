@@ -96,14 +96,14 @@
 
     <div class="preview-ribbon">
       <span class="badge">Preview</span>
-      <span>V1 in active development — target release <strong>Q2 2026</strong>. Become a pilot partner:
+      <span>V1 release candidate <strong>1.0.0-rc.3</strong> — GA ships with the first pilot partner. Become one:
         <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
       </span>
     </div>
 
     <main>
       <h1>DPoP — proof of possession</h1>
-      <p class="lead">The messpunkt.io production API will require <a href="https://datatracker.ietf.org/doc/html/rfc9449" target="_blank" rel="noopener">DPoP (RFC 9449)</a> on every request. A stolen access token is useless without the private key the token is bound to. The sandbox currently accepts plain <code>Bearer</code> tokens as well, so Swagger UI and curl work without extra setup — but partners should implement DPoP before GA.</p>
+      <p class="lead"><a href="https://datatracker.ietf.org/doc/html/rfc9449" target="_blank" rel="noopener">DPoP (RFC 9449)</a> is <strong>supported and optional</strong> on the messpunkt.io Partner API. If you send a DPoP proof when you obtain the token, the token is bound to your key — a stolen token is then useless without the private key. Tokens obtained without a proof are plain <code>Bearer</code> tokens, which is why Swagger UI and curl work without extra setup. messpunkt.io can make DPoP mandatory for an individual registered ERP client on request.</p>
 
       <h2>What DPoP does in one paragraph</h2>
       <p>Your client generates an ECDSA (ES256) or RSA (RS256) key pair once and keeps it in memory or a secure store. On every API call, you sign a short-lived JWT — the <em>DPoP proof</em> — that contains the HTTP method, full URL, a unique <code>jti</code>, and the current timestamp. You send it in a <code>DPoP</code> header alongside the access token. The server checks the signature against the public-key thumbprint bound into the access token (<code>cnf.jkt</code> claim). If they match, the request is authentic.</p>
@@ -287,7 +287,7 @@ curl -H "Authorization: DPoP $ACCESS" -H "DPoP: $PROOF" "$URL"</code></pre>
       </div>
 
       <h2>Token-endpoint DPoP</h2>
-      <p>The production <code>/oauth/token</code> endpoint will additionally require a DPoP proof when you <em>exchange the code or refresh token</em>. The proof has the same shape minus <code>ath</code>, and the returned access token will carry a <code>cnf.jkt</code> claim bound to the same key. Sandbox currently skips this.</p>
+      <p>Binding happens at <code>/oauth/token</code>: send a DPoP proof when you <em>exchange the code or refresh token</em>. The proof has the same shape minus <code>ath</code>, and the returned access token carries a <code>cnf.jkt</code> claim with your key's thumbprint (RFC 7638). From then on, every API request with that token must use <code>Authorization: DPoP</code> plus a valid proof signed with the same key; presenting a bound token as <code>Bearer</code>, or sending the <code>DPoP</code> scheme with an unbound token, returns <code>401</code>. Use the same key for all refreshes of a session.</p>
 
       <h2>Common pitfalls</h2>
       <ul>
@@ -300,7 +300,7 @@ curl -H "Authorization: DPoP $ACCESS" -H "DPoP: $PROOF" "$URL"</code></pre>
 
       <h2>Next</h2>
       <div class="note">
-        Bruno, Swagger UI, and Scalar do not generate DPoP proofs out of the box. Use the sandbox's <strong>plain Bearer</strong> mode for interactive exploration, and implement DPoP for server-to-server integration. Our production requirement will be announced at least 3 months before it's enforced.
+        Bruno, Swagger UI, and Scalar do not generate DPoP proofs out of the box. Use the sandbox's <strong>plain Bearer</strong> mode for interactive exploration, and implement DPoP for server-to-server integration. DPoP stays optional in V1; a per-client requirement is only enabled on your request.
       </div>
       <p>See also: <a href="../errors/">Error handling</a> · <a href="../quickstart/">Quickstart</a> · <a href="../reference/">Full API reference</a></p>
     </main>
@@ -308,7 +308,7 @@ curl -H "Authorization: DPoP $ACCESS" -H "DPoP: $PROOF" "$URL"</code></pre>
     <footer class="site-footer">
       <div class="row">
         <div>
-          <strong>messpunkt.io Partner API</strong> · Preview · Target release Q2 2026
+          <strong>messpunkt.io Partner API</strong> · Preview · 1.0.0-rc.3 · GA with the first pilot partner
           <div class="muted">© 2026 messpunkt.io — <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
         </div>
         <div class="links">

@@ -1,0 +1,29 @@
+# Checks for the documentation site. Make "checks" a required status check on main (branch protection).
+name: checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 20
+      # Built-in "recommended" ruleset; warnings do not fail, errors do.
+      - name: Lint the OpenAPI spec
+        run: npx --yes @redocly/cli@2.56.0 lint erp-api-openapi.yaml
+      # Guides against the spec and the committed tools/list snapshot (includes render-tools.mjs --check).
+      # Without AZURE_FUNCTIONS_DIR: the route and scope comparison with the code runs when the snapshot is taken.
+      - name: Check the guides
+        run: node scripts/check-guides.mjs
+      - name: Check relative links on every page
+        run: node scripts/check-links.mjs

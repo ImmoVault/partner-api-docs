@@ -31,10 +31,11 @@ docs {
   to water consumption but:
 
   - `unit` is `kWh`
-  - OBIS code `9-0:8.0.0`
-  - When a reading is substituted, `substitution_method` is typically
-    `degree_day_weighted` (VDI 2067) rather than `linear_interpolation`,
-    since heat demand is strongly seasonal.
+  - Month-end values that messpunkt.io interpolates (`status: "calculated"`,
+    `is_synthetic: true`) use `substitution_method: "degree_day_weighted"`
+    (VDI 2067) rather than `linear_interpolation`, since heat demand is
+    strongly seasonal.
+  - Bill `period_consumption.billable_value`, not last minus first reading.
 
   Default unit `WE 01` has a single heat-meter segment, no replacement.
 }

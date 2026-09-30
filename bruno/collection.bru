@@ -25,7 +25,12 @@ docs {
   # messpunkt.io Partner API — Sandbox
 
   Public preview sandbox for partner ERPs. OAuth 2.1 Authorization Code + PKCE,
-  deterministic synthetic fixture, zero PII.
+  deterministic synthetic fixture, zero PII. DPoP is optional — this
+  collection uses plain `Bearer` tokens.
+
+  The request docs describe the `1.0.0-rc.3` contract (monthly readings,
+  `period_consumption`). The sandbox serves the rc.2 shape until its rc.3
+  update, announced in the changelog.
 
   **Hosts**
   - Authorization server: `https://auth.sandbox.messpunkt.io`
@@ -57,8 +62,8 @@ docs {
 
   ## Interesting scenarios
 
-  - **Meter replacement** — `WE 01 / water_warm` returns two device segments
-    with a linear-interpolated close-out reading on the first device.
+  - **Meter replacement** — `WE 01 / water_warm` returns two device segments;
+    bill the sum of their `period_consumption.billable_value`.
   - **Data gap** — `WE 02 / hca` returns `data_gap: true` with `readings: []`.
   - **Property-scope 404** — try any random UUID on `/v1/properties/{id}`.
 
