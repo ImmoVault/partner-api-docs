@@ -191,7 +191,7 @@ Content-Type: application/problem+json</code></pre>
       <p>The problem <code>detail</code> is German, because it is shown to the landlord. It tells them to reconnect with that permission. <code>tools/list</code> is not scope-filtered: every tool is listed, and its required scope is below.</p>
 
       <h3 id="limits">Rate limits</h3>
-      <p>Counted per connection (grant) over every authenticated request to <code>/v1</code>, not only <code>tools/call</code>; <code>429</code> with <code>Retry-After</code> above the limit. Production numbers: <span class="placeholder">&lt;PROD_RATE_LIMITS&gt;</span>.</p>
+      <p>Counted per connection (grant) over every authenticated request to <code>/v1</code>, not only <code>tools/call</code>; <code>429</code> with <code>Retry-After</code> above the limit. Production: <strong>60 calls per minute per connection</strong>, counted in memory per server instance (the effective limit can be higher, never lower).</p>
 
       <h2 id="behaviour">Tool behaviour</h2>
       <ul class="plain">
