@@ -288,6 +288,11 @@ info:
       unit with `weighted_billable_value`; summed over the units of a Sector
       it gives the Sector's consumption (up to rounding), so a shared
       measuring point is never counted twice.
+    - **Rule:** the sum of `weighted_billable_value` over all units of a
+      shared measuring point equals that measuring point's consumption
+      (sum of its `billable_value`, up to rounding). When billing units,
+      always sum `weighted_billable_value` — **never** sum `billable_value`
+      per unit: that bills a shared meter in full to every unit.
     - *(Changed in rc.3 addendum:* rc.3 said values are "per device and never
       pre-weighted" and left shared Sectors open. Device values stay
       unweighted; the per-unit weighted value is new.)
