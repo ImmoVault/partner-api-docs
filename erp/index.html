@@ -259,7 +259,11 @@ curl -s -H "Authorization: Bearer $TOKEN" \
       <h3 id="monthly">The monthly rule, in short</h3>
       <ul class="plain">
         <li>Readings are <strong>month-end values</strong> (<code>at</code> is a date). <code>from</code>/<code>to</code> are widened to whole months, and <code>to</code> is capped at the last completed month (check the echoed value). There is no parameter for finer values.</li>
-        <li>Bill <code>period_consumption.billable_value</code> summed over the segments of a measuring point. Do not bill <code>last − first</code> reading yourself.</li>
+        <li><strong>Measuring point</strong> (<code>/v1/measuring-points/{id}/readings</code>): bill <code>period_consumption.billable_value</code> summed over its segments.</li>
+        <li><strong>Usage unit</strong> (<code>/v1/usage-units/{id}/consumption</code>): bill <code>period_consumption.weighted_billable_value</code> summed over the segments. It is <code>billable_value</code> × <code>unit_share</code>: equal to <code>billable_value</code> for a measuring point the unit does not share (<code>unit_share: 1</code>), the unit's share of a shared meter otherwise. Never sum <code>billable_value</code> per unit: that bills a shared meter in full to every unit.</li>
+        <li><strong>Sum rule:</strong> the sum of <code>weighted_billable_value</code> over all units of a Sector equals the Sector's consumption (up to rounding), so a shared measuring point is never counted twice. Details: <em>Shared Sectors</em> under <a href="../reference/#section/Canonical-model">Canonical model</a> in the Reference.</li>
+        <li>Do not bill <code>last − first</code> reading yourself: that misses the baseline before <code>from</code>, the start value of a replacement device and the factor.</li>
+        <li><code>baseline_origin</code> on each segment says where <code>baseline_value</code> comes from: <code>recorded</code>, <code>assumed_zero</code>, <code>first_reading</code>, <code>portal_rule</code>, <code>month_end_before_range</code>, <code>first_known_in_range</code> or <code>none</code> (tolerate unknown values; the field is optional). <strong><code>assumed_zero</code>: the start value of a replacement heat cost allocator was not recorded and is assumed to be 0 — the consumption of that segment rests on this assumption.</strong> Show it to the landlord instead of billing it silently. Example: <code>hca_replacement_assumed_zero</code> in the Reference under <code>/v1/measuring-points/{id}/readings</code>; details in <a href="../reference/#section/Meter-readings-and-consumption">Meter readings and consumption</a>.</li>
         <li>Never bill a value with status <code>calibration_expired</code>. <code>calculated</code> values are interpolated (<code>is_synthetic: true</code>).</li>
         <li><code>water_outdoor</code> is a separate metric and not part of residents' water. Each metric has its own unit.</li>
         <li>Difference meters (<code>is_difference_meter: true</code>) have no device and no value in V1.</li>
@@ -305,9 +309,14 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 
       <h2 id="limits">Rate limits</h2>
       <ul class="plain">
-        <li><strong>Sandbox:</strong> 300 requests per minute per caller IP on <code>/v1/*</code>, 60 per minute on <code>/oauth/*</code>. These limits are best effort, counted per server instance.</li>
-        <li><strong>Production:</strong> per <code>client_id</code>: <span class="placeholder">&lt;PROD_RATE_LIMITS&gt;</span>, published here before GA.</li>
       </ul>
+      <div class="table-wrap"><table>
+        <tr><th>Endpoint</th><th>Limit</th><th>Counted per</th></tr>
+        <tr><td><code>/v1/*</code></td><td>300 requests/min</td><td>connection (grant, the token's <code>sid</code>), after the token is validated. Requests whose token fails validation are counted per caller address.</td></tr>
+        <tr><td><code>/oauth/token</code></td><td>60 requests/min</td><td><code>client_id</code>, after successful client authentication; <strong>in addition</strong> 60/min per caller address</td></tr>
+        <tr><td><code>/oauth/revoke</code></td><td>60 requests/min</td><td><code>client_id</code>, as at the token endpoint</td></tr>
+      </table></div>
+      <p>The limit on <code>/v1/*</code> is per connection, not per <code>client_id</code> or address, because one ERP system serves many landlords from one address, and addresses behind proxies are unreliable. Above a limit you get <code>429</code> with <code>Retry-After</code> (on <code>/v1/*</code> as <code>application/problem+json</code>). Production and sandbox use the same numbers. They are counted in memory per server instance, so the effective limit can be higher than the number above, never lower.</p>
 
       <h2 id="sandbox">Sandbox notes</h2>
       <ul class="plain">
