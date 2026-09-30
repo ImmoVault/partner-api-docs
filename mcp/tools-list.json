@@ -112,7 +112,7 @@
       "readOnlyHint": true,
       "title": "Verbrauch je Monat"
     },
-    "description": "Liefert Monatswerte des Verbrauchs einer Liegenschaft. Die Liegenschaft wird als property per Name, Adress-Teilstring oder ID angegeben; passen mehrere, kommt eine Kandidatenliste. Werte sind höchstens monatlich aufgelöst (nie Tages- oder Rohwerte) und jede Kennzahl hat ihre eigene Einheit: heat in kWh, hca in HKV-Einheiten (dimensionslos, Einheit unit), water_cold, water_warm und water_outdoor in m3, electricity in kWh. Aussenwasser (water_outdoor) wird getrennt von Kalt- und Warmwasser ausgewiesen; eine Summe über verschiedene Kennzahlen gibt es nicht. Zeitraum: from_month und to_month als JJJJ-MM; ohne Angabe die letzten 12 abgeschlossenen Monate, höchstens 36 Monate je Aufruf; der laufende Monat ist nie enthalten. breakdown wählt die Gliederung: systems (je Anlage, Standard), sectors (je Bereich einer Anlage) oder usage_units (je Nutzeinheit, anteilig nach Zuordnung der Bereiche). Fragt jemand nach einer Wohnung oder Nutzeinheit, breakdown=usage_units verwenden, mit usage_unit (Name oder ID) für genau eine Einheit. Mit include_devices=true kommen die Gerätesegmente dazu; deren baseline_origin sagt, woher der Startwert eines Tausch-Heizkostenverteilers stammt: recorded (erfasster Startwert), assumed_zero (angenommen 0, nicht erfasst), first_reading (erster Messwert nach Einbau; Verbrauch davor unbekannt), portal_rule (Stand zu Beginn des Zeitraums, wie im Portal) oder none (kein Startwert). Ein angenommener Startwert wird immer gemeldet. Jeder Monatswert trägt einen Status; calibration_expired heißt, ein Gerät mit abgelaufener Eichung trägt nichts zum Wert bei. Eichstatus unbekannt — das heißt nicht, dass die Eichung in Ordnung ist. Differenzzähler: kein Wert in V1. Benötigt das Recht read:readings.",
+    "description": "Liefert Monatswerte des Verbrauchs einer Liegenschaft. Die Liegenschaft wird als property per Name, Adress-Teilstring oder ID angegeben; passen mehrere, kommt eine Kandidatenliste. Werte sind höchstens monatlich aufgelöst (nie Tages- oder Rohwerte) und jede Kennzahl hat ihre eigene Einheit: heat in kWh, hca in HKV-Einheiten (dimensionslos, Einheit unit), water_cold, water_warm und water_outdoor in m3. electricity ist reserviert: messpunkt.io hat derzeit keine lesbaren Stromzähler, es kommen keine Werte; fragt jemand nach Strom, das so sagen und nicht auf defekte Zähler schließen. Aussenwasser (water_outdoor) wird getrennt von Kalt- und Warmwasser ausgewiesen; eine Summe über verschiedene Kennzahlen gibt es nicht. Zeitraum: from_month und to_month als JJJJ-MM; ohne Angabe die letzten 12 abgeschlossenen Monate, höchstens 36 Monate je Aufruf; der laufende Monat ist nie enthalten. breakdown wählt die Gliederung: systems (je Anlage, Standard), sectors (je Bereich einer Anlage) oder usage_units (je Nutzeinheit, anteilig nach Zuordnung der Bereiche). Fragt jemand nach einer Wohnung oder Nutzeinheit, breakdown=usage_units verwenden, mit usage_unit (Name oder ID) für genau eine Einheit. Mit include_devices=true kommen die Gerätesegmente dazu; deren baseline_origin sagt, woher der Startwert eines Tausch-Heizkostenverteilers stammt: recorded (erfasster Startwert), assumed_zero (angenommen 0, nicht erfasst), first_reading (erster Messwert nach Einbau; Verbrauch davor unbekannt), portal_rule (Stand zu Beginn des Zeitraums, wie im Portal) oder none (kein Startwert). Ein angenommener Startwert wird immer gemeldet. Jeder Monatswert trägt einen Status; calibration_expired heißt, ein Gerät mit abgelaufener Eichung trägt nichts zum Wert bei. Eichstatus unbekannt — das heißt nicht, dass die Eichung in Ordnung ist. Differenzzähler: kein Wert in V1. Benötigt das Recht read:readings.",
     "inputSchema": {
       "properties": {
         "breakdown": {
@@ -135,7 +135,7 @@
         },
         "metrics": {
           "default": null,
-          "description": "Optional: nur diese Kennzahlen, aus heat, hca, water_cold, water_warm, water_outdoor, electricity. Ohne Angabe: alle.",
+          "description": "Optional: nur diese Kennzahlen, aus heat, hca, water_cold, water_warm, water_outdoor, electricity (reserviert, derzeit ohne Werte). Ohne Angabe: alle.",
           "items": {
             "type": [
               "string",
@@ -347,7 +347,7 @@
                       "type": "string"
                     },
                     "metric": {
-                      "description": "Kennzahl: heat (Wärmemenge), hca (Heizkostenverteiler), water_cold, water_warm, water_outdoor (Aussenwasser) oder electricity.",
+                      "description": "Kennzahl: heat (Wärmemenge), hca (Heizkostenverteiler), water_cold, water_warm, water_outdoor (Aussenwasser) oder electricity (reserviert, derzeit ohne Werte).",
                       "type": "string"
                     },
                     "months": {

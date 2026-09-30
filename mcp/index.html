@@ -210,7 +210,7 @@ Content-Type: application/problem+json</code></pre>
 
       <h2 id="tools">Tool reference</h2>
 <!-- BEGIN GENERATED: scripts/render-tools.mjs -->
-      <p>5 tools. Generated from <a href="./tools-list.json">tools-list.json</a> (sha256 <code>656f32439333…</code>, azure-functions PartnerMcp.Tests/Snapshots/tools-list.json (308/int) at <code>ff26534</code>). Descriptions are quoted exactly as the server delivers them (German).</p>
+      <p>5 tools. Generated from <a href="./tools-list.json">tools-list.json</a> (sha256 <code>1359687bd075…</code>, azure-functions PartnerMcp.Tests/Snapshots/tools-list.json (main) at <code>fb5c773</code>). Descriptions are quoted exactly as the server delivers them (German).</p>
       <div class="table-wrap"><table>
           <tr><th>Tool</th><th>Title</th><th>Required scope</th></tr>
           <tr><td><a href="#tool-get_connection_info"><code>get_connection_info</code></a></td><td lang="de">Meine Verbindung</td><td><code>read:units</code></td></tr>
@@ -321,13 +321,13 @@ Content-Type: application/problem+json</code></pre>
       <section class="tool" id="tool-get_consumption">
         <h3>get_consumption</h3>
         <div class="meta"><span lang="de">Verbrauch je Monat</span> · scope <code>read:readings</code> · <code>readOnlyHint: true</code> · <code>idempotentHint: true</code> · <code>destructiveHint: false</code> · <code>openWorldHint: false</code></div>
-        <blockquote lang="de">Liefert Monatswerte des Verbrauchs einer Liegenschaft. Die Liegenschaft wird als property per Name, Adress-Teilstring oder ID angegeben; passen mehrere, kommt eine Kandidatenliste. Werte sind höchstens monatlich aufgelöst (nie Tages- oder Rohwerte) und jede Kennzahl hat ihre eigene Einheit: heat in kWh, hca in HKV-Einheiten (dimensionslos, Einheit unit), water_cold, water_warm und water_outdoor in m3, electricity in kWh. Aussenwasser (water_outdoor) wird getrennt von Kalt- und Warmwasser ausgewiesen; eine Summe über verschiedene Kennzahlen gibt es nicht. Zeitraum: from_month und to_month als JJJJ-MM; ohne Angabe die letzten 12 abgeschlossenen Monate, höchstens 36 Monate je Aufruf; der laufende Monat ist nie enthalten. breakdown wählt die Gliederung: systems (je Anlage, Standard), sectors (je Bereich einer Anlage) oder usage_units (je Nutzeinheit, anteilig nach Zuordnung der Bereiche). Fragt jemand nach einer Wohnung oder Nutzeinheit, breakdown=usage_units verwenden, mit usage_unit (Name oder ID) für genau eine Einheit. Mit include_devices=true kommen die Gerätesegmente dazu; deren baseline_origin sagt, woher der Startwert eines Tausch-Heizkostenverteilers stammt: recorded (erfasster Startwert), assumed_zero (angenommen 0, nicht erfasst), first_reading (erster Messwert nach Einbau; Verbrauch davor unbekannt), portal_rule (Stand zu Beginn des Zeitraums, wie im Portal) oder none (kein Startwert). Ein angenommener Startwert wird immer gemeldet. Jeder Monatswert trägt einen Status; calibration_expired heißt, ein Gerät mit abgelaufener Eichung trägt nichts zum Wert bei. Eichstatus unbekannt — das heißt nicht, dass die Eichung in Ordnung ist. Differenzzähler: kein Wert in V1. Benötigt das Recht read:readings.</blockquote>
+        <blockquote lang="de">Liefert Monatswerte des Verbrauchs einer Liegenschaft. Die Liegenschaft wird als property per Name, Adress-Teilstring oder ID angegeben; passen mehrere, kommt eine Kandidatenliste. Werte sind höchstens monatlich aufgelöst (nie Tages- oder Rohwerte) und jede Kennzahl hat ihre eigene Einheit: heat in kWh, hca in HKV-Einheiten (dimensionslos, Einheit unit), water_cold, water_warm und water_outdoor in m3. electricity ist reserviert: messpunkt.io hat derzeit keine lesbaren Stromzähler, es kommen keine Werte; fragt jemand nach Strom, das so sagen und nicht auf defekte Zähler schließen. Aussenwasser (water_outdoor) wird getrennt von Kalt- und Warmwasser ausgewiesen; eine Summe über verschiedene Kennzahlen gibt es nicht. Zeitraum: from_month und to_month als JJJJ-MM; ohne Angabe die letzten 12 abgeschlossenen Monate, höchstens 36 Monate je Aufruf; der laufende Monat ist nie enthalten. breakdown wählt die Gliederung: systems (je Anlage, Standard), sectors (je Bereich einer Anlage) oder usage_units (je Nutzeinheit, anteilig nach Zuordnung der Bereiche). Fragt jemand nach einer Wohnung oder Nutzeinheit, breakdown=usage_units verwenden, mit usage_unit (Name oder ID) für genau eine Einheit. Mit include_devices=true kommen die Gerätesegmente dazu; deren baseline_origin sagt, woher der Startwert eines Tausch-Heizkostenverteilers stammt: recorded (erfasster Startwert), assumed_zero (angenommen 0, nicht erfasst), first_reading (erster Messwert nach Einbau; Verbrauch davor unbekannt), portal_rule (Stand zu Beginn des Zeitraums, wie im Portal) oder none (kein Startwert). Ein angenommener Startwert wird immer gemeldet. Jeder Monatswert trägt einen Status; calibration_expired heißt, ein Gerät mit abgelaufener Eichung trägt nichts zum Wert bei. Eichstatus unbekannt — das heißt nicht, dass die Eichung in Ordnung ist. Differenzzähler: kein Wert in V1. Benötigt das Recht read:readings.</blockquote>
         <div class="table-wrap"><table>
           <tr><th>Input</th><th>Type</th><th>Required</th><th>Description (as delivered)</th></tr>
           <tr><td><code>breakdown</code></td><td>string<br><span class="meta">default &quot;systems&quot;</span></td><td>no</td><td lang="de">Optional: systems (je Anlage, Standard), sectors (je Bereich) oder usage_units (je Nutzeinheit).</td></tr>
           <tr><td><code>from_month</code></td><td>string | null<br><span class="meta">default null</span></td><td>no</td><td lang="de">Optional: erster Monat als JJJJ-MM, z. B. 2025-01. Ohne Angabe: 11 Monate vor to_month.</td></tr>
           <tr><td><code>include_devices</code></td><td>boolean<br><span class="meta">default false</span></td><td>no</td><td lang="de">Optional: true liefert zusätzlich die Gerätesegmente (Startwert mit baseline_origin, K-Faktor, Verbrauch roh und mit Faktor).</td></tr>
-          <tr><td><code>metrics</code></td><td>array | null<br><span class="meta">default null</span></td><td>no</td><td lang="de">Optional: nur diese Kennzahlen, aus heat, hca, water_cold, water_warm, water_outdoor, electricity. Ohne Angabe: alle.</td></tr>
+          <tr><td><code>metrics</code></td><td>array | null<br><span class="meta">default null</span></td><td>no</td><td lang="de">Optional: nur diese Kennzahlen, aus heat, hca, water_cold, water_warm, water_outdoor, electricity (reserviert, derzeit ohne Werte). Ohne Angabe: alle.</td></tr>
           <tr><td><code>property</code></td><td>string</td><td>yes</td><td lang="de">Name (auch nur ein Teil), Adresse oder ID der Liegenschaft, z. B. „Gartenweg“.</td></tr>
           <tr><td><code>to_month</code></td><td>string | null<br><span class="meta">default null</span></td><td>no</td><td lang="de">Optional: letzter Monat als JJJJ-MM, z. B. 2025-12. Ohne Angabe: der letzte abgeschlossene Monat.</td></tr>
           <tr><td><code>usage_unit</code></td><td>string | null<br><span class="meta">default null</span></td><td>no</td><td lang="de">Optional: Name oder ID einer Nutzeinheit (z. B. „WE 2“); liefert nur diese Einheit und gliedert nach usage_units.</td></tr>
@@ -354,7 +354,7 @@ Content-Type: application/problem+json</code></pre>
     },
     &quot;metrics&quot;: {
       &quot;default&quot;: null,
-      &quot;description&quot;: &quot;Optional: nur diese Kennzahlen, aus heat, hca, water_cold, water_warm, water_outdoor, electricity. Ohne Angabe: alle.&quot;,
+      &quot;description&quot;: &quot;Optional: nur diese Kennzahlen, aus heat, hca, water_cold, water_warm, water_outdoor, electricity (reserviert, derzeit ohne Werte). Ohne Angabe: alle.&quot;,
       &quot;items&quot;: {
         &quot;type&quot;: [
           &quot;string&quot;,
@@ -565,7 +565,7 @@ Content-Type: application/problem+json</code></pre>
                   &quot;type&quot;: &quot;string&quot;
                 },
                 &quot;metric&quot;: {
-                  &quot;description&quot;: &quot;Kennzahl: heat (Wärmemenge), hca (Heizkostenverteiler), water_cold, water_warm, water_outdoor (Aussenwasser) oder electricity.&quot;,
+                  &quot;description&quot;: &quot;Kennzahl: heat (Wärmemenge), hca (Heizkostenverteiler), water_cold, water_warm, water_outdoor (Aussenwasser) oder electricity (reserviert, derzeit ohne Werte).&quot;,
                   &quot;type&quot;: &quot;string&quot;
                 },
                 &quot;months&quot;: {
