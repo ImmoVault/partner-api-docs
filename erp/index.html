@@ -11,7 +11,6 @@
     <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <style>
-    <style>
       :root {
         --brand-primary: #1e534a;
         --brand-primary-hover: #16403a;
@@ -201,7 +200,8 @@ STATE=$(openssl rand -hex 16)</code></pre>
 &state=$STATE\
 &code_challenge=$CHALLENGE&code_challenge_method=S256\
 &resource=https%3A%2F%2Fapi.sandbox.messpunkt.io"</code></pre>
-      <p>Open the printed URL in a browser. In production the landlord signs in first. The consent screen then shows your display name and what will be shared, and lets the landlord pick the customer organisation (if they manage several) and either <em>all Properties, including future ones</em> (pre-selected) or a selection. In the sandbox the demo landlord is already signed in and nothing is pre-selected: tick a Property and approve.</p>
+      <div class="note"><strong>Until the rc.3 sandbox release</strong> (announced in the <a href="../changelog/">changelog</a>) the sandbox does not support <code>resource</code> yet: leave it out here and in 3d (the demo client may omit it). Production requires it. See <a href="#sandbox">Sandbox notes</a>.</div>
+      <p>Open the printed URL in a browser. In production the landlord signs in first. The consent screen then shows your display name and what will be shared, and lets the landlord pick the customer organisation (if they manage several) and either <em>all Properties, including future ones</em> (pre-selected) or a selection. In the sandbox the demo landlord is already signed in and <em>all Properties</em> is pre-selected: approve, or switch to <em>only selected</em> and tick Properties.</p>
       <p>The browser is redirected to <code>http://localhost:3000/callback?code=…&amp;iss=…&amp;state=…</code>. Nothing listens there in this walkthrough, so copy the values from the address bar:</p>
       <pre><code>CODE=...    # from the address bar
 ISS=...     # URL-decoded
@@ -223,7 +223,7 @@ RETURNED_STATE=...</code></pre>
 
 TOKEN=$(python3 -c "import json; print(json.load(open('token.json'))['access_token'])")
 REFRESH_TOKEN=$(python3 -c "import json; print(json.load(open('token.json'))['refresh_token'])")</code></pre>
-      <p>The code is single-use and short-lived. Redeeming it twice revokes the connection. The response carries <code>access_token</code> (<code>expires_in</code>: 3600), <code>refresh_token</code>, <code>scope</code> and <code>token_type</code> (<code>Bearer</code>, or <code>DPoP</code> if you sent a proof).</p>
+      <p>The code is single-use and short-lived. Redeeming it twice revokes the connection. The response carries <code>access_token</code> (<code>expires_in</code>: 3600), <code>refresh_token</code>, <code>scope</code> and <code>token_type</code> (<code>Bearer</code>, or <code>DPoP</code> if you sent a proof). Before the rc.3 sandbox release, send the <code>resource</code> line only if you sent <code>resource</code> in 3b (see the note there).</p>
       <h3 id="client-auth">3e · Authenticate a confidential client (production)</h3>
       <p>A registered ERP client authenticates every request to <code>/oauth/token</code> and <code>/oauth/revoke</code> with exactly one method. A request that combines methods is refused with <code>400 invalid_request</code>; a failed authentication with <code>401 invalid_client</code>. A failed authentication never uses up the authorization code.</p>
       <p><strong><code>private_key_jwt</code></strong> (RFC 7523). Send these form fields instead of a secret:</p>
@@ -242,11 +242,18 @@ client_assertion=&lt;signed JWT&gt;</code></pre>
       <pre><code>curl -s -H "Authorization: Bearer $TOKEN" https://api.sandbox.messpunkt.io/v1/whoami | python3 -m json.tool
 curl -s -H "Authorization: Bearer $TOKEN" https://api.sandbox.messpunkt.io/v1/properties | python3 -m json.tool
 
+# for each Property: the complete list of its measuring points, with and without a unit
+PROPERTY_ID=$(curl -s -H "Authorization: Bearer $TOKEN" https://api.sandbox.messpunkt.io/v1/properties \
+  | python3 -c "import json,sys; print(json.load(sys.stdin)['data'][0]['id'])")
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://api.sandbox.messpunkt.io/v1/properties/$PROPERTY_ID/measuring-points?limit=100" | python3 -m json.tool
+
 UNIT=$(curl -s -H "Authorization: Bearer $TOKEN" https://api.sandbox.messpunkt.io/v1/usage-units \
   | python3 -c "import json,sys; print(json.load(sys.stdin)['data'][0]['id'])")
 curl -s -H "Authorization: Bearer $TOKEN" \
   "https://api.sandbox.messpunkt.io/v1/usage-units/$UNIT/consumption?from=2025-01-01&to=2025-12-31" \
   | python3 -m json.tool</code></pre>
+      <p><code>GET /v1/properties/{id}/measuring-points</code> is the complete list of a Property's measuring points. <code>/v1/usage-units</code> alone misses plant-room and main meters, which belong to no unit (see <a href="#no-unit">below</a>). The sandbox serves this route, like the rest of the rc.3 shape, only from the rc.3 sandbox release on (see <a href="#sandbox">Sandbox notes</a>).</p>
       <div class="table-wrap"><table>
         <tr><th>Endpoint</th><th>Scope</th></tr>
         <tr><td><code>GET /v1/whoami</code></td><td>none beyond a valid token</td></tr>
@@ -268,6 +275,8 @@ curl -s -H "Authorization: Bearer $TOKEN" \
         <li>Never bill a value with status <code>calibration_expired</code>. <code>calculated</code> values are interpolated (<code>is_synthetic: true</code>).</li>
         <li><code>water_outdoor</code> is a separate metric and not part of residents' water. Each metric has its own unit.</li>
         <li>Difference meters (<code>is_difference_meter: true</code>) have no device and no value in V1.</li>
+        <li><strong><code>is_system_linked: false</code>:</strong> the measuring point has no active system assignment (heating or water system). You get its values, but the landlord portal shows 0 for it — clarify with the landlord before billing. An absent field means <code>true</code>.</li>
+        <li><em>Without a unit</em> (no allocation, <code>usage_unit_id: null</code>, <a href="#no-unit">below</a>) is not the same as <em>not system-linked</em> (<code>is_system_linked: false</code>). A plant-room meter can be system-linked and still belong to no unit; an apartment meter can belong to a unit and still lack a system link.</li>
       </ul>
       <p>Full contract: <a href="../reference/#section/Data-resolution:-monthly-never-finer">Data resolution</a> in the Reference.</p>
       <h3 id="no-unit">Meters that belong to no apartment (plant room, main meters)</h3>
@@ -314,6 +323,7 @@ curl -s -H "Authorization: Bearer $TOKEN" \
       <pre><code>curl -s -o /dev/null -w "%{http_code}\n" -X POST https://auth.sandbox.messpunkt.io/oauth/revoke \
   -d "token=$REFRESH_TOKEN" \
   -d "client_id=sandbox-demo-client"</code></pre>
+      <div class="note"><strong>Until the rc.3 sandbox release</strong> the sandbox has no <code>/oauth/revoke</code>; skip this step there until then. Production has the endpoint from the start.</div>
       <p>Revocation (RFC 7009) accepts an access or a refresh token and ends the <strong>whole connection</strong>. The answer is <code>200</code> whether or not the token was known. Authenticate the request exactly as at the token endpoint; an unknown, disabled or unauthenticated client gets <code>401 invalid_client</code>. The landlord can also disconnect your application in the portal (<em>Einstellungen › Verbundene Anwendungen</em>); your tokens and refresh token then stop working within 60 seconds, because the connection is checked on every request.</p>
 
       <h2 id="dpop">DPoP (optional)</h2>
@@ -330,7 +340,7 @@ curl -s -H "Authorization: Bearer $TOKEN" \
         <tr><td><code>429</code> <code>too-many-requests</code></td><td>rate limit</td><td>wait <code>Retry-After</code> seconds</td></tr>
         <tr><td><code>500</code> / <code>503</code></td><td>server or dependency problem; no <code>detail</code></td><td>retry with exponential backoff</td></tr>
       </table></div>
-      <p>OAuth endpoints (<code>/oauth/*</code>) answer in the OAuth format (<code>error</code>, <code>error_description</code>): <code>invalid_request</code>, <code>invalid_client</code> (401; for <code>client_secret_basic</code> with <code>WWW-Authenticate: Basic</code>), <code>invalid_grant</code> (code or refresh token invalid, reused, revoked or inactive), <code>invalid_target</code> (unknown <code>resource</code>), <code>invalid_scope</code>, <code>invalid_dpop_proof</code>, <code>unsupported_grant_type</code>. On <code>/oauth/authorize</code>, an unknown client or unregistered <code>redirect_uri</code> is never redirected: the browser gets an error page. Full table with client actions: <a href="../errors/">Error handling</a>.</p>
+      <p>OAuth endpoints (<code>/oauth/*</code>) answer in the OAuth format (<code>error</code>, <code>error_description</code>): <code>invalid_request</code>, <code>invalid_client</code> (401; for <code>client_secret_basic</code> with <code>WWW-Authenticate: Basic</code>), <code>invalid_grant</code> (code or refresh token invalid, reused, revoked or inactive), <code>invalid_target</code> (unknown <code>resource</code>), <code>invalid_scope</code>, <code>invalid_dpop_proof</code>, <code>unsupported_grant_type</code>. On <code>/oauth/authorize</code>, an unknown client or unregistered <code>redirect_uri</code> is never redirected: a browser gets an error page for the landlord, a caller that does not accept <code>text/html</code> gets <code>400</code> with <code>error</code> (<code>invalid_client</code>, <code>invalid_redirect_uri</code>). Full table with client actions: <a href="../errors/">Error handling</a>.</p>
 
       <h2 id="limits">Rate limits</h2>
       <div class="table-wrap"><table>
@@ -403,6 +413,5 @@ curl -s -H "Authorization: Bearer $TOKEN" \
         pre.appendChild(btn);
       });
     </script>
-  </body>
   </body>
 </html>

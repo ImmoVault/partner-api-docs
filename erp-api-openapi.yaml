@@ -112,8 +112,9 @@ info:
     Click **Authorize** in Swagger UI (or *Test Request* in Scalar). The
     browser is redirected to the sandbox consent screen, where a single
     demo landlord — "Musterhausverwaltung GmbH" — is already logged
-    in. Pick one or more Properties (nothing is pre-selected), approve,
-    and the viewer completes the token exchange automatically.
+    in. *All Properties* is pre-selected: approve, or switch to *only
+    selected* and tick Properties; the viewer then completes the token
+    exchange automatically.
 
     **Sandbox specifics**
 
