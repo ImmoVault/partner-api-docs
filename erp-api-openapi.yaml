@@ -152,14 +152,8 @@ info:
       the examples of `GET /measuring-points/{id}/readings`, but not try it
       out against the sandbox.
 
-    **Sandbox and production differ today in these points** (the sandbox
-    catches up with the rc.3 sandbox release, announced in the changelog):
-
-    - The sandbox still serves the rc.2 response shape until the rc.3 sandbox
-      release. Build against this document, test the auth flow against the
-      sandbox.
-    - `resource` (RFC 8707) and `/oauth/revoke` are not yet available in the
-      sandbox.
+    **Since 2026-09-30 the sandbox serves the rc.3 contract**, including
+    `resource` (RFC 8707) and `/oauth/revoke` (announced in the changelog).
 
     # Authentication
 
