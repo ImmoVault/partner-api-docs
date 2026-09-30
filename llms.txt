@@ -32,10 +32,10 @@ This file follows the [llms.txt standard](https://llmstxt.org) — a Markdown in
 
 Under a single OAuth token scoped per Tenant **and** per Property (selection chosen at consent time):
 
-- **Properties (Liegenschaften)** — `GET /properties`, `GET /properties/{id}`
+- **Properties (Liegenschaften)** — `GET /properties`, `GET /properties/{id}`, `GET /properties/{id}/measuring-points` (every measuring point of a Property, including plant-room and main meters that belong to no unit)
 - **Usage units (Wohneinheiten)** — `GET /usage-units`, `GET /usage-units/{id}` with inline Property summary for self-describing responses
 - **Consumption per unit** — `GET /usage-units/{id}/consumption?from=…&to=…` returns, per MeasuringPoint and device installation window, month-end readings and the billable period consumption (meter replacements are explicit)
-- **Measuring points** — `GET /measuring-points/{id}`, `GET /measuring-points/{id}/readings`
+- **Measuring points** — `GET /measuring-points/{id}`, `GET /measuring-points/{id}/readings` (also for measuring points without a usage unit)
 - **Token introspection** — `GET /whoami` returns tenant, scopes and the current `property_scope`
 
 ## Data rules
@@ -44,6 +44,7 @@ Under a single OAuth token scoped per Tenant **and** per Property (selection cho
 - Bill `period_consumption.billable_value` (raw consumption × `factor`), summed over segments — not `last − first` reading. For a usage unit, bill `weighted_billable_value` (= `billable_value` × `unit_share`) from `/usage-units/{id}/consumption`.
 - Shared Sectors: a measuring point shared by several units appears under each of them with its `unit_share`; `usage_unit_id` is the primary unit (highest share), `allocations[]` lists all units. Device values are never weighted.
 - `status`: `measured` · `calculated` (interpolated month end, `is_synthetic: true`) · `substituted` (extrapolated end value; not produced today) · `missing` · `calibration_expired` (never bill; can be `is_synthetic: true`).
+- `usage_unit_id` is `null` (and `allocations` empty) for a measuring point whose area is allocated to no unit, e.g. a total heat meter in a plant room. Such measuring points are not part of any unit or `/usage-units/{id}/consumption`; list them with `GET /properties/{id}/measuring-points`. `property_id` is always set. *(Breaking change in rc.3 — rc.3 is unpublished.)*
 - `baseline_origin` on a segment says where the start value comes from; `assumed_zero` means the start value of a replacement heat cost allocator was not recorded and is assumed to be 0 — that segment's consumption rests on this assumption.
 - `is_system_linked: false` marks a measuring point without an active system assignment: delivered with its values, while the landlord portal shows 0 for it — clarify before billing.
 - Metrics: `heat` (kWh) · `hca` (unit) · `water_cold` · `water_warm` · `water_outdoor` (m3, not part of residents' water). `electricity` and `gas` are reserved — there are no readable devices for them today.

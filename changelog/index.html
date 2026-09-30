@@ -112,12 +112,13 @@
           <span class="date">2026-09-29</span>
           <span class="status rc">Release candidate</span>
         </div>
-        <p>rc.3 makes the contract describe the data messpunkt.io really has, and sets the data resolution to <strong>monthly</strong>. It contains <strong>three breaking changes</strong>. rc.2 promised that core types would no longer be reshaped; we break that promise once, deliberately, because no partner has gone live yet — after the first one, the same correction would be a <code>/v2</code> with six months of parallel operation. From rc.3 on, <code>UsageUnit</code>, <code>MeasuringPoint</code>, <code>DeviceSegment</code> and <code>MeterReading</code> change only additively.</p>
+        <p>rc.3 makes the contract describe the data messpunkt.io really has, and sets the data resolution to <strong>monthly</strong>. It contains <strong>four breaking changes</strong>. rc.2 promised that core types would no longer be reshaped; we break that promise once, deliberately, because no partner has gone live yet — after the first one, the same correction would be a <code>/v2</code> with six months of parallel operation. From rc.3 on, <code>UsageUnit</code>, <code>MeasuringPoint</code>, <code>DeviceSegment</code> and <code>MeterReading</code> change only additively.</p>
         <div class="change-group removed">
           <h3>Breaking</h3>
           <ul>
             <li><strong>Monthly resolution.</strong> <code>GET /usage-units/{id}/consumption</code> and <code>GET /measuring-points/{id}/readings</code> now return one reading per <strong>calendar month end</strong> instead of two readings at arbitrary dates. <code>MeterReading.at</code> is a <code>date</code> (was <code>date-time</code>); <code>from</code>/<code>to</code> are widened to whole months and capped at the last completed month. <em>Why:</em> radio meters report several times a day; a series that fine, per apartment, is a behavioural profile of the residents. Billing needs period values, and GDPR data minimisation (Art. 5(1)(c)) does not let us hand out more. The landlord portal follows the same rule, so an ERP sees what the landlord sees. There is no parameter to get finer data, and the announced <code>granularity=</code> parameter will not come.</li>
             <li><strong><code>MeasuringPoint.active_device</code> is nullable.</strong> Difference meters (new <code>is_difference_meter: true</code>) have no device of their own, and a measuring point whose device was removed without replacement has none either. rc.2 declared the field required, which made both unrepresentable.</li>
+            <li><strong><code>MeasuringPoint.usage_unit_id</code> is nullable</strong> (named breaking change, decided before rc.3 is published). Measuring points in areas that are allocated to <strong>no</strong> usage unit — a plant room, a main water meter, above all the <strong>total heat meter</strong> — used to be invisible: they belonged to no unit, so no endpoint returned them. A heating-cost statement cannot be built without them. They are now delivered with <code>usage_unit_id: null</code> and an empty <code>allocations</code>, found through the new <code>GET /properties/{id}/measuring-points</code>, and readable with <code>GET /measuring-points/{id}</code> and <code>…/readings</code>. <code>MeasuringPoint.property_id</code> is required and always set. They are never part of a unit or of <code>/usage-units/{id}/consumption</code>. <em>Why now:</em> rc.3 is not published and no partner has gone live, so the type change costs nobody anything; after the first partner it would be a <code>/v2</code>. <em>Action:</em> handle <code>null</code>.</li>
             <li><strong><code>installed_at</code> is nullable</strong> on <code>Device</code> and <code>DeviceSegment</code>. For many devices the installation date is not documented; rc.2 forced us to either invent one or fail the response. It is now <code>null</code> when unknown and set only when the date is documented — never a placeholder such as <code>1900-01-01</code>, and never the date a record was created. For such segments, <code>baseline_value</code> is the first value known for the device.</li>
           </ul>
         </div>
@@ -132,6 +133,7 @@
             <li><code>SubstitutionMethod</code> values <code>weighted_recent_2values</code>, <code>weighted_recent_3values</code>, <code>baseline_fallback</code>, <code>baseline_single_value</code> — the methods our aggregation actually uses when it extrapolates an end value.</li>
             <li><code>replacement_reason</code> value <code>DeviceReplacement</code> — the meter swap, which is the case you will actually see.</li>
             <li><code>Metric</code> value <code>water_outdoor</code> — outdoor/garden water (Außenwasser, Sprengwasser). It must not be added to the water billed to residents, so mapping it onto <code>water_cold</code> would be a billing error.</li>
+            <li><code>GET /properties/{id}/measuring-points</code> (scope <code>read:devices</code>, paginated) — every measuring point of one Property with and without a usage unit; <code>MeasuringPoint.property_id</code>.</li>
             <li><code>MeasuringPoint.is_difference_meter</code> (also on <code>MeasuringPointSummary</code> and <code>MeasuringPointConsumption</code>).</li>
             <li>Documentation: <em>Data resolution</em>, <em>Migrating from rc.2</em>, <em>Metrics and units</em>, <em>Errors</em> sections; error examples (<code>application/problem+json</code>) and code samples for every operation; the MCP server <code>https://mcp.messpunkt.io/v1</code> for landlords' own AI assistants, announced as part of V1.</li>
           </ul>
@@ -157,7 +159,7 @@
             <li><code>external_ref</code> is always <code>null</code> and cannot be written; the <code>external_ref</code> filter matches nothing.</li>
             <li><code>electricity</code> and <code>gas</code> stay in <code>Metric</code> (removing them would be breaking) but there are no readable devices for them today.</li>
             <li><code>replacement_reason</code> values <code>EndOfLife</code>, <code>Defect</code>, <code>PeriodEnd</code>, <code>Other</code> and <code>SubstitutionMethod</code> value <code>last_value_forward</code> are not assigned today.</li>
-            <li>Pre-metering points (Vorerfassung) are not exposed — they would double-count the meters behind them. Unit sums therefore do not add up to a building total.</li>
+            <li>Pre-metering points (Vorerfassung) are not exposed — they would double-count the meters behind them. Unit sums therefore do not add up to a building total; the total meters of a plant room are delivered separately (<code>usage_unit_id: null</code>).</li>
           </ul>
         </div>
         <div class="change-group removed">
@@ -173,6 +175,7 @@
             <li>Parse <code>MeterReading.at</code> as a date; do not expect exactly two readings per segment.</li>
             <li>Bill the sum of <code>period_consumption.billable_value</code> per measuring point; never bill a segment whose status is <code>calibration_expired</code> or <code>missing</code>.</li>
             <li>Handle <code>installed_at: null</code>; do not replace it with a date of your own.</li>
+            <li>Handle <code>usage_unit_id: null</code>; read the total meters of a plant room from <code>GET /properties/{id}/measuring-points</code>.</li>
             <li>Handle <code>active_device: null</code> and measuring points with <code>is_difference_meter: true</code> and no segments.</li>
             <li>Keep <code>water_outdoor</code> out of residents' water; tolerate unknown enum values from now on.</li>
             <li>Stop relying on <code>obis</code>, <code>resolution</code> and <code>external_ref</code>.</li>
