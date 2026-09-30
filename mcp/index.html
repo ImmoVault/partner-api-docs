@@ -199,6 +199,8 @@ Content-Type: application/problem+json</code></pre>
         <li>Properties can be named by ID or by a part of their name or address. If several match, the result lists the candidates instead of failing. “Not found” and “not shared with you” produce the same answer.</li>
         <li>Validation problems (for example a range longer than 36 months) come back as a tool result with <code>isError: true</code> and a German explanation, not as a protocol error.</li>
         <li>Data rules as in the REST API: monthly values at the finest; one unit per metric (<code>kWh</code>, <code>m3</code>, <code>unit</code> = heat-cost-allocator units), never summed across metrics; <code>water_outdoor</code> separate; difference meters without a value; calibration status <code>unknown</code> never means “fine”.</li>
+        <li>Nothing is left out silently. <code>get_consumption</code> names the months of the range without values (<code>months_without_values</code>) and, when some are missing, the first month the Property has values at all (<code>first_month_with_values</code>). Measuring points of a requested metric that are not evaluated are listed in <code>not_evaluated_measuring_points</code> with a <code>reason</code> (today only <code>no_system</code>: assigned to no heating or water system); <code>get_property_overview</code> and <code>get_device_status</code> always list them. Clients must tolerate new <code>reason</code> values.</li>
+        <li>For one apartment, call <code>get_consumption</code> with <code>usage_unit</code> (name or ID); the result is broken down by usage unit and shows shared areas with their percentage in <code>shared_sectors</code>.</li>
       </ul>
 
       <h2 id="versioning">Versioning</h2>
@@ -206,7 +208,7 @@ Content-Type: application/problem+json</code></pre>
 
       <h2 id="tools">Tool reference</h2>
 <!-- BEGIN GENERATED: scripts/render-tools.mjs -->
-      <p>5 tools. Generated from <a href="./tools-list.json">tools-list.json</a> (sha256 <code>8bf21c71b712…</code>, azure-functions PartnerMcp.Tests/Snapshots/tools-list.json (308/fxd-du) at <code>5b14f11</code>). Descriptions are quoted exactly as the server delivers them (German).</p>
+      <p>5 tools. Generated from <a href="./tools-list.json">tools-list.json</a> (sha256 <code>f815eb92df1c…</code>, azure-functions PartnerMcp.Tests/Snapshots/tools-list.json (308/int) at <code>2983489</code>). Descriptions are quoted exactly as the server delivers them (German).</p>
       <div class="table-wrap"><table>
           <tr><th>Tool</th><th>Title</th><th>Required scope</th></tr>
           <tr><td><a href="#tool-get_connection_info"><code>get_connection_info</code></a></td><td lang="de">Meine Verbindung</td><td><code>read:units</code></td></tr>
@@ -293,7 +295,7 @@ Content-Type: application/problem+json</code></pre>
       &quot;type&quot;: &quot;array&quot;
     },
     &quot;summary&quot;: {
-      &quot;description&quot;: &quot;Zusammenfassung in Klartext.&quot;,
+      &quot;description&quot;: &quot;Ein Satz: zu welchem Kunden die Verbindung gehört (Rechte, Umfang und Trennen stehen in den eigenen Feldern).&quot;,
       &quot;type&quot;: &quot;string&quot;
     },
     &quot;tenant_name&quot;: {
@@ -317,7 +319,7 @@ Content-Type: application/problem+json</code></pre>
       <section class="tool" id="tool-get_consumption">
         <h3>get_consumption</h3>
         <div class="meta"><span lang="de">Verbrauch je Monat</span> · scope <code>read:readings</code> · <code>readOnlyHint: true</code> · <code>idempotentHint: true</code> · <code>destructiveHint: false</code> · <code>openWorldHint: false</code></div>
-        <blockquote lang="de">Liefert Monatswerte des Verbrauchs einer Liegenschaft. Die Liegenschaft wird als property per Name, Adress-Teilstring oder ID angegeben; passen mehrere, kommt eine Kandidatenliste. Werte sind höchstens monatlich aufgelöst (nie Tages- oder Rohwerte) und jede Kennzahl hat ihre eigene Einheit: heat in kWh, hca in HKV-Einheiten (dimensionslos, Einheit unit), water_cold, water_warm und water_outdoor in m3, electricity in kWh. Aussenwasser (water_outdoor) wird getrennt von Kalt- und Warmwasser ausgewiesen; eine Summe über verschiedene Kennzahlen gibt es nicht. Zeitraum: from_month und to_month als JJJJ-MM; ohne Angabe die letzten 12 abgeschlossenen Monate, höchstens 36 Monate je Aufruf; der laufende Monat ist nie enthalten. breakdown wählt die Gliederung: systems (je Anlage, Standard), sectors (je Bereich einer Anlage) oder usage_units (je Nutzeinheit, anteilig nach Zuordnung der Bereiche). Mit include_devices=true kommen die Gerätesegmente dazu; deren baseline_origin sagt, woher der Startwert eines Tausch-Heizkostenverteilers stammt (recorded erfasst, assumed_zero angenommen 0, first_reading, portal_rule, none). Ein angenommener Startwert wird immer gemeldet. Jeder Monatswert trägt einen Status; calibration_expired heißt, ein Gerät mit abgelaufener Eichung trägt nichts zum Wert bei. Eichstatus unbekannt — das heißt nicht, dass die Eichung in Ordnung ist. Differenzzähler: kein Wert in V1. Benötigt das Recht read:readings.</blockquote>
+        <blockquote lang="de">Liefert Monatswerte des Verbrauchs einer Liegenschaft. Die Liegenschaft wird als property per Name, Adress-Teilstring oder ID angegeben; passen mehrere, kommt eine Kandidatenliste. Werte sind höchstens monatlich aufgelöst (nie Tages- oder Rohwerte) und jede Kennzahl hat ihre eigene Einheit: heat in kWh, hca in HKV-Einheiten (dimensionslos, Einheit unit), water_cold, water_warm und water_outdoor in m3, electricity in kWh. Aussenwasser (water_outdoor) wird getrennt von Kalt- und Warmwasser ausgewiesen; eine Summe über verschiedene Kennzahlen gibt es nicht. Zeitraum: from_month und to_month als JJJJ-MM; ohne Angabe die letzten 12 abgeschlossenen Monate, höchstens 36 Monate je Aufruf; der laufende Monat ist nie enthalten. breakdown wählt die Gliederung: systems (je Anlage, Standard), sectors (je Bereich einer Anlage) oder usage_units (je Nutzeinheit, anteilig nach Zuordnung der Bereiche). Fragt jemand nach einer Wohnung oder Nutzeinheit, breakdown=usage_units verwenden, mit usage_unit (Name oder ID) für genau eine Einheit. Mit include_devices=true kommen die Gerätesegmente dazu; deren baseline_origin sagt, woher der Startwert eines Tausch-Heizkostenverteilers stammt: recorded (erfasster Startwert), assumed_zero (angenommen 0, nicht erfasst), first_reading (erster Messwert nach Einbau; Verbrauch davor unbekannt), portal_rule (Stand zu Beginn des Zeitraums, wie im Portal) oder none (kein Startwert). Ein angenommener Startwert wird immer gemeldet. Jeder Monatswert trägt einen Status; calibration_expired heißt, ein Gerät mit abgelaufener Eichung trägt nichts zum Wert bei. Eichstatus unbekannt — das heißt nicht, dass die Eichung in Ordnung ist. Differenzzähler: kein Wert in V1. Benötigt das Recht read:readings.</blockquote>
         <div class="table-wrap"><table>
           <tr><th>Input</th><th>Type</th><th>Required</th><th>Description (as delivered)</th></tr>
           <tr><td><code>breakdown</code></td><td>string<br><span class="meta">default &quot;systems&quot;</span></td><td>no</td><td lang="de">Optional: systems (je Anlage, Standard), sectors (je Bereich) oder usage_units (je Nutzeinheit).</td></tr>
@@ -326,6 +328,7 @@ Content-Type: application/problem+json</code></pre>
           <tr><td><code>metrics</code></td><td>array | null<br><span class="meta">default null</span></td><td>no</td><td lang="de">Optional: nur diese Kennzahlen, aus heat, hca, water_cold, water_warm, water_outdoor, electricity. Ohne Angabe: alle.</td></tr>
           <tr><td><code>property</code></td><td>string</td><td>yes</td><td lang="de">Name (auch nur ein Teil), Adresse oder ID der Liegenschaft, z. B. „Gartenweg“.</td></tr>
           <tr><td><code>to_month</code></td><td>string | null<br><span class="meta">default null</span></td><td>no</td><td lang="de">Optional: letzter Monat als JJJJ-MM, z. B. 2025-12. Ohne Angabe: der letzte abgeschlossene Monat.</td></tr>
+          <tr><td><code>usage_unit</code></td><td>string | null<br><span class="meta">default null</span></td><td>no</td><td lang="de">Optional: Name oder ID einer Nutzeinheit (z. B. „WE 2“); liefert nur diese Einheit und gliedert nach usage_units.</td></tr>
         </table></div>
         <details><summary>Input schema</summary><pre><code>{
   &quot;properties&quot;: {
@@ -368,6 +371,14 @@ Content-Type: application/problem+json</code></pre>
     &quot;to_month&quot;: {
       &quot;default&quot;: null,
       &quot;description&quot;: &quot;Optional: letzter Monat als JJJJ-MM, z. B. 2025-12. Ohne Angabe: der letzte abgeschlossene Monat.&quot;,
+      &quot;type&quot;: [
+        &quot;string&quot;,
+        &quot;null&quot;
+      ]
+    },
+    &quot;usage_unit&quot;: {
+      &quot;default&quot;: null,
+      &quot;description&quot;: &quot;Optional: Name oder ID einer Nutzeinheit (z. B. „WE 2“); liefert nur diese Einheit und gliedert nach usage_units.&quot;,
       &quot;type&quot;: [
         &quot;string&quot;,
         &quot;null&quot;
@@ -450,7 +461,7 @@ Content-Type: application/problem+json</code></pre>
             ]
           },
           &quot;baseline_origin&quot;: {
-            &quot;description&quot;: &quot;Herkunft des Startwerts: recorded (erfasst), assumed_zero (angenommen 0, NICHT erfasst), first_reading (erster Stand nach Einbau; Verbrauch davor unbekannt), portal_rule (Startwert wie im Portal) oder none.&quot;,
+            &quot;description&quot;: &quot;Herkunft des Startwerts: recorded (erfasster Startwert), assumed_zero (angenommen 0, NICHT erfasst), first_reading (erster Messwert nach Einbau; Verbrauch davor unbekannt), portal_rule (Stand zu Beginn des Zeitraums, wie im Portal) oder none (kein Startwert).&quot;,
             &quot;type&quot;: &quot;string&quot;
           },
           &quot;baseline_value&quot;: {
@@ -609,6 +620,31 @@ Content-Type: application/problem+json</code></pre>
             },
             &quot;type&quot;: &quot;array&quot;
           },
+          &quot;shared_sectors&quot;: {
+            &quot;default&quot;: null,
+            &quot;description&quot;: &quot;Nur bei usage_units: Bereiche, die diese Nutzeinheit mit anderen teilt oder nur zum Teil trägt, mit ihrem Anteil in Prozent; nur diese Anteile sind im Wert enthalten.&quot;,
+            &quot;items&quot;: {
+              &quot;properties&quot;: {
+                &quot;percent&quot;: {
+                  &quot;description&quot;: &quot;Anteil dieser Nutzeinheit am Bereich in Prozent.&quot;,
+                  &quot;type&quot;: &quot;number&quot;
+                },
+                &quot;sector&quot;: {
+                  &quot;description&quot;: &quot;Name des geteilten Bereichs.&quot;,
+                  &quot;type&quot;: &quot;string&quot;
+                }
+              },
+              &quot;required&quot;: [
+                &quot;sector&quot;,
+                &quot;percent&quot;
+              ],
+              &quot;type&quot;: &quot;object&quot;
+            },
+            &quot;type&quot;: [
+              &quot;array&quot;,
+              &quot;null&quot;
+            ]
+          },
           &quot;system_id&quot;: {
             &quot;default&quot;: null,
             &quot;description&quot;: &quot;ID der Anlage (bei systems und sectors).&quot;,
@@ -655,6 +691,14 @@ Content-Type: application/problem+json</code></pre>
         &quot;null&quot;
       ]
     },
+    &quot;first_month_with_values&quot;: {
+      &quot;default&quot;: null,
+      &quot;description&quot;: &quot;Nur wenn im Zeitraum Monate ohne Werte liegen: der erste Monat (JJJJ-MM), ab dem diese Liegenschaft überhaupt Werte hat; fehlt, wenn es keine gibt.&quot;,
+      &quot;type&quot;: [
+        &quot;string&quot;,
+        &quot;null&quot;
+      ]
+    },
     &quot;from_month&quot;: {
       &quot;default&quot;: null,
       &quot;description&quot;: &quot;Erster Monat des Zeitraums (JJJJ-MM); nur bei ok.&quot;,
@@ -668,6 +712,48 @@ Content-Type: application/problem+json</code></pre>
       &quot;description&quot;: &quot;Klartext bei ambiguous und not_found.&quot;,
       &quot;type&quot;: [
         &quot;string&quot;,
+        &quot;null&quot;
+      ]
+    },
+    &quot;months_without_values&quot;: {
+      &quot;default&quot;: null,
+      &quot;description&quot;: &quot;Monate (JJJJ-MM) des Zeitraums, für die es keine Werte gibt, wenn der Zeitraum nur teilweise abgedeckt ist; die Summen umfassen dann nur die übrigen Monate.&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      },
+      &quot;type&quot;: [
+        &quot;array&quot;,
+        &quot;null&quot;
+      ]
+    },
+    &quot;not_evaluated_measuring_points&quot;: {
+      &quot;default&quot;: null,
+      &quot;description&quot;: &quot;Messpunkte, die zu einer angefragten Kennzahl gehören, aber nicht ausgewertet werden (reason no_system: keiner Anlage zugeordnet); sie tragen zu keinem Wert bei. Fehlt, wenn keiner betroffen ist.&quot;,
+      &quot;items&quot;: {
+        &quot;properties&quot;: {
+          &quot;id&quot;: {
+            &quot;description&quot;: &quot;ID des Messpunkts.&quot;,
+            &quot;format&quot;: &quot;uuid&quot;,
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;localization&quot;: {
+            &quot;description&quot;: &quot;Lage / Bezeichnung des Messpunkts.&quot;,
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;reason&quot;: {
+            &quot;description&quot;: &quot;Warum der Messpunkt nicht ausgewertet wird: no_system (keiner Anlage zugeordnet).&quot;,
+            &quot;type&quot;: &quot;string&quot;
+          }
+        },
+        &quot;required&quot;: [
+          &quot;id&quot;,
+          &quot;localization&quot;,
+          &quot;reason&quot;
+        ],
+        &quot;type&quot;: &quot;object&quot;
+      },
+      &quot;type&quot;: [
+        &quot;array&quot;,
         &quot;null&quot;
       ]
     },
@@ -716,32 +802,6 @@ Content-Type: application/problem+json</code></pre>
       &quot;description&quot;: &quot;Letzter Monat des Zeitraums (JJJJ-MM); nur bei ok.&quot;,
       &quot;type&quot;: [
         &quot;string&quot;,
-        &quot;null&quot;
-      ]
-    },
-    &quot;unlinked_measuring_points&quot;: {
-      &quot;default&quot;: null,
-      &quot;description&quot;: &quot;Messpunkte ohne Anlagenzuordnung; sie tragen zu keinem Wert bei.&quot;,
-      &quot;items&quot;: {
-        &quot;properties&quot;: {
-          &quot;id&quot;: {
-            &quot;description&quot;: &quot;ID des Messpunkts.&quot;,
-            &quot;format&quot;: &quot;uuid&quot;,
-            &quot;type&quot;: &quot;string&quot;
-          },
-          &quot;localization&quot;: {
-            &quot;description&quot;: &quot;Lage / Bezeichnung des Messpunkts.&quot;,
-            &quot;type&quot;: &quot;string&quot;
-          }
-        },
-        &quot;required&quot;: [
-          &quot;id&quot;,
-          &quot;localization&quot;
-        ],
-        &quot;type&quot;: &quot;object&quot;
-      },
-      &quot;type&quot;: [
-        &quot;array&quot;,
         &quot;null&quot;
       ]
     }
@@ -884,6 +944,17 @@ Content-Type: application/problem+json</code></pre>
           &quot;silent&quot;: {
             &quot;description&quot;: &quot;true, wenn das Gerät seit mehr als 7 Tagen kein Funktelegramm gesendet hat oder nie gesendet hat. Ausgebaute Geräte sind nie stumm.&quot;,
             &quot;type&quot;: &quot;boolean&quot;
+          },
+          &quot;usage_units&quot;: {
+            &quot;default&quot;: null,
+            &quot;description&quot;: &quot;Namen der Nutzeinheiten (Wohnungen), zu denen der Bereich des Messpunkts gehört; fehlt, wenn keine zugeordnet ist.&quot;,
+            &quot;items&quot;: {
+              &quot;type&quot;: &quot;string&quot;
+            },
+            &quot;type&quot;: [
+              &quot;array&quot;,
+              &quot;null&quot;
+            ]
           }
         },
         &quot;required&quot;: [
@@ -906,6 +977,37 @@ Content-Type: application/problem+json</code></pre>
       &quot;description&quot;: &quot;Klartext bei ambiguous und not_found.&quot;,
       &quot;type&quot;: [
         &quot;string&quot;,
+        &quot;null&quot;
+      ]
+    },
+    &quot;not_evaluated_measuring_points&quot;: {
+      &quot;default&quot;: null,
+      &quot;description&quot;: &quot;Messpunkte, die keiner Anlage zugeordnet sind und deshalb nicht ausgewertet werden (reason no_system).&quot;,
+      &quot;items&quot;: {
+        &quot;properties&quot;: {
+          &quot;id&quot;: {
+            &quot;description&quot;: &quot;ID des Messpunkts.&quot;,
+            &quot;format&quot;: &quot;uuid&quot;,
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;localization&quot;: {
+            &quot;description&quot;: &quot;Lage / Bezeichnung des Messpunkts.&quot;,
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;reason&quot;: {
+            &quot;description&quot;: &quot;Warum der Messpunkt nicht ausgewertet wird: no_system (keiner Anlage zugeordnet).&quot;,
+            &quot;type&quot;: &quot;string&quot;
+          }
+        },
+        &quot;required&quot;: [
+          &quot;id&quot;,
+          &quot;localization&quot;,
+          &quot;reason&quot;
+        ],
+        &quot;type&quot;: &quot;object&quot;
+      },
+      &quot;type&quot;: [
+        &quot;array&quot;,
         &quot;null&quot;
       ]
     },
@@ -978,32 +1080,6 @@ Content-Type: application/problem+json</code></pre>
       ],
       &quot;type&quot;: [
         &quot;object&quot;,
-        &quot;null&quot;
-      ]
-    },
-    &quot;unlinked_measuring_points&quot;: {
-      &quot;default&quot;: null,
-      &quot;description&quot;: &quot;Messpunkte ohne Anlagenzuordnung.&quot;,
-      &quot;items&quot;: {
-        &quot;properties&quot;: {
-          &quot;id&quot;: {
-            &quot;description&quot;: &quot;ID des Messpunkts.&quot;,
-            &quot;format&quot;: &quot;uuid&quot;,
-            &quot;type&quot;: &quot;string&quot;
-          },
-          &quot;localization&quot;: {
-            &quot;description&quot;: &quot;Lage / Bezeichnung des Messpunkts.&quot;,
-            &quot;type&quot;: &quot;string&quot;
-          }
-        },
-        &quot;required&quot;: [
-          &quot;id&quot;,
-          &quot;localization&quot;
-        ],
-        &quot;type&quot;: &quot;object&quot;
-      },
-      &quot;type&quot;: [
-        &quot;array&quot;,
         &quot;null&quot;
       ]
     }
@@ -1080,6 +1156,14 @@ Content-Type: application/problem+json</code></pre>
         &quot;null&quot;
       ]
     },
+    &quot;not_evaluated_measuring_point_count&quot;: {
+      &quot;default&quot;: null,
+      &quot;description&quot;: &quot;Davon Messpunkte, die keiner Anlage zugeordnet sind und deshalb nicht ausgewertet werden (zu keinem Verbrauch beitragen); nur bei ok.&quot;,
+      &quot;type&quot;: [
+        &quot;integer&quot;,
+        &quot;null&quot;
+      ]
+    },
     &quot;notes&quot;: {
       &quot;default&quot;: null,
       &quot;description&quot;: &quot;Hinweise zur Einordnung der Werte.&quot;,
@@ -1148,14 +1232,6 @@ Content-Type: application/problem+json</code></pre>
       },
       &quot;type&quot;: [
         &quot;array&quot;,
-        &quot;null&quot;
-      ]
-    },
-    &quot;unlinked_measuring_point_count&quot;: {
-      &quot;default&quot;: null,
-      &quot;description&quot;: &quot;Davon Messpunkte ohne Anlagenzuordnung, die zu keinem Verbrauch beitragen; nur bei ok.&quot;,
-      &quot;type&quot;: [
-        &quot;integer&quot;,
         &quot;null&quot;
       ]
     },
