@@ -40,7 +40,7 @@ Guides:
 | [developer.messpunkt.io/connect/](https://developer.messpunkt.io/connect/) | Landlords (German): connect Claude, ChatGPT or Codex |
 | [developer.messpunkt.io/mcp/](https://developer.messpunkt.io/mcp/) | MCP client authors: transport, auth, tool reference |
 
-The MCP tool reference is generated from the server's `tools/list` snapshot (`mcp/tools-list.json`): `node scripts/render-tools.mjs`. `node scripts/check-guides.mjs` checks every URL, route, scope and tool name in the guides against the spec and the snapshot.
+The MCP tool reference is generated from the server's `tools/list` snapshot (`mcp/tools-list.json`): `node scripts/render-tools.mjs`. `node scripts/check-guides.mjs` checks every URL, route, scope and tool name in the guides against the spec and the snapshot. `node scripts/check-links.mjs` checks the relative links of every page. CI (`.github/workflows/checks.yml`) runs both plus `npx @redocly/cli lint erp-api-openapi.yaml` on every pull request.
 
 ## Status
 

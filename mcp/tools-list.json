@@ -82,7 +82,7 @@
           "type": "array"
         },
         "summary": {
-          "description": "Zusammenfassung in Klartext.",
+          "description": "Ein Satz: zu welchem Kunden die Verbindung gehört (Rechte, Umfang und Trennen stehen in den eigenen Feldern).",
           "type": "string"
         },
         "tenant_name": {
@@ -112,7 +112,7 @@
       "readOnlyHint": true,
       "title": "Verbrauch je Monat"
     },
-    "description": "Liefert Monatswerte des Verbrauchs einer Liegenschaft. Die Liegenschaft wird als property per Name, Adress-Teilstring oder ID angegeben; passen mehrere, kommt eine Kandidatenliste. Werte sind höchstens monatlich aufgelöst (nie Tages- oder Rohwerte) und jede Kennzahl hat ihre eigene Einheit: heat in kWh, hca in HKV-Einheiten (dimensionslos, Einheit unit), water_cold, water_warm und water_outdoor in m3, electricity in kWh. Aussenwasser (water_outdoor) wird getrennt von Kalt- und Warmwasser ausgewiesen; eine Summe über verschiedene Kennzahlen gibt es nicht. Zeitraum: from_month und to_month als JJJJ-MM; ohne Angabe die letzten 12 abgeschlossenen Monate, höchstens 36 Monate je Aufruf; der laufende Monat ist nie enthalten. breakdown wählt die Gliederung: systems (je Anlage, Standard), sectors (je Bereich einer Anlage) oder usage_units (je Nutzeinheit, anteilig nach Zuordnung der Bereiche). Mit include_devices=true kommen die Gerätesegmente dazu; deren baseline_origin sagt, woher der Startwert eines Tausch-Heizkostenverteilers stammt (recorded erfasst, assumed_zero angenommen 0, first_reading, portal_rule, none). Ein angenommener Startwert wird immer gemeldet. Jeder Monatswert trägt einen Status; calibration_expired heißt, ein Gerät mit abgelaufener Eichung trägt nichts zum Wert bei. Eichstatus unbekannt — das heißt nicht, dass die Eichung in Ordnung ist. Differenzzähler: kein Wert in V1. Benötigt das Recht read:readings.",
+    "description": "Liefert Monatswerte des Verbrauchs einer Liegenschaft. Die Liegenschaft wird als property per Name, Adress-Teilstring oder ID angegeben; passen mehrere, kommt eine Kandidatenliste. Werte sind höchstens monatlich aufgelöst (nie Tages- oder Rohwerte) und jede Kennzahl hat ihre eigene Einheit: heat in kWh, hca in HKV-Einheiten (dimensionslos, Einheit unit), water_cold, water_warm und water_outdoor in m3, electricity in kWh. Aussenwasser (water_outdoor) wird getrennt von Kalt- und Warmwasser ausgewiesen; eine Summe über verschiedene Kennzahlen gibt es nicht. Zeitraum: from_month und to_month als JJJJ-MM; ohne Angabe die letzten 12 abgeschlossenen Monate, höchstens 36 Monate je Aufruf; der laufende Monat ist nie enthalten. breakdown wählt die Gliederung: systems (je Anlage, Standard), sectors (je Bereich einer Anlage) oder usage_units (je Nutzeinheit, anteilig nach Zuordnung der Bereiche). Fragt jemand nach einer Wohnung oder Nutzeinheit, breakdown=usage_units verwenden, mit usage_unit (Name oder ID) für genau eine Einheit. Mit include_devices=true kommen die Gerätesegmente dazu; deren baseline_origin sagt, woher der Startwert eines Tausch-Heizkostenverteilers stammt: recorded (erfasster Startwert), assumed_zero (angenommen 0, nicht erfasst), first_reading (erster Messwert nach Einbau; Verbrauch davor unbekannt), portal_rule (Stand zu Beginn des Zeitraums, wie im Portal) oder none (kein Startwert). Ein angenommener Startwert wird immer gemeldet. Jeder Monatswert trägt einen Status; calibration_expired heißt, ein Gerät mit abgelaufener Eichung trägt nichts zum Wert bei. Eichstatus unbekannt — das heißt nicht, dass die Eichung in Ordnung ist. Differenzzähler: kein Wert in V1. Benötigt das Recht read:readings.",
     "inputSchema": {
       "properties": {
         "breakdown": {
@@ -154,6 +154,14 @@
         "to_month": {
           "default": null,
           "description": "Optional: letzter Monat als JJJJ-MM, z. B. 2025-12. Ohne Angabe: der letzte abgeschlossene Monat.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "usage_unit": {
+          "default": null,
+          "description": "Optional: Name oder ID einer Nutzeinheit (z. B. „WE 2“); liefert nur diese Einheit und gliedert nach usage_units.",
           "type": [
             "string",
             "null"
@@ -237,7 +245,7 @@
                 ]
               },
               "baseline_origin": {
-                "description": "Herkunft des Startwerts: recorded (erfasst), assumed_zero (angenommen 0, NICHT erfasst), first_reading (erster Stand nach Einbau; Verbrauch davor unbekannt), portal_rule (Startwert wie im Portal) oder none.",
+                "description": "Herkunft des Startwerts: recorded (erfasster Startwert), assumed_zero (angenommen 0, NICHT erfasst), first_reading (erster Messwert nach Einbau; Verbrauch davor unbekannt), portal_rule (Stand zu Beginn des Zeitraums, wie im Portal) oder none (kein Startwert).",
                 "type": "string"
               },
               "baseline_value": {
@@ -396,6 +404,31 @@
                 },
                 "type": "array"
               },
+              "shared_sectors": {
+                "default": null,
+                "description": "Nur bei usage_units: Bereiche, die diese Nutzeinheit mit anderen teilt oder nur zum Teil trägt, mit ihrem Anteil in Prozent; nur diese Anteile sind im Wert enthalten.",
+                "items": {
+                  "properties": {
+                    "percent": {
+                      "description": "Anteil dieser Nutzeinheit am Bereich in Prozent.",
+                      "type": "number"
+                    },
+                    "sector": {
+                      "description": "Name des geteilten Bereichs.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "sector",
+                    "percent"
+                  ],
+                  "type": "object"
+                },
+                "type": [
+                  "array",
+                  "null"
+                ]
+              },
               "system_id": {
                 "default": null,
                 "description": "ID der Anlage (bei systems und sectors).",
@@ -442,6 +475,14 @@
             "null"
           ]
         },
+        "first_month_with_values": {
+          "default": null,
+          "description": "Nur wenn im Zeitraum Monate ohne Werte liegen: der erste Monat (JJJJ-MM), ab dem diese Liegenschaft überhaupt Werte hat; fehlt, wenn es keine gibt.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "from_month": {
           "default": null,
           "description": "Erster Monat des Zeitraums (JJJJ-MM); nur bei ok.",
@@ -455,6 +496,48 @@
           "description": "Klartext bei ambiguous und not_found.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "months_without_values": {
+          "default": null,
+          "description": "Monate (JJJJ-MM) des Zeitraums, für die es keine Werte gibt, wenn der Zeitraum nur teilweise abgedeckt ist; die Summen umfassen dann nur die übrigen Monate.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "not_evaluated_measuring_points": {
+          "default": null,
+          "description": "Messpunkte, die zu einer angefragten Kennzahl gehören, aber nicht ausgewertet werden (reason no_system: keiner Anlage zugeordnet); sie tragen zu keinem Wert bei. Fehlt, wenn keiner betroffen ist.",
+          "items": {
+            "properties": {
+              "id": {
+                "description": "ID des Messpunkts.",
+                "format": "uuid",
+                "type": "string"
+              },
+              "localization": {
+                "description": "Lage / Bezeichnung des Messpunkts.",
+                "type": "string"
+              },
+              "reason": {
+                "description": "Warum der Messpunkt nicht ausgewertet wird: no_system (keiner Anlage zugeordnet).",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "localization",
+              "reason"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -503,32 +586,6 @@
           "description": "Letzter Monat des Zeitraums (JJJJ-MM); nur bei ok.",
           "type": [
             "string",
-            "null"
-          ]
-        },
-        "unlinked_measuring_points": {
-          "default": null,
-          "description": "Messpunkte ohne Anlagenzuordnung; sie tragen zu keinem Wert bei.",
-          "items": {
-            "properties": {
-              "id": {
-                "description": "ID des Messpunkts.",
-                "format": "uuid",
-                "type": "string"
-              },
-              "localization": {
-                "description": "Lage / Bezeichnung des Messpunkts.",
-                "type": "string"
-              }
-            },
-            "required": [
-              "id",
-              "localization"
-            ],
-            "type": "object"
-          },
-          "type": [
-            "array",
             "null"
           ]
         }
@@ -672,6 +729,17 @@
               "silent": {
                 "description": "true, wenn das Gerät seit mehr als 7 Tagen kein Funktelegramm gesendet hat oder nie gesendet hat. Ausgebaute Geräte sind nie stumm.",
                 "type": "boolean"
+              },
+              "usage_units": {
+                "default": null,
+                "description": "Namen der Nutzeinheiten (Wohnungen), zu denen der Bereich des Messpunkts gehört; fehlt, wenn keine zugeordnet ist.",
+                "items": {
+                  "type": "string"
+                },
+                "type": [
+                  "array",
+                  "null"
+                ]
               }
             },
             "required": [
@@ -694,6 +762,37 @@
           "description": "Klartext bei ambiguous und not_found.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "not_evaluated_measuring_points": {
+          "default": null,
+          "description": "Messpunkte, die keiner Anlage zugeordnet sind und deshalb nicht ausgewertet werden (reason no_system).",
+          "items": {
+            "properties": {
+              "id": {
+                "description": "ID des Messpunkts.",
+                "format": "uuid",
+                "type": "string"
+              },
+              "localization": {
+                "description": "Lage / Bezeichnung des Messpunkts.",
+                "type": "string"
+              },
+              "reason": {
+                "description": "Warum der Messpunkt nicht ausgewertet wird: no_system (keiner Anlage zugeordnet).",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "localization",
+              "reason"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -766,32 +865,6 @@
           ],
           "type": [
             "object",
-            "null"
-          ]
-        },
-        "unlinked_measuring_points": {
-          "default": null,
-          "description": "Messpunkte ohne Anlagenzuordnung.",
-          "items": {
-            "properties": {
-              "id": {
-                "description": "ID des Messpunkts.",
-                "format": "uuid",
-                "type": "string"
-              },
-              "localization": {
-                "description": "Lage / Bezeichnung des Messpunkts.",
-                "type": "string"
-              }
-            },
-            "required": [
-              "id",
-              "localization"
-            ],
-            "type": "object"
-          },
-          "type": [
-            "array",
             "null"
           ]
         }
@@ -871,6 +944,14 @@
             "null"
           ]
         },
+        "not_evaluated_measuring_point_count": {
+          "default": null,
+          "description": "Davon Messpunkte, die keiner Anlage zugeordnet sind und deshalb nicht ausgewertet werden (zu keinem Verbrauch beitragen); nur bei ok.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "notes": {
           "default": null,
           "description": "Hinweise zur Einordnung der Werte.",
@@ -939,14 +1020,6 @@
           },
           "type": [
             "array",
-            "null"
-          ]
-        },
-        "unlinked_measuring_point_count": {
-          "default": null,
-          "description": "Davon Messpunkte ohne Anlagenzuordnung, die zu keinem Verbrauch beitragen; nur bei ok.",
-          "type": [
-            "integer",
             "null"
           ]
         },

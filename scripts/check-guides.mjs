@@ -16,6 +16,10 @@
 //   6. index.html and llms.txt link the three guides
 //   7. each client section of connect/ has a "verified" and an "unverified" block
 //   8. the generated tool reference is up to date (scripts/render-tools.mjs --check)
+//   9. facts that were wrong once and must not come back: the refresh-token lifetime (90 days without use,
+//      no absolute cap) and authorization-code extraction that assumes hex (codes are base64url)
+//  10. every problem type https://developer.messpunkt.io/errors/#<code> in the spec and the pages has an anchor
+//      of that name on errors/, and no page or example uses the old api(.sandbox)…/errors/<code> form
 // Placeholders (<SUPPORT_KONTAKT> …) are listed, never treated as errors: they must stay visible.
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
@@ -87,7 +91,7 @@ if (tools && process.env.AZURE_FUNCTIONS_DIR) {
 
 // --- pages ----------------------------------------------------------------------------------------------
 const GUIDES = ['connect/index.html', 'erp/index.html', 'mcp/index.html'];
-const SCANNED = [...GUIDES, 'index.html', 'llms.txt', 'README.md'];
+const SCANNED = [...GUIDES, 'quickstart/index.html', 'index.html', 'llms.txt', 'README.md'];
 const PLACEHOLDERS = ['SUPPORT_KONTAKT', 'AVV_HINWEIS', 'PROD_RATE_LIMITS'];
 const placeholderHits = [];
 
@@ -131,6 +135,14 @@ for (const file of SCANNED) {
       for (const n of toolNames) if (!text.includes('`' + n + '`')) errors.push(`llms.txt: tool ${n} is not mentioned`);
   }
 
+  // 9: facts that regressed before (RU D-1, D-2)
+  for (const m of text.matchAll(/refresh[_ ]tokens?\b[^.]{0,80}?\b(\d+) days/gi))
+    if (m[1] !== '90') errors.push(`${file}: "${m[0]}": refresh tokens expire after 90 days without use`);
+  if (/refresh[_ ]tokens?\b[^.]{0,80}absolute (session )?cap \d/i.test(text))
+    errors.push(`${file}: refresh tokens have no absolute cap`);
+  if (/code=\[A-F0-9\]/.test(text))
+    errors.push(`${file}: extracts the authorization code as hex; codes are base64url (use sed 's/.*[?&]code=([^&]*).*/\\1/')`);
+
   // placeholders
   for (const p of PLACEHOLDERS) {
     const count = text.split('<' + p + '>').length - 1;
@@ -170,6 +182,8 @@ for (const file of ['index.html', 'llms.txt', 'README.md', ...GUIDES]) {
 
 // 7: verified / unverified per client
 const connect = read('connect/index.html');
+// The consent screen (azure-functions SandboxAuth ConsentPage) links connect/#datenschutz from outside this repo.
+if (!/\sid="datenschutz"/.test(connect)) errors.push('connect/index.html: anchor #datenschutz is gone, but the consent screen links it');
 const sections = [...connect.matchAll(/<section id="([^"]+)" data-client="[^"]+">([\s\S]*?)<\/section>/g)];
 if (sections.length < 4) errors.push(`connect/index.html: expected 4 client sections, found ${sections.length}`);
 for (const [, id, body] of sections) {
@@ -183,6 +197,18 @@ try {
   if (current !== expected) errors.push('mcp/index.html: tool reference out of date (node scripts/render-tools.mjs)');
 } catch (e) {
   errors.push(e.message);
+}
+
+// 10: problem types resolve to errors/
+{
+  const errorIds = new Set([...read('errors/index.html').matchAll(/\sid="([^"]+)"/g)].map(m => m[1]));
+  for (const file of ['erp-api-openapi.yaml', 'errors/index.html', 'bruno/get-property-out-of-scope.bru', ...SCANNED]) {
+    const text = read(file);
+    for (const m of text.matchAll(/https:\/\/developer\.messpunkt\.io\/errors\/#([a-z-]+)/g))
+      if (!errorIds.has(m[1])) errors.push(`${file}: problem type #${m[1]} has no anchor on errors/`);
+    if (/https:\/\/(api|auth)(\.sandbox)?\.messpunkt\.io\/errors\//.test(text))
+      errors.push(`${file}: problem type on the API host; use https://developer.messpunkt.io/errors/#<code>`);
+  }
 }
 
 // --- report ---------------------------------------------------------------------------------------------
