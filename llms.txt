@@ -25,7 +25,7 @@ This file follows the [llms.txt standard](https://llmstxt.org) — a Markdown in
 - [MCP server reference](https://developer.messpunkt.io/mcp/): transport, auth challenge, scopes per tool, tool reference generated from `tools/list`
 - [Landlord guide (German): Mit Claude, ChatGPT oder Codex verbinden](https://developer.messpunkt.io/connect/): connect steps per client, consent, limits, disconnecting
 - Clients: Claude (claude.ai, Claude Code), ChatGPT, Codex and other MCP clients with OAuth support
-- Read-only tools: `list_properties`, `get_property_overview`, `get_consumption`, `get_device_status`, `get_connection_info`
+- Read-only tools: `list_properties`, `get_property_overview`, `get_consumption`, `get_device_status`, `get_connection_info` — schemas in the [tool reference](https://developer.messpunkt.io/mcp/#tools)
 - Same authorization server, consent screen and data rules as the REST API; tokens are issued for one resource (`aud`) and are not interchangeable between MCP and REST
 
 ## Capabilities (REST)
@@ -41,8 +41,11 @@ Under a single OAuth token scoped per Tenant **and** per Property (selection cho
 ## Data rules
 
 - **Monthly at the finest.** Readings are month-end values (`at` is a date); there are no daily, hourly or per-telegram values and no parameter to request them. Finer series per apartment would be a behavioural profile of residents.
-- Bill `period_consumption.billable_value` (raw consumption × `factor`), summed over segments — not `last − first` reading.
-- `status`: `measured` · `calculated` (interpolated month end, `is_synthetic: true`) · `substituted` (extrapolated end value) · `missing` · `calibration_expired` (never bill).
+- Bill `period_consumption.billable_value` (raw consumption × `factor`), summed over segments — not `last − first` reading. For a usage unit, bill `weighted_billable_value` (= `billable_value` × `unit_share`) from `/usage-units/{id}/consumption`.
+- Shared Sectors: a measuring point shared by several units appears under each of them with its `unit_share`; `usage_unit_id` is the primary unit (highest share), `allocations[]` lists all units. Device values are never weighted.
+- `status`: `measured` · `calculated` (interpolated month end, `is_synthetic: true`) · `substituted` (extrapolated end value; not produced today) · `missing` · `calibration_expired` (never bill; can be `is_synthetic: true`).
+- `baseline_origin` on a segment says where the start value comes from; `assumed_zero` means the start value of a replacement heat cost allocator was not recorded and is assumed to be 0 — that segment's consumption rests on this assumption.
+- `is_system_linked: false` marks a measuring point without an active system assignment: delivered with its values, while the landlord portal shows 0 for it — clarify before billing.
 - Metrics: `heat` (kWh) · `hca` (unit) · `water_cold` · `water_warm` · `water_outdoor` (m3, not part of residents' water). `electricity` and `gas` are reserved — there are no readable devices for them today.
 - `obis`, `resolution` and `external_ref` are always `null` today. Identify quantities by `metric` + `unit`.
 - `installed_at` is `null` when the installation date is not documented — never a placeholder date.
