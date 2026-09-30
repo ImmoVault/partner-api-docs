@@ -180,6 +180,8 @@ for (const file of ['index.html', 'llms.txt', 'README.md', ...GUIDES]) {
 
 // 7: verified / unverified per client
 const connect = read('connect/index.html');
+// The consent screen (azure-functions SandboxAuth ConsentPage) links connect/#datenschutz from outside this repo.
+if (!/\sid="datenschutz"/.test(connect)) errors.push('connect/index.html: anchor #datenschutz is gone, but the consent screen links it');
 const sections = [...connect.matchAll(/<section id="([^"]+)" data-client="[^"]+">([\s\S]*?)<\/section>/g)];
 if (sections.length < 4) errors.push(`connect/index.html: expected 4 client sections, found ${sections.length}`);
 for (const [, id, body] of sections) {
