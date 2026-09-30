@@ -308,13 +308,12 @@ curl -s -H "Authorization: Bearer $TOKEN" \
       <p>OAuth endpoints (<code>/oauth/*</code>) answer in the OAuth format (<code>error</code>, <code>error_description</code>): <code>invalid_request</code>, <code>invalid_client</code> (401; for <code>client_secret_basic</code> with <code>WWW-Authenticate: Basic</code>), <code>invalid_grant</code> (code or refresh token invalid, reused, revoked or inactive), <code>invalid_target</code> (unknown <code>resource</code>), <code>invalid_scope</code>, <code>invalid_dpop_proof</code>, <code>unsupported_grant_type</code>. On <code>/oauth/authorize</code>, an unknown client or unregistered <code>redirect_uri</code> is never redirected: the browser gets an error page. Full table with client actions: <a href="../errors/">Error handling</a>.</p>
 
       <h2 id="limits">Rate limits</h2>
-      <ul class="plain">
-      </ul>
       <div class="table-wrap"><table>
         <tr><th>Endpoint</th><th>Limit</th><th>Counted per</th></tr>
         <tr><td><code>/v1/*</code></td><td>300 requests/min</td><td>connection (grant, the token's <code>sid</code>), after the token is validated. Requests whose token fails validation are counted per caller address.</td></tr>
         <tr><td><code>/oauth/token</code></td><td>60 requests/min</td><td><code>client_id</code>, after successful client authentication; <strong>in addition</strong> 60/min per caller address</td></tr>
-        <tr><td><code>/oauth/revoke</code></td><td>60 requests/min</td><td><code>client_id</code>, as at the token endpoint</td></tr>
+        <tr><td><code>/oauth/revoke</code></td><td>60 requests/min</td><td><code>client_id</code>, as at the token endpoint; <strong>in addition</strong> 60/min per caller address</td></tr>
+        <tr><td><code>/oauth/authorize</code></td><td>60 requests/min</td><td>caller address (the landlord's browser)</td></tr>
       </table></div>
       <p>The limit on <code>/v1/*</code> is per connection, not per <code>client_id</code> or address, because one ERP system serves many landlords from one address, and addresses behind proxies are unreliable. Above a limit you get <code>429</code> with <code>Retry-After</code> (on <code>/v1/*</code> as <code>application/problem+json</code>). Production and sandbox use the same numbers. They are counted in memory per server instance, so the effective limit can be higher than the number above, never lower.</p>
 
