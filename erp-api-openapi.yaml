@@ -280,6 +280,16 @@ info:
     `active_device: null` and no readings. V1 does not deliver a consumption
     value for them.
 
+    **Measuring points without a system link.** messpunkt.io assigns each
+    measuring point to a heating or water system (Anlage). A measuring point
+    without an active assignment is still delivered, with its readings and
+    period consumption, and is marked `is_system_linked: false`. The landlord
+    portal shows **0** consumption for such a measuring point, because its
+    monthly figures only count system-linked measuring points; this API
+    delivers the device values instead. Treat `false` as a data-quality hint
+    and clarify it with the landlord before billing. An absent field means
+    `true`.
+
     **Pre-metering (Vorerfassung) is not exposed.** A pre-metering point
     measures a total that other meters then split up (e.g. the warm-water share
     of a central heat meter). Delivering it next to the meters behind it would
@@ -368,7 +378,8 @@ info:
     | --- | --- |
     | Server URL | `https://mcp.messpunkt.io/v1` |
     | Clients | Claude (claude.ai, Claude Code), ChatGPT, Codex and other MCP clients with OAuth support |
-    | Tools (read-only) | `list_properties`, `get_property_overview`, `get_consumption`, `get_device_status` |
+    | Tools (read-only) | `list_properties`, `get_property_overview`, `get_consumption`, `get_device_status`, `get_connection_info` |
+    | Tool reference | [developer.messpunkt.io/mcp/](https://developer.messpunkt.io/mcp/#tools) — input and output schemas generated from the server's `tools/list`; not repeated in this document |
     | Auth | same authorization server and consent screen as this API; token audience `https://mcp.messpunkt.io/v1` |
     | Data rules | same as this API — monthly values, Property scope, `404` outside the scope |
 
@@ -470,6 +481,13 @@ info:
       (`installed_at: null`), it is the month-end value before `from` when
       one exists, otherwise the first value known for the device — which
       can lie **inside** the range.
+    - `baseline_origin` — where `baseline_value` comes from (`recorded`,
+      `assumed_zero`, `first_reading`, `portal_rule`,
+      `month_end_before_range`, `first_known_in_range`, `none`; see
+      `BaselineOrigin`). `assumed_zero` means the start value of a
+      replacement heat cost allocator was **not recorded** and is assumed to
+      be 0 — the consumption of that segment rests on this assumption.
+      *(Added in rc.3 addendum; optional.)*
     - `installed_at` / `deinstalled_at` — set only when the date is
       documented. An unknown installation date is `null`, never a
       placeholder.
@@ -484,9 +502,10 @@ info:
         date is a month end, the same value also appears as that month's
         reading.
       - *No value at the end of the range:* the end value is **not carried
-        forward** from an earlier month. Unless it can be extrapolated
-        (`substituted`), `status` is `missing` and `end_value`, `value` and
-        `billable_value` are `null`.
+        forward** from an earlier month. `status` is `missing` and
+        `end_value`, `value` and `billable_value` are `null` — unless the
+        value is extrapolated (`substituted`), which messpunkt.io does not
+        produce today (see *Value status*).
     - `factor` — multiplier from raw to billable consumption (K-factor /
       Bewertungsfaktor for heat cost allocators, usually `1` for all other
       meters).
@@ -503,11 +522,19 @@ info:
     | --- | --- | --- |
     | `measured` | `false` | value reported by the device for that date (telegram or device-stored Stichtagswert) |
     | `calculated` | `true` | interpolated by messpunkt.io at the month boundary between two real readings (`substitution_method` says how) |
-    | `substituted` | `true` | extrapolated because the device has not reported since; only at the end of a range, from readings at most 20 days old |
+    | `substituted` | `true` | extrapolated because the device has not reported since; only at the end of a range, from readings at most 20 days old. **Not produced today** — see below |
     | `missing` | — | no value could be determined; only on `period_consumption` (then `end_value`, `value` and `billable_value` are `null`) |
-    | `calibration_expired` | `false` | the device's statutory calibration period (Eichfrist) had ended; the value is shown but **must not be billed** — `billable_value` is `0` |
+    | `calibration_expired` | `false` or `true` | the device's statutory calibration period (Eichfrist) had ended; the value is shown but **must not be billed** — `billable_value` is `0`. `is_synthetic: true` when the value was interpolated at the month boundary; `substitution_method` is then `null` |
 
     A MeasuringPoint without any value in the range has `data_gap: true`.
+
+    **`substituted` is not produced today.** A range always ends at a
+    completed month end, and for month ends messpunkt.io stores only
+    interpolated (`calculated`) values. `substitution_method` therefore
+    appears only on `calculated` values: `degree_day_weighted` for heat
+    meters and heat cost allocators, `linear_interpolation` for all other
+    meters. The value and its methods stay in the contract; handle them if
+    they appear.
 
     ## Precision
 
@@ -1149,6 +1176,7 @@ paths:
                         factor: 1
                         baseline_value: 412.318
                         baseline_date: "2024-12-31"
+                        baseline_origin: "month_end_before_range"
                         readings:
                           - { at: "2025-01-31", value: 415.902, status: "measured",   is_synthetic: false }
                           - { at: "2025-02-28", value: 419.377, status: "calculated", is_synthetic: true, substitution_method: "linear_interpolation" }
@@ -1172,6 +1200,7 @@ paths:
                         factor: 1
                         baseline_value: 0.004
                         baseline_date: "2025-06-12"
+                        baseline_origin: "recorded"
                         readings:
                           - { at: "2025-06-30", value: 0.581,  status: "measured",   is_synthetic: false }
                           - { at: "2025-07-31", value: 3.742,  status: "measured",   is_synthetic: false }
@@ -1361,6 +1390,7 @@ paths:
                         factor: 0.625
                         baseline_value: 0
                         baseline_date: "2024-12-31"
+                        baseline_origin: "month_end_before_range"
                         readings:
                           - { at: "2025-01-31", value: 214, status: "measured", is_synthetic: false }
                           - { at: "2025-02-28", value: 391, status: "measured", is_synthetic: false }
@@ -1372,8 +1402,64 @@ paths:
                           substitution_method: null
                           value: 522
                           billable_value: 326.25
+                hca_replacement_assumed_zero:
+                  summary: Replaced heat cost allocator — start value not recorded, assumed 0
+                  description: |
+                    The new allocator's start value was not recorded at
+                    installation. `baseline_origin: assumed_zero` means it is
+                    assumed to be 0 — the consumption of that segment rests on
+                    this assumption.
+                  value:
+                    measuring_point_id: "800332a8-30d7-445f-89ec-9a3a4606f453"
+                    metric: "hca"
+                    obis: null
+                    unit: "unit"
+                    is_difference_meter: false
+                    data_gap: false
+                    segments:
+                      - device_id: "798f338c-6a3e-4b43-9960-ffe45d943906"
+                        serial: "60240779"
+                        manufacturer: "QDS"
+                        installed_at: "2021-10-01"
+                        deinstalled_at: "2025-02-10"
+                        replacement_reason: "DeviceReplacement"
+                        resolution: null
+                        factor: 0.625
+                        baseline_value: 0
+                        baseline_date: "2024-12-31"
+                        baseline_origin: "month_end_before_range"
+                        readings:
+                          - { at: "2025-01-31", value: 187, status: "measured", is_synthetic: false }
+                        period_consumption:
+                          end_date: "2025-02-10"
+                          end_value: 241
+                          status: "measured"
+                          substitution_method: null
+                          value: 241
+                          billable_value: 150.625
+                      - device_id: "798f338c-6a3e-4b43-9960-ffe45d943907"
+                        serial: "60240780"
+                        manufacturer: "QDS"
+                        installed_at: "2025-02-10"
+                        deinstalled_at: null
+                        replacement_reason: null
+                        resolution: null
+                        factor: 0.625
+                        baseline_value: 0
+                        baseline_date: "2025-02-10"
+                        baseline_origin: "assumed_zero"
+                        readings:
+                          - { at: "2025-02-28", value: 64, status: "measured", is_synthetic: false }
+                          - { at: "2025-03-31", value: 180, status: "measured", is_synthetic: false }
+                        period_consumption:
+                          end_date: "2025-03-31"
+                          end_value: 180
+                          status: "measured"
+                          substitution_method: null
+                          value: 180
+                          billable_value: 112.5
                 heat_meter_substituted_end:
-                  summary: Heat meter — last value extrapolated because the device went quiet
+                  summary: Heat meter — last value extrapolated because the device went quiet (illustrates `substituted`, which is not produced today)
                   value:
                     measuring_point_id: "b1359209-f047-4d7d-9f64-a3a4c43fba30"
                     metric: "heat"
@@ -1392,6 +1478,7 @@ paths:
                         factor: 1
                         baseline_value: 12480
                         baseline_date: "2024-12-31"
+                        baseline_origin: "month_end_before_range"
                         readings:
                           - { at: "2025-01-31", value: 13391, status: "measured",   is_synthetic: false }
                           - { at: "2025-02-28", value: 14172, status: "calculated", is_synthetic: true, substitution_method: "degree_day_weighted" }
@@ -1423,6 +1510,7 @@ paths:
                         factor: 1
                         baseline_value: 301.550
                         baseline_date: "2024-12-31"
+                        baseline_origin: "month_end_before_range"
                         readings:
                           - { at: "2025-01-31", value: 304.112, status: "calibration_expired", is_synthetic: false }
                           - { at: "2025-02-28", value: 306.540, status: "calibration_expired", is_synthetic: false }
@@ -1454,6 +1542,7 @@ paths:
                         factor: 1
                         baseline_value: 0.000
                         baseline_date: "2025-04-02"
+                        baseline_origin: "recorded"
                         readings:
                           - { at: "2025-04-30", value: 0.412, status: "measured", is_synthetic: false }
                           - { at: "2025-05-31", value: 1.938, status: "measured", is_synthetic: false }
@@ -1485,6 +1574,7 @@ paths:
                         factor: 1.25
                         baseline_value: null
                         baseline_date: null
+                        baseline_origin: "none"
                         readings: []
                         period_consumption:
                           end_date: "2025-03-31"
@@ -1831,10 +1921,20 @@ components:
             Label the landlord gave the unit, e.g. "WE 03". Free text entered
             by the landlord; the API has no separate field for resident names.
           example: "WE 03"
-        floor:          { type: [string, "null"], example: "2" }
-        position:       { type: [string, "null"], example: "links" }
+        floor:
+          type: [string, "null"]
+          description: |
+            Taken from the unit's Sector with the highest allocation share —
+            messpunkt.io stores floor, position and type on the Sector, not on
+            the unit.
+          example: "2"
+        position:
+          type: [string, "null"]
+          description: Taken from the unit's Sector with the highest allocation share (see `floor`).
+          example: "links"
         unit_type:
           $ref: "#/components/schemas/UnitType"
+          description: Taken from the unit's Sector with the highest allocation share (see `floor`).
         area_heated_m2: { type: [number, "null"], example: 72.4 }
         area_ww_m2:     { type: [number, "null"], example: 72.4 }
         address:        { $ref: "#/components/schemas/Address" }
@@ -1859,7 +1959,7 @@ components:
         house_number_addition: { type: [string, "null"], example: "A" }
         postal_code:        { type: string, example: "99999" }
         city:               { type: string, example: "Musterstadt" }
-        country_code:       { type: string, example: "DE", description: "ISO 3166-1 alpha-2" }
+        country_code:       { type: string, example: "DE", description: "ISO 3166-1 alpha-2. Currently always `DE`." }
 
     Obis:
       type: [string, "null"]
@@ -1891,6 +1991,16 @@ components:
         other meters behind it. It has no device, no readings and — in V1 —
         no consumption value. See *Canonical model* in the API overview.
 
+    IsSystemLinked:
+      type: boolean
+      default: true
+      description: |
+        `false` for a measuring point without an active assignment to a
+        heating or water system (Anlage). It is delivered with its values;
+        the landlord portal shows 0 consumption for it. Clarify with the
+        landlord before billing. Absent means `true`. See *Canonical model*
+        in the API overview. *(Added in rc.3 addendum.)*
+
     MeasuringPoint:
       type: object
       required: [id, usage_unit_id, metric, unit, active_device]
@@ -1907,6 +2017,7 @@ components:
           type: [string, "null"]
           description: Free-text mount info, e.g. "Badezimmer Steigstrang".
         is_difference_meter: { $ref: "#/components/schemas/IsDifferenceMeter" }
+        is_system_linked: { $ref: "#/components/schemas/IsSystemLinked" }
         active_device:
           description: |
             The device currently installed. **`null`** for difference meters
@@ -2008,6 +2119,7 @@ components:
         obis:               { $ref: "#/components/schemas/Obis" }
         unit:               { $ref: "#/components/schemas/MetricUnit" }
         is_difference_meter: { $ref: "#/components/schemas/IsDifferenceMeter" }
+        is_system_linked: { $ref: "#/components/schemas/IsSystemLinked" }
         data_gap:
           type: boolean
           default: false
@@ -2049,6 +2161,7 @@ components:
             known, it is the date of the first known value and may lie inside
             the range.
           example: "2024-12-31"
+        baseline_origin: { $ref: "#/components/schemas/BaselineOrigin" }
         readings:
           type: array
           description: |
@@ -2058,6 +2171,36 @@ components:
           items: { $ref: "#/components/schemas/MeterReading" }
         period_consumption:
           $ref: "#/components/schemas/PeriodConsumption"
+
+    BaselineOrigin:
+      type: string
+      description: |
+        Where the segment's `baseline_value` comes from. Optional: a response
+        without the field says nothing about the origin. Tolerate values not
+        listed here. *(Added in rc.3 addendum.)*
+        - `recorded` — a start value recorded for this device: its value at
+          installation (replacement device) or a recorded start value at the
+          beginning of the range
+        - `assumed_zero` — the start value of a replacement heat cost
+          allocator was **not recorded** and is assumed to be 0 — the
+          consumption of that segment rests on this assumption. A recorded
+          start value always takes precedence.
+        - `first_reading` — replacement device without a recorded start
+          value: the first reading after installation. Consumption between
+          installation and that reading is not included.
+        - `portal_rule` — device installed before the period; start value
+          determined the way the landlord portal determines it for its
+          billing period
+        - `month_end_before_range` — device installed before the range (or
+          installation date unknown): the month-end value of the month
+          before `from`
+        - `first_known_in_range` — installation date unknown and no month-end
+          value before `from`: the first known month-end value, which lies
+          **inside** the range
+        - `none` — no start value known; `baseline_value` and
+          `baseline_date` are `null`
+      enum: [recorded, assumed_zero, first_reading, portal_rule, month_end_before_range, first_known_in_range, none]
+      example: "month_end_before_range"
 
     PeriodConsumption:
       type: object
@@ -2117,6 +2260,8 @@ components:
             `true` when messpunkt.io derived the value (interpolated at the
             month boundary or extrapolated) instead of receiving it from the
             device. `false` for values the device reported or stored itself.
+            Independent of `status`: a `calibration_expired` value can be
+            synthetic.
         substitution_method: { $ref: "#/components/schemas/SubstitutionMethod" }
 
     ReadingStatus:
@@ -2129,19 +2274,25 @@ components:
           between two real readings (`is_synthetic: true`)
         - `substituted` — extrapolated from recent readings because the device
           has not reported since (only at the end of a range, readings at most
-          20 days old; `is_synthetic: true`)
+          20 days old; `is_synthetic: true`). **Not produced today**: ranges
+          end at a completed month end, where messpunkt.io stores only
+          `calculated` values.
         - `missing` — no value could be determined; appears only on
           `period_consumption`
         - `calibration_expired` — the device's statutory calibration period
           (Eichfrist) had ended; the value is shown for information and
-          **must not be billed** *(added in rc.3)*
+          **must not be billed** *(added in rc.3)*. Takes precedence over
+          `calculated`: an interpolated value of such a device has this
+          status with `is_synthetic: true`.
       enum: [measured, substituted, calculated, missing, calibration_expired]
 
     SubstitutionMethod:
       type: [string, "null"]
       description: |
         How a `calculated` or `substituted` value was derived; `null`
-        otherwise.
+        otherwise (also for `calibration_expired`, even when interpolated).
+        Today only the two `calculated` methods occur — `substituted` is not
+        produced (see *Value status* in the API overview).
 
         For `calculated` month-end values:
         - `linear_interpolation` — day-proportional between the neighbouring
