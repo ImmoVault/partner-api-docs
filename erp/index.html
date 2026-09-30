@@ -330,13 +330,13 @@ curl -s -H "Authorization: Bearer $TOKEN" \
       <p>DPoP (RFC 9449) is optional, but when you use it the server checks it fully: <code>htm</code>, <code>htu</code>, <code>iat</code> (±60 s), <code>jti</code> replay, <code>ath</code> and the key thumbprint. Send a proof to <code>/oauth/token</code> and the access token is bound to your key (<code>token_type: DPoP</code>). Every API request must then use <code>Authorization: DPoP &lt;token&gt;</code> plus a fresh <code>DPoP</code> proof, and the same token sent as <code>Bearer</code> is rejected. The <code>htu</code> is the public URL you called, without query. The server does not issue DPoP nonces; do not put a <code>nonce</code> claim in your proofs. Code in C#, Node, Python and curl: <a href="../dpop/">DPoP guide</a>.</p>
 
       <h2 id="errors">Errors</h2>
-      <p>API endpoints (<code>/v1/*</code>) answer errors as <code>application/problem+json</code>. Branch on the last path segment of <code>type</code>:</p>
+      <p>API endpoints (<code>/v1/*</code>) answer errors as <code>application/problem+json</code>. <code>type</code> is <code>https://developer.messpunkt.io/errors/#&lt;code&gt;</code> — the same in sandbox and production, and a link to the code's explanation. Branch on the fragment after <code>#</code>:</p>
       <div class="table-wrap"><table>
         <tr><th>Status</th><th>What happened</th><th>What to do</th></tr>
         <tr><td><code>400</code> <code>invalid-request</code></td><td>bad parameter; <code>detail</code> names it</td><td>fix the request</td></tr>
         <tr><td><code>401</code> <code>invalid-token</code></td><td>token missing, expired or wrong audience. <code>WWW-Authenticate</code> carries <code>error="invalid_token"</code>, or <code>error="invalid_dpop_proof"</code> for a bad proof</td><td>refresh, or fix the proof</td></tr>
         <tr><td><code>403</code> <code>insufficient-scope</code></td><td>the token lacks the scope; <code>WWW-Authenticate</code> names it in <code>scope="…"</code></td><td>ask the landlord to reconnect with that scope</td></tr>
-        <tr><td><code>404</code> <code>resource-not-found</code></td><td>does not exist <strong>or</strong> is outside the Property scope</td><td>do not retry; re-check <code>/v1/whoami</code></td></tr>
+        <tr><td><code>404</code> <code>resource-not-found</code></td><td>does not exist <strong>or</strong> is outside the Property scope (also: an ID that is not a UUID)</td><td>do not retry; re-check <code>/v1/whoami</code></td></tr>
         <tr><td><code>429</code> <code>too-many-requests</code></td><td>rate limit</td><td>wait <code>Retry-After</code> seconds</td></tr>
         <tr><td><code>500</code> / <code>503</code></td><td>server or dependency problem; no <code>detail</code></td><td>retry with exponential backoff</td></tr>
       </table></div>
@@ -350,7 +350,7 @@ curl -s -H "Authorization: Bearer $TOKEN" \
         <tr><td><code>/oauth/revoke</code></td><td>60 requests/min</td><td><code>client_id</code>, as at the token endpoint; <strong>in addition</strong> 60/min per caller address</td></tr>
         <tr><td><code>/oauth/authorize</code></td><td>60 requests/min</td><td>caller address (the landlord's browser)</td></tr>
       </table></div>
-      <p>The limit on <code>/v1/*</code> is per connection, not per <code>client_id</code> or address, because one ERP system serves many landlords from one address, and addresses behind proxies are unreliable. Above a limit you get <code>429</code> with <code>Retry-After</code> (on <code>/v1/*</code> as <code>application/problem+json</code>). Production and sandbox use the same numbers. They are counted in memory per server instance, so the effective limit can be higher than the number above, never lower.</p>
+      <p>The limit on <code>/v1/*</code> is per connection, not per <code>client_id</code> or address, because one ERP system serves many landlords from one address, and addresses behind proxies are unreliable. Above a limit you get <code>429</code> with <code>Retry-After</code>, as <code>application/problem+json</code> with <code>type</code> <code>…/errors/#too-many-requests</code>. Production and sandbox use the same numbers. They are counted in memory per server instance, so the effective limit can be higher than the number above, never lower.</p>
 
       <h2 id="sandbox">Sandbox notes</h2>
       <ul class="plain">

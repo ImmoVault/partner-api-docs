@@ -79,7 +79,8 @@ Typical queries an LLM can answer by calling one or two endpoints:
 ## Constraints for agent authors
 
 - Always call `GET /whoami` after a token refresh and reconcile the current `property_scope`
-- Treat `404` on previously-known IDs as a scope revocation, not a retry condition
+- Problem `type` is `https://developer.messpunkt.io/errors/#<code>` (sandbox and production alike); branch on the fragment. `/oauth/*` answers `429` the same way, its other errors in the OAuth format
+- Treat `404` on previously-known IDs as a scope revocation, not a retry condition; an ID that is not a UUID is also `404`
 - The REST API has no fields for resident (Mieter) names or contact details; `UsageUnit.name` is the landlord's label for the unit
 - Values are monthly at the finest; do not try to reconstruct finer series
 - Rate limits (production and sandbox): REST `/v1/*` 300/min per connection (grant, the token's `sid`) after token validation, requests with an invalid token per caller address; `/oauth/token` and `/oauth/revoke` 60/min per `client_id` after client authentication, in addition 60/min per caller address; MCP 60/min per connection; `429` with `Retry-After`; counted in memory per server instance (best effort)

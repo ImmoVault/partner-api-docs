@@ -18,6 +18,8 @@
 //   8. the generated tool reference is up to date (scripts/render-tools.mjs --check)
 //   9. facts that were wrong once and must not come back: the refresh-token lifetime (90 days without use,
 //      no absolute cap) and authorization-code extraction that assumes hex (codes are base64url)
+//  10. every problem type https://developer.messpunkt.io/errors/#<code> in the spec and the pages has an anchor
+//      of that name on errors/, and no page or example uses the old api(.sandbox)…/errors/<code> form
 // Placeholders (<SUPPORT_KONTAKT> …) are listed, never treated as errors: they must stay visible.
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
@@ -195,6 +197,18 @@ try {
   if (current !== expected) errors.push('mcp/index.html: tool reference out of date (node scripts/render-tools.mjs)');
 } catch (e) {
   errors.push(e.message);
+}
+
+// 10: problem types resolve to errors/
+{
+  const errorIds = new Set([...read('errors/index.html').matchAll(/\sid="([^"]+)"/g)].map(m => m[1]));
+  for (const file of ['erp-api-openapi.yaml', 'errors/index.html', 'bruno/get-property-out-of-scope.bru', ...SCANNED]) {
+    const text = read(file);
+    for (const m of text.matchAll(/https:\/\/developer\.messpunkt\.io\/errors\/#([a-z-]+)/g))
+      if (!errorIds.has(m[1])) errors.push(`${file}: problem type #${m[1]} has no anchor on errors/`);
+    if (/https:\/\/(api|auth)(\.sandbox)?\.messpunkt\.io\/errors\//.test(text))
+      errors.push(`${file}: problem type on the API host; use https://developer.messpunkt.io/errors/#<code>`);
+  }
 }
 
 // --- report ---------------------------------------------------------------------------------------------

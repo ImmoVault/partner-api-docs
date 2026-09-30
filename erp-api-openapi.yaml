@@ -244,15 +244,18 @@ info:
     ## Errors
 
     Every non-2xx response of a `/v1` endpoint is an `application/problem+json`
-    document. Branch on the last path segment of `type` — the host part is the
-    API host you called (`api.sandbox.messpunkt.io` or `api.messpunkt.io`).
+    document. `type` is `https://developer.messpunkt.io/errors/#<code>` in
+    sandbox and production alike, and that address documents the code.
+    Branch on the fragment (the part after `#`), not on `title`. The
+    authorization server answers `429` in the same form
+    (`#too-many-requests`); its other errors use the OAuth format.
 
-    | Status | `type` suffix | Meaning | Retry? |
+    | Status | `type` fragment | Meaning | Retry? |
     | --- | --- | --- | --- |
     | `400` | `invalid-request` | malformed request, e.g. `from` not a date, `to` before `from`, a range that starts after the last completed month, an unknown `metric` value, an invalid `limit`, `page_cursor` or `property_id`; `detail` names the problem | no — fix the request |
     | `401` | `invalid-token` | token missing, expired, not an access token, wrong audience, or DPoP proof invalid | after refreshing the token |
     | `403` | `insufficient-scope` | token lacks the scope this endpoint needs | no — re-authorize with the scope |
-    | `404` | `resource-not-found` | resource does not exist **or** lies outside your Property scope | no — see *Implications for ERP clients* |
+    | `404` | `resource-not-found` | resource does not exist **or** lies outside your Property scope; also for an `{id}` in the path that is not a UUID | no — see *Implications for ERP clients* |
     | `429` | `too-many-requests` | rate limit exceeded | yes, after `Retry-After` seconds |
     | `500` | `internal-error` | unexpected server error; no `detail` | yes, with exponential backoff; quote `trace_id` if it persists |
     | `503` | `service-unavailable` | a dependency needed to check the token or the connection is unavailable; no `detail`. The request was not served — never answered with data | yes, with exponential backoff |
@@ -826,7 +829,7 @@ paths:
                 invalid_limit:
                   summary: "`limit` outside 1–200 or not an integer"
                   value:
-                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    type: "https://developer.messpunkt.io/errors/#invalid-request"
                     title: "Invalid request"
                     status: 400
                     detail: "limit must be an integer between 1 and 200."
@@ -834,7 +837,7 @@ paths:
                 invalid_page_cursor:
                   summary: "`page_cursor` not issued by this API"
                   value:
-                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    type: "https://developer.messpunkt.io/errors/#invalid-request"
                     title: "Invalid request"
                     status: 400
                     detail: "page_cursor is not valid."
@@ -1013,7 +1016,7 @@ paths:
                 invalid_limit:
                   summary: "`limit` outside 1–200 or not an integer"
                   value:
-                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    type: "https://developer.messpunkt.io/errors/#invalid-request"
                     title: "Invalid request"
                     status: 400
                     detail: "limit must be an integer between 1 and 200."
@@ -1021,7 +1024,7 @@ paths:
                 invalid_page_cursor:
                   summary: "`page_cursor` not issued by this API"
                   value:
-                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    type: "https://developer.messpunkt.io/errors/#invalid-request"
                     title: "Invalid request"
                     status: 400
                     detail: "page_cursor is not valid."
@@ -1156,7 +1159,7 @@ paths:
                 invalid_limit:
                   summary: "`limit` outside 1–200 or not an integer"
                   value:
-                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    type: "https://developer.messpunkt.io/errors/#invalid-request"
                     title: "Invalid request"
                     status: 400
                     detail: "limit must be an integer between 1 and 200."
@@ -1164,7 +1167,7 @@ paths:
                 invalid_page_cursor:
                   summary: "`page_cursor` not issued by this API"
                   value:
-                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    type: "https://developer.messpunkt.io/errors/#invalid-request"
                     title: "Invalid request"
                     status: 400
                     detail: "page_cursor is not valid."
@@ -1172,7 +1175,7 @@ paths:
                 invalid_property_id:
                   summary: "`property_id` is not a UUID"
                   value:
-                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    type: "https://developer.messpunkt.io/errors/#invalid-request"
                     title: "Invalid request"
                     status: 400
                     detail: "property_id must be a UUID."
@@ -1475,23 +1478,23 @@ paths:
                 to_before_from:
                   summary: "`to` before `from`"
                   value:
-                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    type: "https://developer.messpunkt.io/errors/#invalid-request"
                     title: "Invalid request"
                     status: 400
                     detail: "to must be on or after from"
                     trace_id: "3f9c2a71b0d84e15"
                 invalid_date:
-                  summary: "`from` or `to` missing or not an ISO 8601 date"
+                  summary: "`from` or `to` not an ISO 8601 date (a missing one: `from is required and must be an ISO 8601 date (yyyy-MM-dd).`)"
                   value:
-                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    type: "https://developer.messpunkt.io/errors/#invalid-request"
                     title: "Invalid request"
                     status: 400
-                    detail: "from is required and must be an ISO 8601 date (yyyy-MM-dd)."
+                    detail: "from must be an ISO 8601 date (yyyy-MM-dd); got '2025-13-01'."
                     trace_id: "9a41c7e05b2d386f"
                 range_after_last_completed_month:
                   summary: Range lies entirely after the last completed month
                   value:
-                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    type: "https://developer.messpunkt.io/errors/#invalid-request"
                     title: "Invalid request"
                     status: 400
                     detail: "The range starts after the last completed month (2026-08-31); no month-end data exists yet."
@@ -1499,7 +1502,7 @@ paths:
                 unknown_metric:
                   summary: Unknown `metric` filter value
                   value:
-                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    type: "https://developer.messpunkt.io/errors/#invalid-request"
                     title: "Invalid request"
                     status: 400
                     detail: "'steam' is not a valid metric."
@@ -1882,23 +1885,23 @@ paths:
                 to_before_from:
                   summary: "`to` before `from`"
                   value:
-                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    type: "https://developer.messpunkt.io/errors/#invalid-request"
                     title: "Invalid request"
                     status: 400
                     detail: "to must be on or after from"
                     trace_id: "3f9c2a71b0d84e15"
                 invalid_date:
-                  summary: "`from` or `to` missing or not an ISO 8601 date"
+                  summary: "`from` or `to` not an ISO 8601 date (a missing one: `from is required and must be an ISO 8601 date (yyyy-MM-dd).`)"
                   value:
-                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    type: "https://developer.messpunkt.io/errors/#invalid-request"
                     title: "Invalid request"
                     status: 400
-                    detail: "from is required and must be an ISO 8601 date (yyyy-MM-dd)."
+                    detail: "from must be an ISO 8601 date (yyyy-MM-dd); got '2025-13-01'."
                     trace_id: "9a41c7e05b2d386f"
                 range_after_last_completed_month:
                   summary: Range lies entirely after the last completed month
                   value:
-                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    type: "https://developer.messpunkt.io/errors/#invalid-request"
                     title: "Invalid request"
                     status: 400
                     detail: "The range starts after the last completed month (2026-08-31); no month-end data exists yet."
@@ -2021,7 +2024,7 @@ components:
         application/problem+json:
           schema: { $ref: "#/components/schemas/Problem" }
           example:
-            type: "https://api.sandbox.messpunkt.io/errors/invalid-token"
+            type: "https://developer.messpunkt.io/errors/#invalid-token"
             title: "Missing or invalid token"
             status: 401
             trace_id: "a07e5d3c91f24b68"
@@ -2031,20 +2034,21 @@ components:
         application/problem+json:
           schema: { $ref: "#/components/schemas/Problem" }
           example:
-            type: "https://api.sandbox.messpunkt.io/errors/insufficient-scope"
+            type: "https://developer.messpunkt.io/errors/#insufficient-scope"
             title: "Scope insufficient"
             status: 403
-            detail: "This endpoint requires the read:readings scope."
+            detail: "This endpoint requires the read:readings scope. Request it in the authorization flow and ask the landlord to connect again."
             trace_id: "5b1d8e20c7a94f33"
     NotFound:
       description: |
         The resource does not exist, or it exists outside the Property scope
         of this connection. The two cases are deliberately indistinguishable.
+        An `{id}` in the path that is not a UUID is answered the same way.
       content:
         application/problem+json:
           schema: { $ref: "#/components/schemas/Problem" }
           example:
-            type: "https://api.sandbox.messpunkt.io/errors/resource-not-found"
+            type: "https://developer.messpunkt.io/errors/#resource-not-found"
             title: "Resource not found"
             status: 404
             detail: "Property d490d09c-46cc-498e-a9ac-e031dd2402d2 not found in this Tenant's scope"
@@ -2059,7 +2063,7 @@ components:
         application/problem+json:
           schema: { $ref: "#/components/schemas/Problem" }
           example:
-            type: "https://api.sandbox.messpunkt.io/errors/too-many-requests"
+            type: "https://developer.messpunkt.io/errors/#too-many-requests"
             title: "Too many requests"
             status: 429
             detail: "Rate limit of 300 requests per 60s exceeded. Retry in 12s."
@@ -2072,7 +2076,7 @@ components:
         application/problem+json:
           schema: { $ref: "#/components/schemas/Problem" }
           example:
-            type: "https://api.sandbox.messpunkt.io/errors/internal-error"
+            type: "https://developer.messpunkt.io/errors/#internal-error"
             title: "Internal error"
             status: 500
             trace_id: "c8157d2e904fa36b"
@@ -2086,7 +2090,7 @@ components:
         application/problem+json:
           schema: { $ref: "#/components/schemas/Problem" }
           example:
-            type: "https://api.sandbox.messpunkt.io/errors/service-unavailable"
+            type: "https://developer.messpunkt.io/errors/#service-unavailable"
             title: "Service unavailable"
             status: 503
             trace_id: "0fa39c6b58e2d714"
@@ -2153,7 +2157,10 @@ components:
           example: "Musterstraße 12-14"
         addresses:
           type: array
-          description: One or more addresses belonging to this Property.
+          description: |
+            Every address of this Property, including addresses without usage
+            units (e.g. a separate plant-room entrance), sorted by street, house
+            number, suffix and postal code.
           items: { $ref: "#/components/schemas/Address" }
         usage_unit_count:
           type: [integer, "null"]
@@ -2711,8 +2718,8 @@ components:
         type:
           type: string
           format: uri
-          description: Stable error identifier; branch on its last path segment (see *Errors*).
-          example: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+          description: Stable error identifier `https://developer.messpunkt.io/errors/#<code>`; branch on its fragment (see *Errors*).
+          example: "https://developer.messpunkt.io/errors/#invalid-request"
         title:
           type: string
           description: Short English summary. May change; do not branch on it.

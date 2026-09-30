@@ -210,6 +210,16 @@
           </ul>
         </div>
         <div class="change-group changed">
+          <h3>rc.3 — Addendum: error <code>type</code> and smaller corrections</h3>
+          <p>Changed before rc.3 is published, so the version number stays <code>1.0.0-rc.3</code>.</p>
+          <ul>
+            <li><strong>Problem <code>type</code></strong> is now <code>https://developer.messpunkt.io/errors/#&lt;code&gt;</code>, the same in sandbox and production, and each value opens the explanation on <a href="../errors/">Error handling</a>. It used to be <code>https://api(.sandbox).messpunkt.io/errors/&lt;code&gt;</code>, an address where no page lives. The codes are unchanged. <strong>Action:</strong> branch on the fragment after <code>#</code> instead of the last path segment. The authorization server's <code>429</code> uses the same form.</li>
+            <li><strong><code>404 resource-not-found</code></strong> is also the answer for an <code>{id}</code> in the path that is not a UUID. It used to be an empty <code>404</code> without <code>application/problem+json</code>.</li>
+            <li><strong><code>Property.addresses</code></strong> lists every address of the Property, including addresses without usage units; before, only addresses that carried a unit appeared.</li>
+            <li><strong>Error texts:</strong> <code>403</code> says how to get the missing scope; an invalid date echoes the value (<code>from must be an ISO 8601 date (yyyy-MM-dd); got '2025-13-01'.</code>). <code>detail</code> stays free text — do not parse it.</li>
+          </ul>
+        </div>
+        <div class="change-group changed">
           <h3>rc.3 — Addendum: changed meaning (shared Sectors)</h3>
           <p>rc.3 said that values are “per device and never pre-weighted” and left open how a measuring point of a Sector shared by several usage units appears. messpunkt.io has such Sectors in production — 46 partial allocations, with 12 Sectors split between three to five units each — so the open point is now fixed:</p>
           <ul>
