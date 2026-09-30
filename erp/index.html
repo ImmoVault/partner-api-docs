@@ -253,6 +253,7 @@ curl -s -H "Authorization: Bearer $TOKEN" \
         <tr><td><code>GET /v1/properties</code>, <code>GET /v1/properties/{id}</code></td><td><code>read:units</code></td></tr>
         <tr><td><code>GET /v1/usage-units</code>, <code>GET /v1/usage-units/{id}</code></td><td><code>read:units</code></td></tr>
         <tr><td><code>GET /v1/usage-units/{id}/consumption</code></td><td><code>read:readings</code></td></tr>
+        <tr><td><code>GET /v1/properties/{id}/measuring-points</code> (paginated; every measuring point of the Property, with and without a unit)</td><td><code>read:devices</code></td></tr>
         <tr><td><code>GET /v1/measuring-points/{id}</code></td><td><code>read:devices</code></td></tr>
         <tr><td><code>GET /v1/measuring-points/{id}/readings</code></td><td><code>read:readings</code></td></tr>
       </table></div>
@@ -269,6 +270,30 @@ curl -s -H "Authorization: Bearer $TOKEN" \
         <li>Difference meters (<code>is_difference_meter: true</code>) have no device and no value in V1.</li>
       </ul>
       <p>Full contract: <a href="../reference/#section/Data-resolution:-monthly-never-finer">Data resolution</a> in the Reference.</p>
+      <h3 id="no-unit">Meters that belong to no apartment (plant room, main meters)</h3>
+      <p>Not every meter belongs to a usage unit: a total heat meter, a boiler room or a main water meter sits in an area that is allocated to no unit. These measuring points are part of the API. Their <code>usage_unit_id</code> is <code>null</code> and <code>allocations</code> is empty; <code>property_id</code> always names the property. List them with <code>GET /v1/properties/{id}/measuring-points</code> (scope <code>read:devices</code>, paginated) — the list contains every measuring point of the property, with and without a unit — and read their values with <code>GET /v1/measuring-points/{id}/readings</code>. They never appear under a unit and are not part of <code>GET /v1/usage-units/{id}/consumption</code>, and they are never spread over the units for you: the total meter is the property's own figure, and how it is split among apartments is your billing rule. Handle <code>usage_unit_id: null</code> in your client — it is a breaking change of rc.3, which is not published yet.</p>
+      <pre><code>curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://api.sandbox.messpunkt.io/v1/properties/$PROPERTY_ID/measuring-points?limit=100" \
+  | python3 -m json.tool
+
+{
+  "data": [
+    {
+      "id": "e7a1c3d2-58b4-4f0e-9c6a-3b2d1f0a8e57",
+      "usage_unit_id": null,
+      "property_id": "718e092d-8626-4975-b800-252a7746ad08",
+      "metric": "heat",
+      "unit": "kWh",
+      "allocations": [],
+      "localization": "Technikraum Gesamtwärmezähler",
+      "is_difference_meter": false,
+      …
+    },
+    …
+  ],
+  "next_cursor": null
+}</code></pre>
+      <p>Details: <em>Shared Sectors</em> and <em>Sectors without a share</em> under <a href="../reference/#section/Canonical-model">Canonical model</a> in the Reference.</p>
       <h3>Property scope</h3>
       <p>Call <code>/v1/whoami</code> after every token issue and refresh and reconcile your local Property list with <code>property_scope</code> (<code>"all"</code> or a list of UUIDs). A resource outside the landlord's selection returns <code>404</code>, never <code>403</code>. Treat a <code>404</code> on an ID you knew as “access withdrawn”, not as a reason to retry. When the landlord wants a different selection, they disconnect and consent again.</p>
 
@@ -308,13 +333,12 @@ curl -s -H "Authorization: Bearer $TOKEN" \
       <p>OAuth endpoints (<code>/oauth/*</code>) answer in the OAuth format (<code>error</code>, <code>error_description</code>): <code>invalid_request</code>, <code>invalid_client</code> (401; for <code>client_secret_basic</code> with <code>WWW-Authenticate: Basic</code>), <code>invalid_grant</code> (code or refresh token invalid, reused, revoked or inactive), <code>invalid_target</code> (unknown <code>resource</code>), <code>invalid_scope</code>, <code>invalid_dpop_proof</code>, <code>unsupported_grant_type</code>. On <code>/oauth/authorize</code>, an unknown client or unregistered <code>redirect_uri</code> is never redirected: the browser gets an error page. Full table with client actions: <a href="../errors/">Error handling</a>.</p>
 
       <h2 id="limits">Rate limits</h2>
-      <ul class="plain">
-      </ul>
       <div class="table-wrap"><table>
         <tr><th>Endpoint</th><th>Limit</th><th>Counted per</th></tr>
         <tr><td><code>/v1/*</code></td><td>300 requests/min</td><td>connection (grant, the token's <code>sid</code>), after the token is validated. Requests whose token fails validation are counted per caller address.</td></tr>
         <tr><td><code>/oauth/token</code></td><td>60 requests/min</td><td><code>client_id</code>, after successful client authentication; <strong>in addition</strong> 60/min per caller address</td></tr>
-        <tr><td><code>/oauth/revoke</code></td><td>60 requests/min</td><td><code>client_id</code>, as at the token endpoint</td></tr>
+        <tr><td><code>/oauth/revoke</code></td><td>60 requests/min</td><td><code>client_id</code>, as at the token endpoint; <strong>in addition</strong> 60/min per caller address</td></tr>
+        <tr><td><code>/oauth/authorize</code></td><td>60 requests/min</td><td>caller address (the landlord's browser)</td></tr>
       </table></div>
       <p>The limit on <code>/v1/*</code> is per connection, not per <code>client_id</code> or address, because one ERP system serves many landlords from one address, and addresses behind proxies are unreliable. Above a limit you get <code>429</code> with <code>Retry-After</code> (on <code>/v1/*</code> as <code>application/problem+json</code>). Production and sandbox use the same numbers. They are counted in memory per server instance, so the effective limit can be higher than the number above, never lower.</p>
 

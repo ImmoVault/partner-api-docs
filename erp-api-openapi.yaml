@@ -122,11 +122,10 @@ info:
     - **DPoP:** optional, exactly as in production. Plain `Bearer` tokens work,
       so Swagger UI (which doesn't generate DPoP proofs) can exercise all
       endpoints. See *Authentication*.
-    - **Rate limits:** 300 requests per minute per caller IP on `/v1/*` data
-      endpoints, 60 per minute per caller IP on `/oauth/*`. `429 Too Many
-      Requests` with a `Retry-After` header on exceedance. Counted in memory per
-      server instance, best effort: the effective limit can be higher than the
-      number above, never lower.
+    - **Rate limits:** the same numbers and counting keys as in production
+      (see *Rate limits* under *Conventions*). Counted in memory per server
+      instance, best effort: the effective limit can be higher than the
+      number, never lower.
     - **Token lifetimes:** access 1 h, refresh 90 days. There is
       **no absolute session cap** — a session stays valid as long as the
       ERP rotates its refresh token at least every 90 days. Built for
@@ -225,9 +224,21 @@ info:
     - IDs: UUID.
     - Pagination: cursor-based (`page_cursor`, `next_cursor`, `prev_cursor`).
     - Versioning: `/v1` path prefix; deprecations signalled with `Sunset` header + 6 months overlap.
-    - Rate limits: `429` with `Retry-After` on exceedance. The sandbox limits
-      are listed above; production limits are applied per `client_id` and
-      will be published here before GA.
+    - Rate limits (production and sandbox): `429 Too Many Requests` with a
+      `Retry-After` header (seconds) on exceedance.
+      - `/v1/*`: 300 requests per minute per connection (grant, the access
+        token's `sid`), counted after the token is validated. Requests whose
+        token fails validation are counted per caller address.
+      - `/oauth/token` and `/oauth/revoke`: 60 requests per minute per
+        `client_id`, counted after successful client authentication, and in
+        addition 60 per minute per caller address.
+      - `/oauth/authorize`: 60 requests per minute per caller address.
+      - MCP server for landlords: 60 requests per minute per connection (grant).
+
+      The `/v1/*` limit is per connection, not per `client_id` or address:
+      one ERP system serves many landlords from one address, and addresses
+      behind proxies are unreliable. Limits are counted in memory per server
+      instance, so the effective limit can be higher, never lower.
 
     ## Errors
 
