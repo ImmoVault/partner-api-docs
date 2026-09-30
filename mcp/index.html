@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>messpunkt.io — MCP server reference</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Reference for the messpunkt.io MCP server: endpoints, stateless transport, OAuth challenge, scopes, versioning and the generated tool reference." />
+    <meta name="theme-color" content="#1e534a" />
+    <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+    <link rel="alternate icon" type="image/x-icon" href="../assets/favicon.ico" />
+    <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <style>
+    <style>
+      :root {
+        --brand-primary: #1e534a;
+        --brand-primary-hover: #16403a;
+        --brand-dark: #172636;
+        --brand-gray-bg: #eaf0f6;
+        --brand-gray-border: #d1d5dc;
+        --brand-accent: #f7fafa;
+        --brand-white: #ffffff;
+      }
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--brand-dark); background: var(--brand-white); line-height: 1.65; }
+
+      .topbar { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 24px; padding: 14px 28px; background: var(--brand-white); border-bottom: 1px solid var(--brand-gray-border); }
+      .topbar .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--brand-dark); }
+      .topbar .brand img { height: 28px; width: auto; display: block; }
+      .topbar .brand .subtitle { font-size: 13px; font-weight: 500; padding-left: 12px; border-left: 1px solid var(--brand-gray-border); line-height: 1; }
+      .topbar nav { display: flex; gap: 4px; margin-left: auto; align-items: center; flex-wrap: wrap; }
+      .topbar nav a { font-size: 13px; font-weight: 500; padding: 6px 12px; border-radius: 6px; color: var(--brand-dark); text-decoration: none; transition: background 0.15s; }
+      .topbar nav a:hover { background: var(--brand-accent); color: var(--brand-primary); }
+      .topbar nav a.current { background: var(--brand-primary); color: var(--brand-white); }
+      .topbar nav .divider { width: 1px; height: 18px; background: var(--brand-gray-border); margin: 0 6px; }
+
+      .preview-ribbon { background: var(--brand-accent); color: var(--brand-dark); border-bottom: 1px solid var(--brand-gray-border); padding: 10px 28px; font-size: 13px; line-height: 1.5; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+      .preview-ribbon .badge { background: var(--brand-primary); color: var(--brand-white); font-weight: 600; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
+      .preview-ribbon a { color: var(--brand-primary); font-weight: 500; text-decoration: none; border-bottom: 1px solid currentColor; }
+
+      main { max-width: 1200px; margin: 0 auto; padding: 48px 28px 72px; }
+      .layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 56px; align-items: start; }
+      .content { min-width: 0; }
+      .side-nav { position: sticky; top: 84px; align-self: start; }
+      .side-nav h3 { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; margin: 0 0 12px; }
+      .side-nav .side-cards { display: flex; flex-direction: column; gap: 8px; }
+      .side-nav .side-card { display: block; border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 12px 14px; text-decoration: none; color: inherit; transition: border-color 0.15s, background 0.15s, transform 0.05s; }
+      .side-nav .side-card:hover { border-color: var(--brand-primary); background: var(--brand-accent); transform: translateX(2px); }
+      .side-nav .side-card .title { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; color: var(--brand-primary); margin-bottom: 2px; }
+      .side-nav .side-card .title::after { content: '→'; font-weight: 400; color: var(--brand-primary); opacity: 0.55; transition: transform 0.15s, opacity 0.15s; }
+      .side-nav .side-card:hover .title::after { opacity: 1; transform: translateX(2px); }
+      .side-nav .side-card .desc { font-size: 12px; color: #64748b; line-height: 1.45; }
+      @media (max-width: 960px) {
+        .layout { grid-template-columns: 1fr; gap: 32px; }
+        .side-nav { position: static; max-width: 100%; margin-top: 16px; }
+      }
+      h1 { font-size: 36px; line-height: 1.15; margin: 0 0 12px; letter-spacing: -0.015em; }
+      .lead { color: #3f4c5c; font-size: 18px; margin: 0 0 40px; max-width: 700px; }
+      h2 { font-size: 24px; margin: 48px 0 8px; letter-spacing: -0.005em; }
+      h2 .step-num { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: var(--brand-primary); color: var(--brand-white); border-radius: 50%; font-size: 14px; font-weight: 600; margin-right: 10px; vertical-align: middle; }
+      h3 { font-size: 15px; font-weight: 600; margin: 20px 0 8px; color: var(--brand-dark); letter-spacing: 0.01em; }
+      p { margin: 0 0 14px; }
+      a { color: var(--brand-primary); }
+      a:hover { color: var(--brand-primary-hover); }
+      code { font-family: 'JetBrains Mono', monospace; font-size: 13.5px; background: var(--brand-gray-bg); padding: 1px 6px; border-radius: 4px; }
+      pre { position: relative; background: var(--brand-dark); color: #e8eef5; padding: 16px 18px; border-radius: 8px; overflow: auto; font-size: 13px; line-height: 1.55; margin: 10px 0 18px; }
+      pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+      .copy-btn { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.06); color: #e8eef5; border: 1px solid rgba(255,255,255,0.14); padding: 4px 10px; font-size: 11px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 4px; cursor: pointer; opacity: 0.5; transition: opacity 0.15s, background 0.15s, border-color 0.15s, color 0.15s; z-index: 2; }
+      pre:hover .copy-btn, .copy-btn:focus-visible { opacity: 1; }
+      .copy-btn:hover { background: rgba(255,255,255,0.16); }
+      .copy-btn:focus-visible { outline: none; border-color: rgba(255,255,255,0.4); }
+      .copy-btn.copied { opacity: 1; background: rgba(16,124,63,0.3); border-color: rgba(16,124,63,0.5); color: #a0d5a5; }
+      .note { background: var(--brand-accent); border-left: 3px solid var(--brand-primary); padding: 12px 16px; margin: 14px 0; font-size: 14px; border-radius: 4px; }
+      .note strong { color: var(--brand-primary); }
+
+      .time-badge { display: inline-block; background: var(--brand-accent); color: var(--brand-primary); font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 4px 10px; border-radius: 4px; margin-bottom: 16px; }
+
+      .next-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 24px; }
+      .next-step-card { border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 16px; text-decoration: none; color: inherit; transition: border-color 0.15s, transform 0.05s; display: block; }
+      .next-step-card:hover { border-color: var(--brand-primary); color: inherit; transform: translateY(-1px); }
+      .next-step-card .title { font-size: 15px; font-weight: 600; color: var(--brand-primary); margin-bottom: 4px; }
+      .next-step-card .desc { font-size: 13px; color: #64748b; line-height: 1.5; }
+
+      .site-footer { padding: 24px 28px; border-top: 1px solid var(--brand-gray-border); background: var(--brand-white); color: var(--brand-dark); font-size: 13px; line-height: 1.6; }
+      .site-footer .row { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; justify-content: space-between; max-width: 860px; margin: 0 auto; }
+      .site-footer a { color: var(--brand-primary); text-decoration: none; }
+      .site-footer .links { display: flex; gap: 18px; flex-wrap: wrap; }
+      .site-footer .muted { color: #64748b; }
+
+      .status { background: #fff8e1; border: 1px solid #f2c94c; border-radius: 8px; padding: 14px 18px; margin: 0 0 32px; font-size: 14.5px; }
+      .status strong { color: #7a5b00; }
+      .placeholder { font-family: 'JetBrains Mono', monospace; font-size: 13px; background: #fff3cd; color: #7a5b00; border: 1px dashed #d4a72c; padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
+      table { border-collapse: collapse; width: 100%; margin: 10px 0 20px; font-size: 14px; }
+      th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--brand-gray-border); }
+      th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; font-weight: 600; }
+      .table-wrap { overflow-x: auto; }
+      .checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 12px 0 24px; }
+      .checks > div { border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 12px 14px; font-size: 14px; }
+      .checks .verified { border-left: 4px solid #1f7a3f; }
+      .checks .unverified { border-left: 4px solid #d4a72c; }
+      .checks h4 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; }
+      .checks .verified h4 { color: #1f7a3f; }
+      .checks .unverified h4 { color: #7a5b00; }
+      .checks ul { margin: 0; padding-left: 18px; }
+      ol.steps li, ul.plain li { margin-bottom: 6px; }
+      details.tech { border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 12px 16px; margin: 24px 0; background: var(--brand-accent); }
+      details.tech summary { cursor: pointer; font-weight: 600; color: var(--brand-primary); }
+      .qa { border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 12px 16px; margin: 12px 0; }
+      .qa .q { font-weight: 600; margin-bottom: 6px; }
+      .qa .a { color: #3f4c5c; font-size: 14.5px; }
+      .tool { border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 16px 18px; margin: 18px 0; }
+      .tool h3 { margin-top: 0; font-family: 'JetBrains Mono', monospace; font-size: 16px; }
+      .tool blockquote { margin: 8px 0 12px; padding: 8px 14px; border-left: 3px solid var(--brand-gray-border); color: #3f4c5c; white-space: pre-line; font-size: 14px; }
+      .tool .meta { font-size: 13px; color: #64748b; margin-bottom: 8px; }
+      .tool details summary { cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--brand-primary); }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="https://messpunkt.io/" target="_blank" rel="noopener">
+        <img src="../assets/messpunkt-quer.svg" alt="messpunkt.io" />
+        <span class="subtitle">Partner API · MCP reference</span>
+      </a>
+      <nav aria-label="Viewer switcher">
+        <a href="../">Home</a>
+        <a href="../reference/">Reference</a>
+        <span class="divider" aria-hidden="true"></span>
+        <a href="../connect/">Connect AI</a>
+        <a href="../erp/">ERP guide</a>
+        <a href="../mcp/" class="current">MCP</a>
+        <span class="divider" aria-hidden="true"></span>
+        <a href="../quickstart/">Quickstart</a>
+        <a href="../changelog/">Changelog</a>
+        <a href="../erp-api-openapi.yaml">OpenAPI YAML</a>
+      </nav>
+    </header>
+
+    <div class="preview-ribbon">
+      <span class="badge">Preview</span>
+      <span>V1 release candidate <strong>1.0.0-rc.3</strong> — GA ships with the first pilot partner. Become one: <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
+      </span>
+    </div>
+
+    <main>
+      <div class="layout">
+        <article class="content">
+      <span class="time-badge">Reference</span>
+      <h1>MCP server reference</h1>
+      <p class="lead">The messpunkt.io MCP server lets landlords ask their own AI assistant about their properties, consumption and devices. It is read-only, uses the same authorization server and consent screen as the REST API, and applies the same data rules. Landlords who just want to connect should read <a href="../connect/">Mit Claude, ChatGPT oder Codex verbinden</a> (German).</p>
+
+      <div class="status">
+        <strong>Not live yet.</strong> The MCP server is part of V1 and goes live together with the production REST API, announced in the <a href="../changelog/">changelog</a>. There is no sandbox MCP server.
+      </div>
+
+      <h2 id="endpoints">Endpoints</h2>
+      <div class="table-wrap"><table>
+        <tr><th></th><th>URL</th></tr>
+        <tr><td>MCP endpoint (resource)</td><td><code>https://mcp.messpunkt.io/v1</code></td></tr>
+        <tr><td>Protected resource metadata (RFC 9728)</td><td><code>https://mcp.messpunkt.io/.well-known/oauth-protected-resource/v1</code></td></tr>
+        <tr><td>Authorization server</td><td><code>https://auth.messpunkt.io</code> (metadata at <code>https://auth.messpunkt.io/.well-known/oauth-authorization-server</code>)</td></tr>
+      </table></div>
+
+      <h2 id="transport">Transport</h2>
+      <ul class="plain">
+        <li><strong>Streamable HTTP, stateless.</strong> Every JSON-RPC request is a <code>POST</code> to <code>/v1</code> and is answered on its own. The server keeps no session between requests, so a client does not need sticky routing.</li>
+        <li>No server-initiated requests in V1: the read-only tools never ask the client for input (no elicitation, no sampling).</li>
+        <li>Requests with an <code>Origin</code> header must come from an allowed origin, otherwise <code>403</code>. Clients that send no <code>Origin</code> (desktop and server clients) are not affected.</li>
+        <li>Request bodies are limited to 1 MiB (<code>413</code> above).</li>
+      </ul>
+
+      <h2 id="auth">Authorization</h2>
+      <p>OAuth 2.1 Authorization Code with PKCE (S256), exactly as for the REST API, with <code>resource=https://mcp.messpunkt.io/v1</code> (RFC 8707). The access token's <code>aud</code> is that resource. A REST token is rejected here and vice versa.</p>
+      <ul class="plain">
+        <li><strong>Client registration: Client ID Metadata Documents.</strong> An MCP client identifies itself with an <code>https</code> URL as <code>client_id</code> pointing to its metadata document (<code>token_endpoint_auth_method: none</code>). The authorization server advertises <code>client_id_metadata_document_supported: true</code>. Dynamic client registration is not offered.</li>
+        <li><strong>Redirect URIs</strong> are matched exactly for <code>https</code>. Loopback redirects (<code>http://localhost</code>, <code>http://127.0.0.1</code>, <code>http://[::1]</code>) match with any port and exact path. The consent screen warns the landlord that such a client runs on their own computer.</li>
+        <li><strong>Consent</strong>: the landlord picks the customer organisation and <em>all Properties, including future ones</em> or a selection. The token carries that selection; tools outside it behave as if the Property did not exist.</li>
+        <li><strong>Connection check on every request</strong>: after the landlord disconnects in the portal, requests fail within 60 seconds.</li>
+        <li>DPoP-bound tokens (RFC 9449) are accepted with <code>Authorization: DPoP</code> and a proof, as on the REST API.</li>
+      </ul>
+
+      <h3 id="challenge">Auth challenge</h3>
+      <p>Without a token the server answers <code>401</code> and points to its metadata:</p>
+      <pre><code>HTTP/1.1 401 Unauthorized
+WWW-Authenticate: Bearer scope="read:units read:devices read:readings", resource_metadata="https://mcp.messpunkt.io/.well-known/oauth-protected-resource/v1"
+Content-Type: application/problem+json</code></pre>
+      <p>A rejected token adds <code>error="invalid_token"</code> and <code>error_description</code>. For a DPoP-bound token the scheme is <code>DPoP</code> with <code>algs</code>.</p>
+      <p>A <code>tools/call</code> for a tool whose scope the token lacks is refused <strong>before</strong> the tool runs, with a real HTTP <code>403</code> so the client can step up:</p>
+      <pre><code>HTTP/1.1 403 Forbidden
+WWW-Authenticate: Bearer error="insufficient_scope", error_description="…", scope="read:devices", resource_metadata="https://mcp.messpunkt.io/.well-known/oauth-protected-resource/v1"
+Content-Type: application/problem+json</code></pre>
+      <p>The problem <code>detail</code> is German, because it is shown to the landlord. It tells them to reconnect with that permission. <code>tools/list</code> is not scope-filtered: every tool is listed, and its required scope is below.</p>
+
+      <h3 id="limits">Rate limits</h3>
+      <p>Counted per connection (grant) over every authenticated request to <code>/v1</code>, not only <code>tools/call</code>; <code>429</code> with <code>Retry-After</code> above the limit. Production numbers: <span class="placeholder">&lt;PROD_RATE_LIMITS&gt;</span>.</p>
+
+      <h2 id="behaviour">Tool behaviour</h2>
+      <ul class="plain">
+        <li>All tools are read-only (<code>readOnlyHint: true</code>, <code>idempotentHint: true</code>, <code>openWorldHint: false</code>). Each returns structured content matching its <code>outputSchema</code> plus a short text summary for clients that ignore structured content.</li>
+        <li>Tool and field names are English. Descriptions, summaries and error texts are German, because landlords read them. The reference below quotes them as delivered.</li>
+        <li>Properties can be named by ID or by a part of their name or address. If several match, the result lists the candidates instead of failing. “Not found” and “not shared with you” produce the same answer.</li>
+        <li>Validation problems (for example a range longer than 36 months) come back as a tool result with <code>isError: true</code> and a German explanation, not as a protocol error.</li>
+        <li>Data rules as in the REST API: monthly values at the finest; one unit per metric (<code>kWh</code>, <code>m3</code>, <code>unit</code> = heat-cost-allocator units), never summed across metrics; <code>water_outdoor</code> separate; difference meters without a value; calibration status <code>unknown</code> never means “fine”.</li>
+      </ul>
+
+      <h2 id="versioning">Versioning</h2>
+      <p>The path carries the major version (<code>/v1</code>). Within <code>v1</code> changes are additive only: new tools, new optional input fields, new output fields. A tool is never renamed or removed, and its meaning never changes. The server's test suite compares <code>tools/list</code> with a saved snapshot, so any change to a tool needs a deliberate snapshot update. The tool reference below is generated from that snapshot.</p>
+
+      <h2 id="tools">Tool reference</h2>
+<!-- BEGIN GENERATED: scripts/render-tools.mjs -->
+      <div class="status" id="tools-pending"><strong>Pending.</strong> This section is generated from the server's <code>tools/list</code> snapshot and is filled in before publication.</div>
+<!-- END GENERATED -->
+        </article>
+
+        <aside class="side-nav" aria-label="On this page">
+          <h3>On this page</h3>
+          <div class="side-cards">
+            <a class="side-card" href="#auth"><div class="title">Authorization</div><div class="desc">CIMD, resource, challenge</div></a>
+            <a class="side-card" href="#behaviour"><div class="title">Tool behaviour</div><div class="desc">Names, errors, data rules</div></a>
+            <a class="side-card" href="#tools"><div class="title">Tool reference</div><div class="desc">Generated from tools/list</div></a>
+            <a class="side-card" href="../connect/"><div class="title">Landlord guide</div><div class="desc">Connect Claude, ChatGPT, Codex (German)</div></a>
+            <a class="side-card" href="../erp/"><div class="title">ERP guide</div><div class="desc">Same auth server, REST</div></a>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="row">
+        <div>
+          <strong>messpunkt.io Partner API</strong> · Preview · 1.0.0-rc.3 · GA with the first pilot partner
+          <div class="muted">© 2026 messpunkt.io — <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
+        </div>
+        <div class="links">
+          <a href="https://messpunkt.io/impressum" target="_blank" rel="noopener">Impressum</a>
+          <a href="https://messpunkt.io/datenschutz" target="_blank" rel="noopener">Datenschutz</a>
+          <a href="../.well-known/security.txt">Security</a>
+          <a href="../erp-api-openapi.yaml">OpenAPI 3.1 spec</a>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      document.querySelectorAll('pre').forEach(pre => {
+        if (pre.querySelector('.copy-btn')) return;
+        const btn = document.createElement('button');
+        btn.className = 'copy-btn';
+        btn.type = 'button';
+        btn.setAttribute('aria-label', 'Copy code to clipboard');
+        btn.textContent = 'Copy';
+        btn.addEventListener('click', async () => {
+          const code = pre.querySelector('code');
+          const text = (code ? code.innerText : pre.innerText).replace(/\s*$/, '');
+          try {
+            await navigator.clipboard.writeText(text);
+            btn.textContent = 'Copied';
+            btn.classList.add('copied');
+          } catch (err) {
+            btn.textContent = 'Error';
+          }
+          setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1600);
+        });
+        pre.appendChild(btn);
+      });
+    </script>
+  </body>
+  </body>
+</html>
