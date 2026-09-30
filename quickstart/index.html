@@ -97,12 +97,11 @@
         <a href="../">Home</a>
         <a href="../reference/">Reference</a>
         <span class="divider" aria-hidden="true"></span>
-        <a href="../swagger-ui/">Swagger UI</a>
-        <a href="../scalar/">Scalar</a>
-        <a href="../bruno/">Bruno</a>
+        <a href="../connect/">Connect AI</a>
+        <a href="../erp/">ERP guide</a>
+        <a href="../mcp/">MCP</a>
         <span class="divider" aria-hidden="true"></span>
         <a href="./" class="current">Quickstart</a>
-        <a href="../sdk/">SDK</a>
         <a href="../changelog/">Changelog</a>
         <a href="../erp-api-openapi.yaml">OpenAPI YAML</a>
       </nav>
@@ -133,7 +132,7 @@ CHALLENGE=$(printf "%s" "$VERIFIER" | openssl dgst -binary -sha256 \
   | openssl base64 | tr -d '=' | tr '/+' '_-' | tr -d '\n')
 echo "Verifier:  $VERIFIER"
 echo "Challenge: $CHALLENGE"</code></pre>
-      <p>In a real ERP flow the user's browser would redirect to <code>/oauth/authorize</code>, they'd pick Properties in the consent screen, and the authorization server would redirect back with a code. For the quickstart we compress those steps — we simulate "user approves the consent" with a single <code>POST</code>:</p>
+      <p>In a real ERP flow the landlord's browser opens <code>/oauth/authorize</code>, the landlord signs in, picks Properties on the consent screen, and the authorization server redirects back with a code. For the quickstart we compress those steps: the sandbox's demo landlord is always signed in, so a single <code>POST</code> stands in for "the landlord approves". This shortcut exists only in the sandbox; the <a href="../erp/#flow">ERP guide, step 3</a> runs the real browser flow, including the <code>iss</code> check and the <code>resource</code> parameter that the demo client may leave out.</p>
       <pre><code>CODE=$(curl -s -D - -X POST \
   -d "client_id=sandbox-demo-client" \
   -d "redirect_uri=http://localhost:3000/callback" \
@@ -144,11 +143,11 @@ echo "Challenge: $CHALLENGE"</code></pre>
   -d "property=6fb74d25-5517-4dcc-ae8b-0914579ab036" \
   -d "decision=approve" \
   https://auth.sandbox.messpunkt.io/oauth/authorize -o /dev/null \
-  | grep -i '^location:' | grep -oE 'code=[A-F0-9]+' | cut -d= -f2 | tr -d '\r\n')
+  | grep -i '^location:' | sed -E 's/.*[?&]code=([^&]*).*/\1/' | tr -d '\r\n')
 echo "Got authorization code: $CODE"</code></pre>
 
       <h2><span class="step-num">2</span>Exchange the code for a token</h2>
-      <p>The authorization code is single-use and expires after 5 minutes. Redeem it at <code>/oauth/token</code>, presenting the PKCE verifier:</p>
+      <p>The code is an opaque base64url string (letters, digits, <code>-</code> and <code>_</code>); if <code>$CODE</code> is empty, print the <code>location</code> header without the pipe and look at the <code>error</code> parameter. The authorization code is single-use and expires after 5 minutes. Redeem it at <code>/oauth/token</code>, presenting the PKCE verifier:</p>
       <pre><code>curl -s -X POST \
   -d "grant_type=authorization_code" \
   -d "code=$CODE" \
@@ -159,7 +158,8 @@ echo "Got authorization code: $CODE"</code></pre>
 
 TOKEN=$(python3 -c "import json; print(json.load(open('token.json'))['access_token'])")
 echo "Access token (first 30 chars): ${TOKEN:0:30}..."</code></pre>
-      <p>The response contains an <code>access_token</code> (1 hour lifetime), a <code>refresh_token</code> (7 days, absolute session cap 30 days), and the granted <code>scope</code>. Save the refresh token for later — see <a href="#refreshing">Refreshing silently</a> below.</p>
+      <p>The response contains an <code>access_token</code> (1 hour lifetime), a <code>refresh_token</code> (expires after 90 days without use; there is no absolute cap, see <a href="../erp/#refresh">ERP guide, step 5</a>), and the granted <code>scope</code>. Save the refresh token for later — see <a href="#refreshing">Refreshing silently</a> below:</p>
+      <pre><code>REFRESH_TOKEN=$(python3 -c "import json; print(json.load(open('token.json'))['refresh_token'])")</code></pre>
 
       <h2><span class="step-num">3</span>Identify yourself</h2>
       <p>Every ERP should call <code>/v1/whoami</code> after obtaining or refreshing a token to verify the tenant and Property scope:</p>
@@ -183,7 +183,7 @@ echo "Access token (first 30 chars): ${TOKEN:0:30}..."</code></pre>
 curl -s -H "Authorization: Bearer $TOKEN" \
   "https://api.sandbox.messpunkt.io/v1/usage-units/$UNIT/consumption?from=2025-01-01&to=2025-12-31&metric=water_warm" \
   | python3 -m json.tool</code></pre>
-      <p>The response gives you, per measuring point, one segment per device installation window. Each segment holds one reading per <strong>calendar month end</strong> (never finer) and a <code>period_consumption</code> block. The number to bill is <code>period_consumption.billable_value</code> — raw consumption × <code>factor</code>, measured from the segment's <code>baseline_value</code> — summed across segments when a meter was replaced mid-range. A meter a unit shares with other units carries the unit's <code>unit_share</code>; bill its <code>weighted_billable_value</code> for that unit. Do not compute <code>last − first</code> reading yourself: it misses the baseline, the start value of a replacement device and the K-factor. See <a href="../reference/#section/Meter-readings-and-consumption">Meter readings and consumption</a> in the Reference for the full contract.</p>
+      <p>The response gives you, per measuring point, one segment per device installation window. Each segment holds one reading per <strong>calendar month end</strong> (never finer) and a <code>period_consumption</code> block. The number to bill is <code>period_consumption.billable_value</code> — raw consumption × <code>factor</code>, measured from the segment's <code>baseline_value</code> — summed across segments when a meter was replaced mid-range. A meter a unit shares with other units carries the unit's <code>unit_share</code>; bill its <code>weighted_billable_value</code> for that unit. Do not compute <code>last − first</code> reading yourself: it misses the baseline, the start value of a replacement device and the K-factor. See <a href="../reference/#section/Meter-readings-and-consumption">Meter readings and consumption</a> in the Reference for the full contract. Meters that belong to no unit (plant room, main meters) are not in <code>/usage-units</code>; list them per Property as described in <a href="../erp/#no-unit">the ERP guide</a>.</p>
       <div class="note">
         <strong>Sandbox data is static.</strong> The synthetic fixture holds month-end values up to <strong>2026-12-31</strong> and is not extended automatically. From 2027 on, the latest months no longer look "current": a range reaching past December 2026 is shortened to end on <code>2026-12-31</code> (see the echoed <code>to</code>), and a range starting after it returns no values. The status <code>substituted</code> does not occur in the sandbox fixture — it is described in the Reference but cannot be tried out here.
       </div>
@@ -207,6 +207,10 @@ curl -s -H "Authorization: Bearer $TOKEN" \
         <aside class="side-nav" aria-label="Next steps">
           <h3>Next steps</h3>
           <div class="side-cards">
+            <a class="side-card" href="../erp/">
+              <div class="title">ERP integration guide</div>
+              <div class="desc">The whole lifecycle: consent, iss check, refresh, disconnect.</div>
+            </a>
             <a class="side-card" href="../errors/">
               <div class="title">Error handling</div>
               <div class="desc">Every status code, when to retry, when to re-auth.</div>
