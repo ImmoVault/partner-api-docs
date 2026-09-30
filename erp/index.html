@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>messpunkt.io Partner API — ERP integration</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Integrate a property-management ERP with the messpunkt.io Partner API: client registration, consent, PKCE, iss check, refresh rotation, revocation, DPoP, errors and rate limits." />
+    <meta name="theme-color" content="#1e534a" />
+    <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+    <link rel="alternate icon" type="image/x-icon" href="../assets/favicon.ico" />
+    <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <style>
+    <style>
+      :root {
+        --brand-primary: #1e534a;
+        --brand-primary-hover: #16403a;
+        --brand-dark: #172636;
+        --brand-gray-bg: #eaf0f6;
+        --brand-gray-border: #d1d5dc;
+        --brand-accent: #f7fafa;
+        --brand-white: #ffffff;
+      }
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--brand-dark); background: var(--brand-white); line-height: 1.65; }
+
+      .topbar { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 24px; padding: 14px 28px; background: var(--brand-white); border-bottom: 1px solid var(--brand-gray-border); }
+      .topbar .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--brand-dark); }
+      .topbar .brand img { height: 28px; width: auto; display: block; }
+      .topbar .brand .subtitle { font-size: 13px; font-weight: 500; padding-left: 12px; border-left: 1px solid var(--brand-gray-border); line-height: 1; }
+      .topbar nav { display: flex; gap: 4px; margin-left: auto; align-items: center; flex-wrap: wrap; }
+      .topbar nav a { font-size: 13px; font-weight: 500; padding: 6px 12px; border-radius: 6px; color: var(--brand-dark); text-decoration: none; transition: background 0.15s; }
+      .topbar nav a:hover { background: var(--brand-accent); color: var(--brand-primary); }
+      .topbar nav a.current { background: var(--brand-primary); color: var(--brand-white); }
+      .topbar nav .divider { width: 1px; height: 18px; background: var(--brand-gray-border); margin: 0 6px; }
+
+      .preview-ribbon { background: var(--brand-accent); color: var(--brand-dark); border-bottom: 1px solid var(--brand-gray-border); padding: 10px 28px; font-size: 13px; line-height: 1.5; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+      .preview-ribbon .badge { background: var(--brand-primary); color: var(--brand-white); font-weight: 600; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
+      .preview-ribbon a { color: var(--brand-primary); font-weight: 500; text-decoration: none; border-bottom: 1px solid currentColor; }
+
+      main { max-width: 1200px; margin: 0 auto; padding: 48px 28px 72px; }
+      .layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 56px; align-items: start; }
+      .content { min-width: 0; }
+      .side-nav { position: sticky; top: 84px; align-self: start; }
+      .side-nav h3 { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; margin: 0 0 12px; }
+      .side-nav .side-cards { display: flex; flex-direction: column; gap: 8px; }
+      .side-nav .side-card { display: block; border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 12px 14px; text-decoration: none; color: inherit; transition: border-color 0.15s, background 0.15s, transform 0.05s; }
+      .side-nav .side-card:hover { border-color: var(--brand-primary); background: var(--brand-accent); transform: translateX(2px); }
+      .side-nav .side-card .title { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; color: var(--brand-primary); margin-bottom: 2px; }
+      .side-nav .side-card .title::after { content: '→'; font-weight: 400; color: var(--brand-primary); opacity: 0.55; transition: transform 0.15s, opacity 0.15s; }
+      .side-nav .side-card:hover .title::after { opacity: 1; transform: translateX(2px); }
+      .side-nav .side-card .desc { font-size: 12px; color: #64748b; line-height: 1.45; }
+      @media (max-width: 960px) {
+        .layout { grid-template-columns: 1fr; gap: 32px; }
+        .side-nav { position: static; max-width: 100%; margin-top: 16px; }
+      }
+      h1 { font-size: 36px; line-height: 1.15; margin: 0 0 12px; letter-spacing: -0.015em; }
+      .lead { color: #3f4c5c; font-size: 18px; margin: 0 0 40px; max-width: 700px; }
+      h2 { font-size: 24px; margin: 48px 0 8px; letter-spacing: -0.005em; }
+      h2 .step-num { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: var(--brand-primary); color: var(--brand-white); border-radius: 50%; font-size: 14px; font-weight: 600; margin-right: 10px; vertical-align: middle; }
+      h3 { font-size: 15px; font-weight: 600; margin: 20px 0 8px; color: var(--brand-dark); letter-spacing: 0.01em; }
+      p { margin: 0 0 14px; }
+      a { color: var(--brand-primary); }
+      a:hover { color: var(--brand-primary-hover); }
+      code { font-family: 'JetBrains Mono', monospace; font-size: 13.5px; background: var(--brand-gray-bg); padding: 1px 6px; border-radius: 4px; }
+      pre { position: relative; background: var(--brand-dark); color: #e8eef5; padding: 16px 18px; border-radius: 8px; overflow: auto; font-size: 13px; line-height: 1.55; margin: 10px 0 18px; }
+      pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+      .copy-btn { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.06); color: #e8eef5; border: 1px solid rgba(255,255,255,0.14); padding: 4px 10px; font-size: 11px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 4px; cursor: pointer; opacity: 0.5; transition: opacity 0.15s, background 0.15s, border-color 0.15s, color 0.15s; z-index: 2; }
+      pre:hover .copy-btn, .copy-btn:focus-visible { opacity: 1; }
+      .copy-btn:hover { background: rgba(255,255,255,0.16); }
+      .copy-btn:focus-visible { outline: none; border-color: rgba(255,255,255,0.4); }
+      .copy-btn.copied { opacity: 1; background: rgba(16,124,63,0.3); border-color: rgba(16,124,63,0.5); color: #a0d5a5; }
+      .note { background: var(--brand-accent); border-left: 3px solid var(--brand-primary); padding: 12px 16px; margin: 14px 0; font-size: 14px; border-radius: 4px; }
+      .note strong { color: var(--brand-primary); }
+
+      .time-badge { display: inline-block; background: var(--brand-accent); color: var(--brand-primary); font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 4px 10px; border-radius: 4px; margin-bottom: 16px; }
+
+      .next-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 24px; }
+      .next-step-card { border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 16px; text-decoration: none; color: inherit; transition: border-color 0.15s, transform 0.05s; display: block; }
+      .next-step-card:hover { border-color: var(--brand-primary); color: inherit; transform: translateY(-1px); }
+      .next-step-card .title { font-size: 15px; font-weight: 600; color: var(--brand-primary); margin-bottom: 4px; }
+      .next-step-card .desc { font-size: 13px; color: #64748b; line-height: 1.5; }
+
+      .site-footer { padding: 24px 28px; border-top: 1px solid var(--brand-gray-border); background: var(--brand-white); color: var(--brand-dark); font-size: 13px; line-height: 1.6; }
+      .site-footer .row { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; justify-content: space-between; max-width: 860px; margin: 0 auto; }
+      .site-footer a { color: var(--brand-primary); text-decoration: none; }
+      .site-footer .links { display: flex; gap: 18px; flex-wrap: wrap; }
+      .site-footer .muted { color: #64748b; }
+
+      .status { background: #fff8e1; border: 1px solid #f2c94c; border-radius: 8px; padding: 14px 18px; margin: 0 0 32px; font-size: 14.5px; }
+      .status strong { color: #7a5b00; }
+      .placeholder { font-family: 'JetBrains Mono', monospace; font-size: 13px; background: #fff3cd; color: #7a5b00; border: 1px dashed #d4a72c; padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
+      table { border-collapse: collapse; width: 100%; margin: 10px 0 20px; font-size: 14px; }
+      th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--brand-gray-border); }
+      th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; font-weight: 600; }
+      .table-wrap { overflow-x: auto; }
+      .checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 12px 0 24px; }
+      .checks > div { border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 12px 14px; font-size: 14px; }
+      .checks .verified { border-left: 4px solid #1f7a3f; }
+      .checks .unverified { border-left: 4px solid #d4a72c; }
+      .checks h4 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; }
+      .checks .verified h4 { color: #1f7a3f; }
+      .checks .unverified h4 { color: #7a5b00; }
+      .checks ul { margin: 0; padding-left: 18px; }
+      ol.steps li, ul.plain li { margin-bottom: 6px; }
+      details.tech { border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 12px 16px; margin: 24px 0; background: var(--brand-accent); }
+      details.tech summary { cursor: pointer; font-weight: 600; color: var(--brand-primary); }
+      .qa { border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 12px 16px; margin: 12px 0; }
+      .qa .q { font-weight: 600; margin-bottom: 6px; }
+      .qa .a { color: #3f4c5c; font-size: 14.5px; }
+      .tool { border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 16px 18px; margin: 18px 0; }
+      .tool h3 { margin-top: 0; font-family: 'JetBrains Mono', monospace; font-size: 16px; }
+      .tool blockquote { margin: 8px 0 12px; padding: 8px 14px; border-left: 3px solid var(--brand-gray-border); color: #3f4c5c; white-space: pre-line; font-size: 14px; }
+      .tool .meta { font-size: 13px; color: #64748b; margin-bottom: 8px; }
+      .tool details summary { cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--brand-primary); }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="https://messpunkt.io/" target="_blank" rel="noopener">
+        <img src="../assets/messpunkt-quer.svg" alt="messpunkt.io" />
+        <span class="subtitle">Partner API · ERP integration</span>
+      </a>
+      <nav aria-label="Viewer switcher">
+        <a href="../">Home</a>
+        <a href="../reference/">Reference</a>
+        <span class="divider" aria-hidden="true"></span>
+        <a href="../connect/">Connect AI</a>
+        <a href="../erp/" class="current">ERP guide</a>
+        <a href="../mcp/">MCP</a>
+        <span class="divider" aria-hidden="true"></span>
+        <a href="../quickstart/">Quickstart</a>
+        <a href="../changelog/">Changelog</a>
+        <a href="../erp-api-openapi.yaml">OpenAPI YAML</a>
+      </nav>
+    </header>
+
+    <div class="preview-ribbon">
+      <span class="badge">Preview</span>
+      <span>V1 release candidate <strong>1.0.0-rc.3</strong> — GA ships with the first pilot partner. Become one: <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
+      </span>
+    </div>
+
+    <main>
+      <div class="layout">
+        <article class="content">
+      <span class="time-badge">Integration guide</span>
+      <h1>ERP integration</h1>
+      <p class="lead">Connect a property-management or billing ERP to messpunkt.io: register a client, let the landlord consent once, then read monthly consumption for years without further user interaction. This page covers the whole lifecycle. The <a href="../quickstart/">Quickstart</a> is the five-minute version.</p>
+
+      <div class="status">
+        <strong>Where things stand.</strong> The sandbox is live. Production (<code>api.messpunkt.io</code>, <code>auth.messpunkt.io</code>) goes live with the first pilot partner and is announced in the <a href="../changelog/">changelog</a>. Everything on this page is marked where sandbox and production differ.
+      </div>
+
+      <h2 id="overview">How it fits together</h2>
+      <div class="table-wrap"><table>
+        <tr><th></th><th>Sandbox</th><th>Production</th></tr>
+        <tr><td>Authorization server</td><td><code>https://auth.sandbox.messpunkt.io</code></td><td><code>https://auth.messpunkt.io</code></td></tr>
+        <tr><td>API base URL</td><td><code>https://api.sandbox.messpunkt.io/v1</code></td><td><code>https://api.messpunkt.io/v1</code></td></tr>
+        <tr><td><code>resource</code> (RFC 8707)</td><td><code>https://api.sandbox.messpunkt.io</code></td><td><code>https://api.messpunkt.io</code></td></tr>
+        <tr><td>Client</td><td>public demo client <code>sandbox-demo-client</code> (PKCE only)</td><td>your pre-registered confidential client</td></tr>
+        <tr><td>Landlord sign-in</td><td>demo landlord, already signed in</td><td>the landlord's messpunkt.io portal account</td></tr>
+        <tr><td>Data</td><td>synthetic, static until 2026-12-31</td><td>the landlord's real data</td></tr>
+      </table></div>
+      <p>The ERP uses the same authorization server and the same consent screen as AI assistants. Tokens are issued for one resource: a token for the REST API is not accepted by the MCP server and vice versa.</p>
+
+      <h2 id="register"><span class="step-num">1</span>Register your client</h2>
+      <p>ERP clients are registered by messpunkt.io. Write to <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20ERP%20client%20registration">kontakt@messpunkt.io</a> with:</p>
+      <ul class="plain">
+        <li><strong>Display name</strong>: shown to landlords on the consent screen and in their portal under <em>Verbundene Anwendungen</em>.</li>
+        <li><strong>Redirect URIs</strong>: matched exactly. Use <code>https</code>; loopback URIs (<code>http://localhost</code>, <code>http://127.0.0.1</code>, <code>http://[::1]</code>) are matched with any port for desktop installations (RFC 8252). No fragments.</li>
+        <li><strong>Scopes</strong> you need: <code>read:units</code>, <code>read:devices</code>, <code>read:readings</code>.</li>
+        <li><strong>Client authentication</strong>: <code>private_key_jwt</code> (preferred; send us the <code>https</code> URL of your JWKS) or <code>client_secret_basic</code>. A client secret is shown <strong>once</strong>, in the registration response, and stored by us only as a hash. Keep it in your secret store; if it is lost, we rotate it and the old one stops working.</li>
+        <li><strong>DPoP</strong>: optional. On request we mark your client as DPoP-bound; the token endpoint then refuses to issue tokens without a proof.</li>
+      </ul>
+      <p>You receive a <code>client_id</code> of the form <code>erp_</code> followed by 32 hex characters.</p>
+      <div class="note">
+        <strong>Confidential-client authentication goes live with production.</strong> The sandbox has only the public demo client, so you cannot test <code>private_key_jwt</code> or <code>client_secret_basic</code> there yet. Before you rely on either method, check that <code>token_endpoint_auth_methods_supported</code> in the production discovery document lists it.
+      </div>
+
+      <h2 id="landlord"><span class="step-num">2</span>Make sure the landlord can consent</h2>
+      <p>API access is part of the landlord's contract with messpunkt.io and is enabled per customer organisation. If it is not enabled, the consent screen shows a notice (“API-Zugang nicht freigeschaltet”) instead of a form, and no code is issued. Ask the landlord to contact messpunkt.io. If the landlord later loses API access, all their connections are revoked. Re-enabling access does not restore them: the landlord connects again.</p>
+
+      <h2 id="flow"><span class="step-num">3</span>Run the authorization flow (sandbox)</h2>
+      <p>Every command below runs against the sandbox. Read the endpoints from the discovery document instead of hard-coding them:</p>
+      <pre><code>curl -s https://auth.sandbox.messpunkt.io/.well-known/oauth-authorization-server | python3 -m json.tool</code></pre>
+      <p>Look for <code>issuer</code>, <code>authorization_endpoint</code>, <code>token_endpoint</code>, <code>revocation_endpoint</code>, <code>code_challenge_methods_supported: ["S256"]</code> and <code>authorization_response_iss_parameter_supported: true</code>.</p>
+
+      <h3>3a · PKCE and state</h3>
+      <pre><code>VERIFIER=$(openssl rand -base64 48 | tr -d '=+/' | head -c 64)
+CHALLENGE=$(printf "%s" "$VERIFIER" | openssl dgst -binary -sha256 \
+  | openssl base64 | tr -d '=' | tr '/+' '_-' | tr -d '\n')
+STATE=$(openssl rand -hex 16)</code></pre>
+      <p>PKCE with <code>S256</code> is mandatory for every client, confidential or not. Keep <code>STATE</code> bound to the landlord's browser session in your ERP.</p>
+
+      <h3>3b · Send the landlord to the consent screen</h3>
+      <pre><code>echo "https://auth.sandbox.messpunkt.io/oauth/authorize?response_type=code\
+&client_id=sandbox-demo-client\
+&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback\
+&scope=read%3Aunits%20read%3Adevices%20read%3Areadings\
+&state=$STATE\
+&code_challenge=$CHALLENGE&code_challenge_method=S256\
+&resource=https%3A%2F%2Fapi.sandbox.messpunkt.io"</code></pre>
+      <p>Open the printed URL in a browser. In production the landlord signs in first. The consent screen then shows your display name and what will be shared, and lets the landlord pick the customer organisation (if they manage several) and either <em>all Properties, including future ones</em> (pre-selected) or a selection. In the sandbox the demo landlord is already signed in and nothing is pre-selected: tick a Property and approve.</p>
+      <p>The browser is redirected to <code>http://localhost:3000/callback?code=…&amp;iss=…&amp;state=…</code>. Nothing listens there in this walkthrough, so copy the values from the address bar:</p>
+      <pre><code>CODE=...    # from the address bar
+ISS=...     # URL-decoded
+RETURNED_STATE=...</code></pre>
+
+      <h3>3c · Check <code>iss</code> and <code>state</code> before you redeem</h3>
+      <pre><code>[ "$ISS" = "https://auth.sandbox.messpunkt.io" ] || echo "STOP: unexpected issuer"
+[ "$RETURNED_STATE" = "$STATE" ] || echo "STOP: state mismatch"</code></pre>
+      <p><code>iss</code> (RFC 9207) must equal the <code>issuer</code> of the discovery document you started with. This protects you against mix-up attacks if your ERP talks to more than one authorization server. Errors come back the same way (<code>error</code>, <code>error_description</code>, <code>iss</code>, <code>state</code>). <code>access_denied</code> means that the landlord declined.</p>
+
+      <h3>3d · Exchange the code</h3>
+      <pre><code>curl -s -X POST https://auth.sandbox.messpunkt.io/oauth/token \
+  -d "grant_type=authorization_code" \
+  -d "code=$CODE" \
+  -d "client_id=sandbox-demo-client" \
+  -d "redirect_uri=http://localhost:3000/callback" \
+  -d "code_verifier=$VERIFIER" \
+  -d "resource=https://api.sandbox.messpunkt.io" > token.json
+
+TOKEN=$(python3 -c "import json; print(json.load(open('token.json'))['access_token'])")
+REFRESH_TOKEN=$(python3 -c "import json; print(json.load(open('token.json'))['refresh_token'])")</code></pre>
+      <p>The code is single-use and short-lived. Redeeming it twice revokes the connection. The response carries <code>access_token</code> (<code>expires_in</code>: 3600), <code>refresh_token</code>, <code>scope</code> and <code>token_type</code> (<code>Bearer</code>, or <code>DPoP</code> if you sent a proof).</p>
+      <p><strong>Production, confidential client:</strong> authenticate the same request with your registered method instead of relying on <code>client_id</code> alone: HTTP Basic (<code>-u "$CLIENT_ID:$CLIENT_SECRET"</code>) for <code>client_secret_basic</code>, or <code>client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer</code> plus a signed <code>client_assertion</code> (RFC 7523) for <code>private_key_jwt</code>. These cannot be tried in the sandbox yet (see <a href="#register">step 1</a>).</p>
+
+      <h2 id="read"><span class="step-num">4</span>Read data</h2>
+      <pre><code>curl -s -H "Authorization: Bearer $TOKEN" https://api.sandbox.messpunkt.io/v1/whoami | python3 -m json.tool
+curl -s -H "Authorization: Bearer $TOKEN" https://api.sandbox.messpunkt.io/v1/properties | python3 -m json.tool
+
+UNIT=$(curl -s -H "Authorization: Bearer $TOKEN" https://api.sandbox.messpunkt.io/v1/usage-units \
+  | python3 -c "import json,sys; print(json.load(sys.stdin)['data'][0]['id'])")
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://api.sandbox.messpunkt.io/v1/usage-units/$UNIT/consumption?from=2025-01-01&to=2025-12-31" \
+  | python3 -m json.tool</code></pre>
+      <div class="table-wrap"><table>
+        <tr><th>Endpoint</th><th>Scope</th></tr>
+        <tr><td><code>GET /v1/whoami</code></td><td>none beyond a valid token</td></tr>
+        <tr><td><code>GET /v1/properties</code>, <code>GET /v1/properties/{id}</code></td><td><code>read:units</code></td></tr>
+        <tr><td><code>GET /v1/usage-units</code>, <code>GET /v1/usage-units/{id}</code></td><td><code>read:units</code></td></tr>
+        <tr><td><code>GET /v1/usage-units/{id}/consumption</code></td><td><code>read:readings</code></td></tr>
+        <tr><td><code>GET /v1/measuring-points/{id}</code></td><td><code>read:devices</code></td></tr>
+        <tr><td><code>GET /v1/measuring-points/{id}/readings</code></td><td><code>read:readings</code></td></tr>
+      </table></div>
+      <h3 id="monthly">The monthly rule, in short</h3>
+      <ul class="plain">
+        <li>Readings are <strong>month-end values</strong> (<code>at</code> is a date). <code>from</code>/<code>to</code> are widened to whole months, and <code>to</code> is capped at the last completed month (check the echoed value). There is no parameter for finer values.</li>
+        <li>Bill <code>period_consumption.billable_value</code> summed over the segments of a measuring point. Do not bill <code>last − first</code> reading yourself.</li>
+        <li>Never bill a value with status <code>calibration_expired</code>. <code>calculated</code> values are interpolated (<code>is_synthetic: true</code>).</li>
+        <li><code>water_outdoor</code> is a separate metric and not part of residents' water. Each metric has its own unit.</li>
+        <li>Difference meters (<code>is_difference_meter: true</code>) have no device and no value in V1.</li>
+      </ul>
+      <p>Full contract: <a href="../reference/#section/Data-resolution:-monthly-never-finer">Data resolution</a> in the Reference.</p>
+      <h3>Property scope</h3>
+      <p>Call <code>/v1/whoami</code> after every token issue and refresh and reconcile your local Property list with <code>property_scope</code> (<code>"all"</code> or a list of UUIDs). A resource outside the landlord's selection returns <code>404</code>, never <code>403</code>. Treat a <code>404</code> on an ID you knew as “access withdrawn”, not as a reason to retry. When the landlord wants a different selection, they disconnect and consent again.</p>
+
+      <h2 id="refresh"><span class="step-num">5</span>Refresh, rotation and replay</h2>
+      <pre><code>curl -s -X POST https://auth.sandbox.messpunkt.io/oauth/token \
+  -d "grant_type=refresh_token" \
+  -d "refresh_token=$REFRESH_TOKEN" \
+  -d "client_id=sandbox-demo-client" > token.json</code></pre>
+      <ul class="plain">
+        <li>Access tokens live one hour. Refresh tokens expire after <strong>90 days without use</strong>. There is no absolute cap, so a connection lasts as long as you keep rotating.</li>
+        <li>Every refresh returns a <strong>new</strong> refresh token. Persist it before you use the new access token.</li>
+        <li>Presenting an already-rotated refresh token is treated as theft: the whole token family <strong>and</strong> the connection are revoked, including your current tokens. Two concurrent refreshes with the same token have the same effect. Serialise refreshes per connection.</li>
+        <li>Any <code>invalid_grant</code> on refresh means “start a new authorization flow”. Show the landlord a reconnect button.</li>
+        <li>You may narrow <code>scope</code> on refresh, never widen it (<code>invalid_scope</code>).</li>
+      </ul>
+
+      <h2 id="revoke"><span class="step-num">6</span>Disconnect</h2>
+      <pre><code>curl -s -o /dev/null -w "%{http_code}\n" -X POST https://auth.sandbox.messpunkt.io/oauth/revoke \
+  -d "token=$REFRESH_TOKEN" \
+  -d "client_id=sandbox-demo-client"</code></pre>
+      <p>Revocation (RFC 7009) accepts an access or a refresh token and ends the <strong>whole connection</strong>. The answer is <code>200</code> whether or not the token was known. An unknown <code>client_id</code> gets <code>401 invalid_client</code>. The landlord can also disconnect your application in the portal (<em>Einstellungen › Verbundene Anwendungen</em>); your tokens and refresh token then stop working within 60 seconds, because the connection is checked on every request.</p>
+
+      <h2 id="dpop">DPoP (optional)</h2>
+      <p>DPoP (RFC 9449) is optional, but when you use it the server checks it fully: <code>htm</code>, <code>htu</code>, <code>iat</code> (±60 s), <code>jti</code> replay, <code>ath</code> and the key thumbprint. Send a proof to <code>/oauth/token</code> and the access token is bound to your key (<code>token_type: DPoP</code>). Every API request must then use <code>Authorization: DPoP &lt;token&gt;</code> plus a fresh <code>DPoP</code> proof, and the same token sent as <code>Bearer</code> is rejected. The <code>htu</code> is the public URL you called, without query. The server does not issue DPoP nonces; do not put a <code>nonce</code> claim in your proofs. Code in C#, Node, Python and curl: <a href="../dpop/">DPoP guide</a>.</p>
+
+      <h2 id="errors">Errors</h2>
+      <p>API endpoints (<code>/v1/*</code>) answer errors as <code>application/problem+json</code>. Branch on the last path segment of <code>type</code>:</p>
+      <div class="table-wrap"><table>
+        <tr><th>Status</th><th>What happened</th><th>What to do</th></tr>
+        <tr><td><code>400</code> <code>invalid-request</code></td><td>bad parameter; <code>detail</code> names it</td><td>fix the request</td></tr>
+        <tr><td><code>401</code> <code>invalid-token</code></td><td>token missing, expired or wrong audience. <code>WWW-Authenticate</code> carries <code>error="invalid_token"</code>, or <code>error="invalid_dpop_proof"</code> for a bad proof</td><td>refresh, or fix the proof</td></tr>
+        <tr><td><code>403</code> <code>insufficient-scope</code></td><td>the token lacks the scope; <code>WWW-Authenticate</code> names it in <code>scope="…"</code></td><td>ask the landlord to reconnect with that scope</td></tr>
+        <tr><td><code>404</code> <code>resource-not-found</code></td><td>does not exist <strong>or</strong> is outside the Property scope</td><td>do not retry; re-check <code>/v1/whoami</code></td></tr>
+        <tr><td><code>429</code> <code>too-many-requests</code></td><td>rate limit</td><td>wait <code>Retry-After</code> seconds</td></tr>
+        <tr><td><code>500</code> / <code>503</code></td><td>server or dependency problem; no <code>detail</code></td><td>retry with exponential backoff</td></tr>
+      </table></div>
+      <p>OAuth endpoints (<code>/oauth/*</code>) answer in the OAuth format (<code>error</code>, <code>error_description</code>): <code>invalid_request</code>, <code>invalid_client</code>, <code>invalid_grant</code> (code or refresh token invalid, reused, revoked or inactive), <code>invalid_target</code> (unknown <code>resource</code>), <code>invalid_scope</code>, <code>invalid_dpop_proof</code>, <code>unsupported_grant_type</code>. On <code>/oauth/authorize</code>, an unknown client or unregistered <code>redirect_uri</code> is never redirected: the browser gets an error page. Full table with client actions: <a href="../errors/">Error handling</a>.</p>
+
+      <h2 id="limits">Rate limits</h2>
+      <ul class="plain">
+        <li><strong>Sandbox:</strong> 300 requests per minute per caller IP on <code>/v1/*</code>, 60 per minute on <code>/oauth/*</code>. These limits are best effort, counted per server instance.</li>
+        <li><strong>Production:</strong> per <code>client_id</code>: <span class="placeholder">&lt;PROD_RATE_LIMITS&gt;</span>, published here before GA.</li>
+      </ul>
+
+      <h2 id="sandbox">Sandbox notes</h2>
+      <ul class="plain">
+        <li>The data is synthetic and static up to 2026-12-31. A range reaching past December 2026 is shortened, and one starting after it returns no values.</li>
+        <li>The status <code>substituted</code> does not occur in the sandbox. It is documented in the Reference but cannot be tried out.</li>
+        <li>The sandbox catches up with rc.3 in the rc.3 sandbox release announced in the <a href="../changelog/">changelog</a>. Until then <code>resource</code> and <code>/oauth/revoke</code> are not available there (see <a href="../reference/#section/Sandbox">Sandbox</a> in the Reference).</li>
+      </ul>
+        </article>
+
+        <aside class="side-nav" aria-label="On this page">
+          <h3>On this page</h3>
+          <div class="side-cards">
+            <a class="side-card" href="#register"><div class="title">Register a client</div><div class="desc">What to send us</div></a>
+            <a class="side-card" href="#flow"><div class="title">Authorization flow</div><div class="desc">PKCE, consent, iss check, token</div></a>
+            <a class="side-card" href="#refresh"><div class="title">Refresh and replay</div><div class="desc">Rotation, 90-day inactivity</div></a>
+            <a class="side-card" href="#errors"><div class="title">Errors</div><div class="desc">Problem+JSON and OAuth errors</div></a>
+            <a class="side-card" href="../dpop/"><div class="title">DPoP guide</div><div class="desc">Optional, fully verified</div></a>
+            <a class="side-card" href="../reference/"><div class="title">Full reference</div><div class="desc">Every endpoint and schema</div></a>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="row">
+        <div>
+          <strong>messpunkt.io Partner API</strong> · Preview · 1.0.0-rc.3 · GA with the first pilot partner
+          <div class="muted">© 2026 messpunkt.io — <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
+        </div>
+        <div class="links">
+          <a href="https://messpunkt.io/impressum" target="_blank" rel="noopener">Impressum</a>
+          <a href="https://messpunkt.io/datenschutz" target="_blank" rel="noopener">Datenschutz</a>
+          <a href="../.well-known/security.txt">Security</a>
+          <a href="../erp-api-openapi.yaml">OpenAPI 3.1 spec</a>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      document.querySelectorAll('pre').forEach(pre => {
+        if (pre.querySelector('.copy-btn')) return;
+        const btn = document.createElement('button');
+        btn.className = 'copy-btn';
+        btn.type = 'button';
+        btn.setAttribute('aria-label', 'Copy code to clipboard');
+        btn.textContent = 'Copy';
+        btn.addEventListener('click', async () => {
+          const code = pre.querySelector('code');
+          const text = (code ? code.innerText : pre.innerText).replace(/\s*$/, '');
+          try {
+            await navigator.clipboard.writeText(text);
+            btn.textContent = 'Copied';
+            btn.classList.add('copied');
+          } catch (err) {
+            btn.textContent = 'Error';
+          }
+          setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1600);
+        });
+        pre.appendChild(btn);
+      });
+    </script>
+  </body>
+  </body>
+</html>
