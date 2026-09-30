@@ -72,10 +72,14 @@ const toolNames = new Set(tools?.tools.map(t => t.name) ?? []);
 const toolScopes = new Set(tools?.tools.map(t => t.scope) ?? []);
 if (tools && process.env.AZURE_FUNCTIONS_DIR) {
   // The scope map in tools-list.source.json must match [RequiresScope] next to each [McpServerTool(Name = …)].
+  // The attribute takes a string literal or a constant of PartnerMcp/Security/McpScopes.cs (since FX-C1).
   const dir = join(process.env.AZURE_FUNCTIONS_DIR, 'PartnerMcp/Tools');
+  const scopesFile = join(process.env.AZURE_FUNCTIONS_DIR, 'PartnerMcp/Security/McpScopes.cs');
+  const constants = new Map(existsSync(scopesFile)
+    ? [...readFileSync(scopesFile, 'utf8').matchAll(/const string (\w+) = "([^"]+)"/g)].map(m => [m[1], m[2]]) : []);
   const code = new Map(readdirSync(dir).filter(f => f.endsWith('.cs'))
-    .flatMap(f => [...readFileSync(join(dir, f), 'utf8').matchAll(/McpServerTool\(Name = "([^"]+)"[\s\S]*?\[RequiresScope\("([^"]+)"\)\]/g)])
-    .map(m => [m[1], m[2]]));
+    .flatMap(f => [...readFileSync(join(dir, f), 'utf8').matchAll(/McpServerTool\(Name = "([^"]+)"[\s\S]*?\[RequiresScope\((?:"([^"]+)"|McpScopes\.(\w+))\)\]/g)])
+    .map(m => [m[1], m[2] ?? constants.get(m[3])]));
   for (const t of tools.tools)
     if (code.get(t.name) !== t.scope) errors.push(`tool ${t.name}: scope ${t.scope} != [RequiresScope] ${code.get(t.name) ?? '(none)'} in ${dir}`);
   for (const n of code.keys()) if (!toolNames.has(n)) errors.push(`tool ${n} exists in code but not in mcp/tools-list.json (snapshot outdated?)`);
