@@ -195,7 +195,7 @@
         </div>
         <div class="change-group added">
           <h3>rc.3 — Addendum (additive)</h3>
-          <p>Additions to the same rc.3 contract before its publication. Only new optional fields, a new enum and descriptions — no field removed, no type changed, no new required field — so the version number stays <code>1.0.0-rc.3</code>.</p>
+          <p>Additions to the same rc.3 contract before its publication. Only new optional fields, new schemas and descriptions — no field removed, no type changed, no new required field — so the version number stays <code>1.0.0-rc.3</code>. One statement changes meaning (shared Sectors, see <em>Changed meaning</em> below).</p>
           <ul>
             <li><strong>For AI agents:</strong> the MCP server lists five read-only tools — <code>list_properties</code>, <code>get_property_overview</code>, <code>get_consumption</code>, <code>get_device_status</code> and <code>get_connection_info</code>. Their schemas are in the <a href="../mcp/#tools">MCP tool reference</a>.</li>
             <li><strong><code>DeviceSegment.baseline_origin</code></strong> (new, optional): where <code>baseline_value</code> comes from — <code>recorded</code>, <code>assumed_zero</code>, <code>first_reading</code>, <code>portal_rule</code>, <code>month_end_before_range</code>, <code>first_known_in_range</code> or <code>none</code>. <code>assumed_zero</code> means the start value of a replacement heat cost allocator was <strong>not recorded</strong> and is assumed to be 0 — the consumption of that segment rests on this assumption.</li>
@@ -203,6 +203,17 @@
             <li><strong><code>substituted</code> is not produced today:</strong> ranges end at a completed month end, where messpunkt.io stores only <code>calculated</code> values. <code>substitution_method</code> therefore appears only on <code>calculated</code> values (<code>degree_day_weighted</code> for heat meters and heat cost allocators, <code>linear_interpolation</code> otherwise). The status stays in the contract.</li>
             <li><strong><code>calibration_expired</code></strong> can come with <code>is_synthetic: true</code> (an interpolated value of a device whose calibration has expired); <code>substitution_method</code> is then <code>null</code>. The value-status table said <code>false</code> only.</li>
             <li><strong>Usage units:</strong> <code>floor</code>, <code>position</code> and <code>unit_type</code> are taken from the unit's Sector with the highest allocation share; <code>country_code</code> is currently always <code>DE</code>.</li>
+            <li><strong>Shared Sectors</strong> (new, optional): <code>MeasuringPoint.allocations[]</code> (<code>usage_unit_id</code>, <code>share</code>), <code>MeasuringPointConsumption.unit_share</code> and <code>PeriodConsumption.weighted_billable_value</code> (= <code>billable_value</code> × <code>unit_share</code>, only in <code>/usage-units/{id}/consumption</code>).</li>
+          </ul>
+        </div>
+        <div class="change-group changed">
+          <h3>rc.3 — Addendum: changed meaning (shared Sectors)</h3>
+          <p>rc.3 said that values are “per device and never pre-weighted” and left open how a measuring point of a Sector shared by several usage units appears. messpunkt.io has such Sectors in production — the same meter split between three to five units — so the open point is now fixed:</p>
+          <ul>
+            <li><code>MeasuringPoint.usage_unit_id</code> is the <strong>primary unit</strong> (highest share; tie: the smallest id). <code>allocations[]</code> lists every unit with its share.</li>
+            <li>The measuring point is listed under <strong>every</strong> unit with a share, with that unit's <code>unit_share</code>. Before, rc.3 did not say that one measuring point can appear under several units.</li>
+            <li>Device values stay unweighted (readings, <code>value</code>, <code>billable_value</code>). The number to bill <strong>for a unit</strong> is now <code>weighted_billable_value</code> — the same weighting as the residents' portal; summed over the units of a Sector it gives the Sector's consumption, so a shared meter is never billed twice.</li>
+            <li><strong>Action:</strong> sum <code>weighted_billable_value</code> (fall back to <code>billable_value</code> while it is absent) when you bill a unit. A client that keeps summing <code>billable_value</code> per unit bills a shared meter in full to every unit that shares it.</li>
           </ul>
         </div>
       </section>
