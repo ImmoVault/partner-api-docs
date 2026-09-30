@@ -208,7 +208,7 @@
         </div>
         <div class="change-group changed">
           <h3>rc.3 — Addendum: changed meaning (shared Sectors)</h3>
-          <p>rc.3 said that values are “per device and never pre-weighted” and left open how a measuring point of a Sector shared by several usage units appears. messpunkt.io has such Sectors in production — the same meter split between three to five units — so the open point is now fixed:</p>
+          <p>rc.3 said that values are “per device and never pre-weighted” and left open how a measuring point of a Sector shared by several usage units appears. messpunkt.io has such Sectors in production — 46 partial allocations, with 12 Sectors split between three to five units each — so the open point is now fixed:</p>
           <ul>
             <li><code>MeasuringPoint.usage_unit_id</code> is the <strong>primary unit</strong> (highest share; tie: the smallest id). <code>allocations[]</code> lists every unit with its share.</li>
             <li>The measuring point is listed under <strong>every</strong> unit with a share, with that unit's <code>unit_share</code>. Before, rc.3 did not say that one measuring point can appear under several units.</li>
