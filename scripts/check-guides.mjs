@@ -5,6 +5,7 @@
 //   node scripts/check-guides.mjs --allow-pending  same, but a missing snapshot is only a warning
 //   AZURE_FUNCTIONS_DIR=<checkout> node scripts/check-guides.mjs
 //                                                  also compares the auth-server routes with SandboxAuth/Functions
+//                                                  and the tool scopes with [RequiresScope] in PartnerMcp/Tools
 //
 // What it checks:
 //   1. every https://api(.sandbox).messpunkt.io/v1/... URL matches a path of erp-api-openapi.yaml
@@ -69,6 +70,16 @@ try {
 if (!tools) (allowPending ? warnings : errors).push('mcp/tools-list.json missing: tool reference still pending (P08b)');
 const toolNames = new Set(tools?.tools.map(t => t.name) ?? []);
 const toolScopes = new Set(tools?.tools.map(t => t.scope) ?? []);
+if (tools && process.env.AZURE_FUNCTIONS_DIR) {
+  // The scope map in tools-list.source.json must match [RequiresScope] next to each [McpServerTool(Name = …)].
+  const dir = join(process.env.AZURE_FUNCTIONS_DIR, 'PartnerMcp/Tools');
+  const code = new Map(readdirSync(dir).filter(f => f.endsWith('.cs'))
+    .flatMap(f => [...readFileSync(join(dir, f), 'utf8').matchAll(/McpServerTool\(Name = "([^"]+)"[\s\S]*?\[RequiresScope\("([^"]+)"\)\]/g)])
+    .map(m => [m[1], m[2]]));
+  for (const t of tools.tools)
+    if (code.get(t.name) !== t.scope) errors.push(`tool ${t.name}: scope ${t.scope} != [RequiresScope] ${code.get(t.name) ?? '(none)'} in ${dir}`);
+  for (const n of code.keys()) if (!toolNames.has(n)) errors.push(`tool ${n} exists in code but not in mcp/tools-list.json (snapshot outdated?)`);
+}
 
 // --- pages ----------------------------------------------------------------------------------------------
 const GUIDES = ['connect/index.html', 'erp/index.html', 'mcp/index.html'];

@@ -1,0 +1,14 @@
+{
+  "source": "azure-functions PartnerMcp.Tests/Snapshots/tools-list.json (308/int)",
+  "commit": "c5dc469",
+  "snapshot_last_changed_in": "9f680d1",
+  "sha256": "8bf21c71b7127dbb713c5d5f863eee414f2e018eb547634f07077eb3f8d2d437",
+  "scopes_from": "[RequiresScope] in azure-functions PartnerMcp/Tools/*.cs at c5dc469",
+  "scopes": {
+    "get_connection_info": "read:units",
+    "get_consumption": "read:readings",
+    "get_device_status": "read:devices",
+    "get_property_overview": "read:units",
+    "list_properties": "read:units"
+  }
+}
