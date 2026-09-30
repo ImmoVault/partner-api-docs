@@ -11,7 +11,6 @@
     <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <style>
-    <style>
       :root {
         --brand-primary: #1e534a;
         --brand-primary-hover: #16403a;
@@ -188,7 +187,7 @@ Content-Type: application/problem+json</code></pre>
       <pre><code>HTTP/1.1 403 Forbidden
 WWW-Authenticate: Bearer error="insufficient_scope", error_description="…", scope="read:devices", resource_metadata="https://mcp.messpunkt.io/.well-known/oauth-protected-resource/v1"
 Content-Type: application/problem+json</code></pre>
-      <p>The problem <code>detail</code> is German, because it is shown to the landlord. It tells them to reconnect with that permission. <code>tools/list</code> is not scope-filtered: every tool is listed, and its required scope is below.</p>
+      <p>The problem <code>detail</code> is German, for clients that show it to the landlord; it tells them to reconnect with that permission. Clients that support step-up authorization reopen the consent screen with the scope from <code>WWW-Authenticate</code> instead (Claude Code does). <code>tools/list</code> is not scope-filtered: every tool is listed, and its required scope is below.</p>
 
       <h3 id="limits">Rate limits</h3>
       <p>Counted per connection (grant) over every authenticated request to <code>/v1</code>, not only <code>tools/call</code>; <code>429</code> with <code>Retry-After</code> above the limit. Production: <strong>60 calls per minute per connection</strong>, counted in memory per server instance (the effective limit can be higher, never lower).</p>
@@ -1402,6 +1401,5 @@ Content-Type: application/problem+json</code></pre>
         pre.appendChild(btn);
       });
     </script>
-  </body>
   </body>
 </html>
