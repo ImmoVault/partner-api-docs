@@ -17,9 +17,9 @@ info:
     pilot partner and will be announced in the [changelog](./changelog/) ·
     feedback from pilot partners explicitly invited.
 
-    **Coming from rc.2?** rc.3 contains three breaking changes (monthly data
-    resolution, nullable `active_device`, nullable `installed_at`). Read *Migrating from rc.2* below
-    before you upgrade.
+    **Coming from rc.2?** rc.3 contains four breaking changes (monthly data
+    resolution, nullable `active_device`, nullable `installed_at`, nullable
+    `usage_unit_id`). Read *Migrating from rc.2* below before you upgrade.
 
     # API stability & versioning
 
@@ -46,7 +46,8 @@ info:
     - **Release candidate phase (current).** rc.2 promised that core types
       would no longer be reshaped. **rc.3 breaks that promise once, on
       purpose**: the published contract described data messpunkt.io does not
-      have and a resolution it must not deliver (see *Migrating from rc.2*).
+      have, a resolution it must not deliver, and no way to reach the total
+      meters of a plant room (see *Migrating from rc.2*).
       Correcting that before the first partner goes live is cheap; afterwards
       it would be a `/v2`. From rc.3 on, `UsageUnit`, `MeasuringPoint`,
       `DeviceSegment` and `MeterReading` change only additively.
@@ -61,6 +62,7 @@ info:
     | **Billable consumption** | ERP computed `last − first` | `period_consumption.billable_value` per segment (raw consumption × `factor`) | Sum `billable_value` across segments. Do not subtract readings yourself for billing. |
     | **`MeasuringPoint.active_device`** *(breaking)* | required object | object **or `null`** (difference meters, removed devices) | Handle `null`. |
     | **`installed_at`** on `Device` / `DeviceSegment` *(breaking)* | required date | date **or `null`** (installation date not documented) | Handle `null`; never substitute a made-up date. |
+    | **`MeasuringPoint.usage_unit_id`** *(breaking)* | required UUID | UUID **or `null`** (measuring point of a plant room or a main meter, whose area is allocated to no usage unit); `property_id` is now always set and such measuring points are listed by the new `GET /properties/{id}/measuring-points` | Handle `null`. Read plant-room and main meters (e.g. a total heat meter) from `GET /properties/{id}/measuring-points`. |
     | `ReadingStatus` | 4 values | + `calibration_expired` | Never bill a value with this status. |
     | `SubstitutionMethod` | 3 values | + `weighted_recent_2values`, `weighted_recent_3values`, `baseline_fallback`, `baseline_single_value` | Treat as informational. |
     | `replacement_reason` | `EndOfLife`, `Defect`, … | + `DeviceReplacement` (the value you will actually see) | Map `DeviceReplacement` to "meter swap". |
@@ -260,7 +262,7 @@ info:
                 └─ Device segments (installation windows)
                    └─ month-end readings + period consumption
 
-    Sector ⇄ UsageUnit: allocation (usually one unit per sector)
+    Sector ⇄ UsageUnit: allocation (usually one unit per sector; none for a plant room)
     ```
 
     `UsageUnit` is the ERP-facing resource for billing queries.
@@ -297,6 +299,22 @@ info:
       pre-weighted" and left shared Sectors open. Device values stay
       unweighted; the per-unit weighted value is new.)
 
+    **Sectors without a share** (a plant room, the boiler room, the main
+    water meter): the Sector is allocated to **no** UsageUnit. Its
+    measuring points are still delivered — they are what a heating-cost
+    statement needs as the property's total:
+    - `MeasuringPoint.usage_unit_id` is `null` and `allocations` is empty;
+      `property_id` names the Property.
+    - They are **not** listed under any unit (`UsageUnit.measuring_points`)
+      and are **not** part of any `/usage-units/{id}/consumption`. List them
+      with `GET /properties/{id}/measuring-points`; read a single one with
+      `GET /measuring-points/{id}` and its values with
+      `GET /measuring-points/{id}/readings`.
+    - Such a measuring point is never distributed over the units: it is
+      the property's own total, not a unit's consumption. Whether and how
+      a total is split among units is your billing rule.
+    - *(Added in rc.3, breaking: `usage_unit_id` became nullable.)*
+
     **Difference meters.** Some measuring points carry no device of their own:
     their consumption is the remainder of a sum meter minus all other meters
     behind it. They are marked `is_difference_meter: true`, have
@@ -330,6 +348,9 @@ info:
       (use this to populate a two-step picker in the ERP UI:
       *first pick the Liegenschaft, then the Wohneinheit*)
     - `GET /usage-units?property_id=…` — list units filtered to one Property
+    - `GET /properties/{id}/measuring-points` — every measuring point of one
+      Property, **including those that belong to no unit** (plant room, main
+      meters; `usage_unit_id: null`)
     - `GET /usage-units` (no filter) — flat list of all units in the Tenant
       (fine for Tenants with one Property, or ERPs that don't need grouping)
 
@@ -477,7 +498,7 @@ info:
     | Endpoint | Scope | Typical use |
     | --- | --- | --- |
     | `GET /usage-units/{id}/consumption` | all MeasuringPoints of one UsageUnit | unit-level billing export |
-    | `GET /measuring-points/{id}/readings` | one MeasuringPoint | drill-down / reconciliation |
+    | `GET /measuring-points/{id}/readings` | one MeasuringPoint (also one without a unit, e.g. a total heat meter) | drill-down / reconciliation |
 
     Per MeasuringPoint the response holds one `DeviceSegment` per continuous
     device installation window inside the query range. A meter replacement
@@ -865,6 +886,134 @@ paths:
                     city: "Musterstadt"
                     country_code: "DE"
                 usage_unit_count: 16
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+
+  /properties/{id}/measuring-points:
+    parameters:
+      - $ref: "#/components/parameters/PropertyId"
+    get:
+      tags: [Measuring points]
+      summary: List all measuring points of a Property, with and without a usage unit
+      description: |
+        Returns **every** active measuring point of the Property as a
+        `MeasuringPoint`: those of a usage unit (`usage_unit_id` set) and
+        those in areas allocated to no unit, such as a plant room or a main
+        meter (`usage_unit_id: null`, `allocations: []`). The latter are not
+        reachable through `GET /usage-units` and are what you need for a
+        total (for example the total heat meter of a heating-cost
+        statement). See *Sectors without a share* in the API overview.
+
+        Sorted by `localization`, then `id`; paginated like the other lists.
+        Difference meters are listed with `active_device: null`; the
+        pre-measuring points of a landlord's own bookkeeping are not part of
+        the API. Values: `GET /measuring-points/{id}/readings`.
+
+        Unknown Property, or one outside the granted scope: `404`.
+      operationId: listPropertyMeasuringPoints
+      security:
+        - OAuth2: [read:devices]
+      x-codeSamples:
+        - lang: curl
+          label: curl
+          source: |
+            curl -s -H "Authorization: Bearer $TOKEN" \
+              "https://api.sandbox.messpunkt.io/v1/properties/$PROPERTY_ID/measuring-points?limit=100"
+        - lang: Python
+          label: Python (httpx) — the property's total meters
+          source: |
+            r = httpx.get(
+                f"https://api.sandbox.messpunkt.io/v1/properties/{property_id}/measuring-points",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            totals = [m for m in r.json()["data"] if m["usage_unit_id"] is None]  # first page; follow next_cursor
+      parameters:
+        - $ref: "#/components/parameters/PageCursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Page"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/MeasuringPoint" }
+              example:
+                next_cursor: null
+                prev_cursor: null
+                data:
+                  - id: "e7a1c3d2-58b4-4f0e-9c6a-3b2d1f0a8e57"
+                    usage_unit_id: null
+                    property_id: "718e092d-8626-4975-b800-252a7746ad08"
+                    metric: "heat"
+                    obis: null
+                    unit: "kWh"
+                    allocations: []
+                    localization: "Technikraum Gesamtwärmezähler"
+                    is_difference_meter: false
+                    is_system_linked: true
+                    active_device:
+                      id: "3f6b9d10-72c4-4a8e-b5d1-0e9c8a7b6d54"
+                      serial: "70815099"
+                      manufacturer: "SON"
+                      device_type: "HeatMeter"
+                      installed_at: "2019-03-01"
+                      deinstalled_at: null
+                      replacement_reason: null
+                      resolution: null
+                      factor: 1
+                  - id: "a45f8b4a-d595-49e0-8217-dd0b1c4a600f"
+                    usage_unit_id: "08d23bb4-0001-40f3-bd99-40bf33931365"
+                    property_id: "718e092d-8626-4975-b800-252a7746ad08"
+                    metric: "water_warm"
+                    obis: null
+                    unit: "m3"
+                    allocations:
+                      - { usage_unit_id: "08d23bb4-0001-40f3-bd99-40bf33931365", share: 1 }
+                    localization: "Badezimmer Steigstrang"
+                    is_difference_meter: false
+                    is_system_linked: true
+                    active_device:
+                      id: "a263c9ee-8efa-4760-8be0-b6782e0f73d6"
+                      serial: "12347"
+                      manufacturer: "SON"
+                      device_type: "HotWaterMeter"
+                      installed_at: "2025-06-12"
+                      deinstalled_at: null
+                      replacement_reason: null
+                      resolution: null
+                      factor: 1
+        "400":
+          description: Invalid paging parameter — fix the request, do not retry.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+              examples:
+                invalid_limit:
+                  summary: "`limit` outside 1–200 or not an integer"
+                  value:
+                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    title: "Invalid request"
+                    status: 400
+                    detail: "limit must be an integer between 1 and 200."
+                    trace_id: "7c2e19a0d4b35f81"
+                invalid_page_cursor:
+                  summary: "`page_cursor` not issued by this API"
+                  value:
+                    type: "https://api.sandbox.messpunkt.io/errors/invalid-request"
+                    title: "Invalid request"
+                    status: 400
+                    detail: "page_cursor is not valid."
+                    trace_id: "1d8f4b6e20a97c53"
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -1358,6 +1507,8 @@ paths:
       summary: Get a measuring point with its current device
       description: |
         Returns one MeasuringPoint and the device currently installed there.
+        Also returns measuring points of a plant room or a main meter, which
+        belong to no usage unit (`usage_unit_id: null`).
         `active_device` is `null` for difference meters and for measuring
         points whose device was removed without replacement.
       operationId: getMeasuringPoint
@@ -1381,6 +1532,7 @@ paths:
                   value:
                     id: "a45f8b4a-d595-49e0-8217-dd0b1c4a600f"
                     usage_unit_id: "08d23bb4-0001-40f3-bd99-40bf33931365"
+                    property_id: "718e092d-8626-4975-b800-252a7746ad08"
                     metric: "water_warm"
                     obis: null
                     unit: "m3"
@@ -1403,6 +1555,7 @@ paths:
                   value:
                     id: "5f0d6a3e-2b71-4c5e-9a8f-1d2c3b4a5e6f"
                     usage_unit_id: "08d23bb4-0001-40f3-bd99-40bf33931365"
+                    property_id: "718e092d-8626-4975-b800-252a7746ad08"
                     metric: "water_warm"
                     obis: null
                     unit: "m3"
@@ -1411,6 +1564,28 @@ paths:
                     localization: null
                     is_difference_meter: true
                     active_device: null
+                without_unit:
+                  summary: Total heat meter of a plant room — allocated to no usage unit
+                  value:
+                    id: "e7a1c3d2-58b4-4f0e-9c6a-3b2d1f0a8e57"
+                    usage_unit_id: null
+                    property_id: "718e092d-8626-4975-b800-252a7746ad08"
+                    metric: "heat"
+                    obis: null
+                    unit: "kWh"
+                    allocations: []
+                    localization: "Technikraum Gesamtwärmezähler"
+                    is_difference_meter: false
+                    active_device:
+                      id: "3f6b9d10-72c4-4a8e-b5d1-0e9c8a7b6d54"
+                      serial: "70815099"
+                      manufacturer: "SON"
+                      device_type: "HeatMeter"
+                      installed_at: "2019-03-01"
+                      deinstalled_at: null
+                      replacement_reason: null
+                      resolution: null
+                      factor: 1
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -2099,23 +2274,35 @@ components:
 
     MeasuringPoint:
       type: object
-      required: [id, usage_unit_id, metric, unit, active_device]
+      required: [id, usage_unit_id, property_id, metric, unit, active_device]
       properties:
         id:            { type: string, format: uuid }
         usage_unit_id:
-          type: string
+          type: [string, "null"]
           format: uuid
           description: |
             The UsageUnit this measuring point's sector is allocated to. For a
             sector shared by several units: the **primary unit** — the unit
             with the highest share (tie: the smallest id); all units are in
             `allocations`. *(Clarified in rc.3 addendum.)*
+
+            **`null`** when the measuring point's area is not allocated to any
+            usage unit — e.g. a plant room or a main meter. Such measuring
+            points are listed under the property via
+            `GET /properties/{id}/measuring-points`. *(Changed in rc.3:
+            was a required UUID.)*
+        property_id:
+          type: string
+          format: uuid
+          description: |
+            The Property the measuring point belongs to. Always set, also
+            when `usage_unit_id` is `null`. *(Added in rc.3.)*
         allocations:
           type: array
           description: |
             Every UsageUnit the measuring point's sector is allocated to, with
             its share, largest share first. One entry with `share: 1` for an
-            unshared sector. The shares of a sector normally add up to `1`.
+            unshared sector; empty when `usage_unit_id` is `null`. The shares of a sector normally add up to `1`.
             *(Added in rc.3 addendum.)*
           items: { $ref: "#/components/schemas/UnitAllocation" }
         metric:        { $ref: "#/components/schemas/Metric" }
