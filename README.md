@@ -32,6 +32,16 @@ Same spec, three viewers for different audiences:
 
 Raw OpenAPI YAML: [erp-api-openapi.yaml](./erp-api-openapi.yaml).
 
+Guides:
+
+| URL | Audience |
+|---|---|
+| [developer.messpunkt.io/erp/](https://developer.messpunkt.io/erp/) | ERP developers: registration, consent, tokens, refresh, revocation, errors |
+| [developer.messpunkt.io/connect/](https://developer.messpunkt.io/connect/) | Landlords (German): connect Claude, ChatGPT or Codex |
+| [developer.messpunkt.io/mcp/](https://developer.messpunkt.io/mcp/) | MCP client authors: transport, auth, tool reference |
+
+The MCP tool reference is generated from the server's `tools/list` snapshot (`mcp/tools-list.json`): `node scripts/render-tools.mjs`. `node scripts/check-guides.mjs` checks every URL, route, scope and tool name in the guides against the spec and the snapshot.
+
 ## Status
 
 | | |

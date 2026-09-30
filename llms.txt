@@ -14,6 +14,7 @@ This file follows the [llms.txt standard](https://llmstxt.org) — a Markdown in
 - [Endpoint explorer (Swagger UI)](https://developer.messpunkt.io/swagger-ui/): request builder with try-it-out
 - [Modern explorer (Scalar)](https://developer.messpunkt.io/scalar/): code samples in curl / JavaScript / Python / C#
 - [Changelog](https://developer.messpunkt.io/changelog/): release history, including the rc.2 → rc.3 migration notes
+- [ERP integration guide](https://developer.messpunkt.io/erp/): client registration, consent, PKCE, `iss` check, refresh rotation, revocation, DPoP, errors, rate limits
 - [Error handling](https://developer.messpunkt.io/errors/): `application/problem+json` types and client actions
 - [Plugin manifest](https://developer.messpunkt.io/.well-known/ai-plugin.json): OAuth + OpenAPI pointer for plugin-style integrations
 - [Authentication & authorization flow diagram](https://developer.messpunkt.io/auth-flow.svg): Mermaid sequence diagram
@@ -21,8 +22,10 @@ This file follows the [llms.txt standard](https://llmstxt.org) — a Markdown in
 ## MCP server (for landlords' own AI assistants)
 
 - Server URL: `https://mcp.messpunkt.io/v1` — part of V1, goes live together with the production REST API
+- [MCP server reference](https://developer.messpunkt.io/mcp/): transport, auth challenge, scopes per tool, tool reference generated from `tools/list`
+- [Landlord guide (German): Mit Claude, ChatGPT oder Codex verbinden](https://developer.messpunkt.io/connect/): connect steps per client, consent, limits, disconnecting
 - Clients: Claude (claude.ai, Claude Code), ChatGPT, Codex and other MCP clients with OAuth support
-- Read-only tools: `list_properties`, `get_property_overview`, `get_consumption`, `get_device_status`
+- Read-only tools: `list_properties`, `get_property_overview`, `get_consumption`, `get_device_status`, `get_connection_info`
 - Same authorization server, consent screen and data rules as the REST API; tokens are issued for one resource (`aud`) and are not interchangeable between MCP and REST
 
 ## Capabilities (REST)

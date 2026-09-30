@@ -185,6 +185,9 @@
         <a href="./bruno/">Bruno</a>
         <span class="divider" aria-hidden="true"></span>
         <a href="./quickstart/">Quickstart</a>
+        <a href="./erp/">ERP guide</a>
+        <a href="./connect/">Connect AI</a>
+        <a href="./mcp/">MCP</a>
         <a href="./sdk/">SDK</a>
         <a href="./changelog/">Changelog</a>
         <a href="./erp-api-openapi.yaml">OpenAPI YAML</a>
@@ -355,6 +358,24 @@ curl -H <span class="str">"Authorization: Bearer $TOKEN"</span> \
             <p>Four shell commands from zero to your first authenticated call, with the full OAuth 2.1 + PKCE round-trip.</p>
             <span class="cta">Start the walkthrough</span>
           </a>
+          <a class="path-card" href="./erp/">
+            <div class="path-kicker">Integration</div>
+            <h3>ERP integration guide</h3>
+            <p>Client registration, consent, PKCE and <code>iss</code> check, refresh rotation, revocation, errors and rate limits, step by step against the sandbox.</p>
+            <span class="cta">Read the ERP guide</span>
+          </a>
+          <a class="path-card" href="./connect/">
+            <div class="path-kicker">Für Vermieter · Deutsch</div>
+            <h3>Mit Claude, ChatGPT oder Codex verbinden</h3>
+            <p>How landlords connect their own AI assistant to the messpunkt.io MCP server. Part of V1; goes live together with the production REST API.</p>
+            <span class="cta">Anleitung lesen</span>
+          </a>
+          <a class="path-card" href="./mcp/">
+            <div class="path-kicker">MCP</div>
+            <h3>MCP server reference</h3>
+            <p>Endpoints, stateless transport, auth challenge, scopes per tool and the tool reference generated from <code>tools/list</code>.</p>
+            <span class="cta">Open the MCP reference</span>
+          </a>
           <a class="path-card" href="./reference/">
             <div class="path-kicker">Reference</div>
             <h3>Full API documentation</h3>
@@ -374,9 +395,9 @@ curl -H <span class="str">"Authorization: Bearer $TOKEN"</span> \
             <span class="cta">Read the guide</span>
           </a>
           <a class="path-card" href="./dpop/">
-            <div class="path-kicker">Production</div>
+            <div class="path-kicker">Optional</div>
             <h3>DPoP proof of possession</h3>
-            <p>Sender-constraining tokens with working code in C#, Node, Python, and curl. Required for GA.</p>
+            <p>Sender-constraining tokens with working code in C#, Node, Python, and curl. Optional; fully verified when you use it.</p>
             <span class="cta">Implement DPoP</span>
           </a>
           <a class="path-card" href="./scalar/">

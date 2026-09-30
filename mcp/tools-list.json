@@ -1,0 +1,1143 @@
+[
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": "Meine Verbindung"
+    },
+    "description": "Zeigt, womit diese Verbindung zu Messpunkt arbeitet: für welchen Kunden (Mandant), mit welchen erteilten Rechten (in verständlichen Sätzen) und für welche Liegenschaften (alle, auch künftige, oder eine Liste), und wo die Verbindung im Vermieter-Portal getrennt wird. Nützlich, wenn unklar ist, warum eine Liegenschaft oder ein Tool nicht verfügbar ist. Liest keine Verbrauchs- oder Gerätedaten und ändert nichts. Benötigt das Recht read:units.",
+    "inputSchema": {
+      "properties": {},
+      "type": "object"
+    },
+    "name": "get_connection_info",
+    "outputSchema": {
+      "properties": {
+        "how_to_disconnect": {
+          "description": "Wie die Verbindung getrennt oder geändert wird.",
+          "type": "string"
+        },
+        "property_scope": {
+          "description": "Welche Liegenschaften die Verbindung sehen darf.",
+          "properties": {
+            "all": {
+              "description": "true, wenn die Verbindung alle Liegenschaften umfasst, auch später hinzukommende.",
+              "type": "boolean"
+            },
+            "properties": {
+              "default": null,
+              "description": "Bei All=false: die freigegebenen Liegenschaften.",
+              "items": {
+                "properties": {
+                  "address": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "address"
+                ],
+                "type": "object"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "all"
+          ],
+          "type": "object"
+        },
+        "scopes": {
+          "description": "Die erteilten Rechte.",
+          "items": {
+            "properties": {
+              "description": {
+                "description": "Was dieses Recht erlaubt, in einem Satz.",
+                "type": "string"
+              },
+              "scope": {
+                "description": "Technischer Name des Rechts, z. B. read:units.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "scope",
+              "description"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "summary": {
+          "description": "Zusammenfassung in Klartext.",
+          "type": "string"
+        },
+        "tenant_name": {
+          "default": null,
+          "description": "Name des Mandanten (Kunde), zu dem diese Verbindung gehört; fehlt, wenn er nicht ermittelt werden kann.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "scopes",
+        "property_scope",
+        "how_to_disconnect",
+        "summary"
+      ],
+      "type": "object"
+    },
+    "title": "Meine Verbindung"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": "Verbrauch je Monat"
+    },
+    "description": "Liefert Monatswerte des Verbrauchs einer Liegenschaft. Die Liegenschaft wird als property per Name, Adress-Teilstring oder ID angegeben; passen mehrere, kommt eine Kandidatenliste. Werte sind höchstens monatlich aufgelöst (nie Tages- oder Rohwerte) und jede Kennzahl hat ihre eigene Einheit: heat in kWh, hca in HKV-Einheiten (dimensionslos, Einheit unit), water_cold, water_warm und water_outdoor in m3, electricity in kWh. Aussenwasser (water_outdoor) wird getrennt von Kalt- und Warmwasser ausgewiesen; eine Summe über verschiedene Kennzahlen gibt es nicht. Zeitraum: from_month und to_month als JJJJ-MM; ohne Angabe die letzten 12 abgeschlossenen Monate, höchstens 36 Monate je Aufruf; der laufende Monat ist nie enthalten. breakdown wählt die Gliederung: systems (je Anlage, Standard), sectors (je Bereich einer Anlage) oder usage_units (je Nutzeinheit, anteilig nach Zuordnung der Bereiche). Mit include_devices=true kommen die Gerätesegmente dazu; deren baseline_origin sagt, woher der Startwert eines Tausch-Heizkostenverteilers stammt (recorded erfasst, assumed_zero angenommen 0, first_reading, portal_rule, none). Ein angenommener Startwert wird immer gemeldet. Jeder Monatswert trägt einen Status; calibration_expired heißt, ein Gerät mit abgelaufener Eichung trägt nichts zum Wert bei. Eichstatus unbekannt — das heißt nicht, dass die Eichung in Ordnung ist. Differenzzähler: kein Wert in V1. Benötigt das Recht read:readings.",
+    "inputSchema": {
+      "properties": {
+        "breakdown": {
+          "default": "systems",
+          "description": "Optional: systems (je Anlage, Standard), sectors (je Bereich) oder usage_units (je Nutzeinheit).",
+          "type": "string"
+        },
+        "from_month": {
+          "default": null,
+          "description": "Optional: erster Monat als JJJJ-MM, z. B. 2025-01. Ohne Angabe: 11 Monate vor to_month.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "include_devices": {
+          "default": false,
+          "description": "Optional: true liefert zusätzlich die Gerätesegmente (Startwert mit baseline_origin, K-Faktor, Verbrauch roh und mit Faktor).",
+          "type": "boolean"
+        },
+        "metrics": {
+          "default": null,
+          "description": "Optional: nur diese Kennzahlen, aus heat, hca, water_cold, water_warm, water_outdoor, electricity. Ohne Angabe: alle.",
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "property": {
+          "description": "Name (auch nur ein Teil), Adresse oder ID der Liegenschaft, z. B. „Gartenweg“.",
+          "type": "string"
+        },
+        "to_month": {
+          "default": null,
+          "description": "Optional: letzter Monat als JJJJ-MM, z. B. 2025-12. Ohne Angabe: der letzte abgeschlossene Monat.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "property"
+      ],
+      "type": "object"
+    },
+    "name": "get_consumption",
+    "outputSchema": {
+      "properties": {
+        "assumed_zero_devices": {
+          "default": null,
+          "description": "Immer gesetzt, wenn ein Gerät mit angenommenem Startwert 0 (baseline_origin assumed_zero) im Zeitraum liegt, auch ohne include_devices.",
+          "items": {
+            "$ref": "#/properties/devices/items"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "breakdown": {
+          "default": null,
+          "description": "Gewählte Gliederung: systems, sectors oder usage_units; nur bei ok.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "candidates": {
+          "default": null,
+          "description": "Bei ambiguous: die passenden Liegenschaften (id, Name, Adresse).",
+          "items": {
+            "properties": {
+              "address": {
+                "type": "string"
+              },
+              "id": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "address"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "devices": {
+          "default": null,
+          "description": "Nur mit include_devices=true: die Gerätesegmente mit Startwert und baseline_origin.",
+          "items": {
+            "properties": {
+              "adjusted_consumption": {
+                "default": null,
+                "description": "Verbrauch im Zeitraum mit dem K-Faktor dieses Geräts.",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "baseline_date": {
+                "default": null,
+                "description": "Datum des Startwerts (JJJJ-MM-TT).",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "baseline_origin": {
+                "description": "Herkunft des Startwerts: recorded (erfasst), assumed_zero (angenommen 0, NICHT erfasst), first_reading (erster Stand nach Einbau; Verbrauch davor unbekannt), portal_rule (Startwert wie im Portal) oder none.",
+                "type": "string"
+              },
+              "baseline_value": {
+                "default": null,
+                "description": "Startwert des Geräts in der Einheit der Kennzahl.",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "device_id": {
+                "description": "Stabile ID des Geräts.",
+                "format": "uuid",
+                "type": "string"
+              },
+              "device_type": {
+                "description": "Gerätetyp.",
+                "type": "string"
+              },
+              "factor": {
+                "description": "K-Faktor dieses Geräts (Heizkostenverteiler); ein Tausch wirkt nicht rückwirkend.",
+                "type": "number"
+              },
+              "installed_on": {
+                "default": null,
+                "description": "Einbaudatum (JJJJ-MM-TT), falls bekannt.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "metric": {
+                "description": "Kennzahl des Geräts (z. B. hca).",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "raw_consumption": {
+                "default": null,
+                "description": "Verbrauch im Zeitraum, roh (ohne K-Faktor).",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "removed_on": {
+                "default": null,
+                "description": "Ausbaudatum (JJJJ-MM-TT), falls ausgebaut.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "serial_number": {
+                "description": "Seriennummer.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "device_id",
+              "serial_number",
+              "device_type",
+              "metric",
+              "factor",
+              "baseline_origin"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "entries": {
+          "default": null,
+          "description": "Die Werte je Auswertungseinheit; nur bei ok.",
+          "items": {
+            "properties": {
+              "name": {
+                "description": "Die Auswertungseinheit: bei systems eine Anlage, bei sectors ein Bereich einer Anlage, bei usage_units eine Nutzeinheit.",
+                "type": "string"
+              },
+              "sector_id": {
+                "default": null,
+                "description": "ID des Bereichs (nur bei sectors).",
+                "format": "uuid",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "series": {
+                "description": "Eine Reihe je Kennzahl, jede in ihrer Einheit.",
+                "items": {
+                  "properties": {
+                    "label": {
+                      "description": "Deutsche Bezeichnung der Kennzahl.",
+                      "type": "string"
+                    },
+                    "metric": {
+                      "description": "Kennzahl: heat (Wärmemenge), hca (Heizkostenverteiler), water_cold, water_warm, water_outdoor (Aussenwasser) oder electricity.",
+                      "type": "string"
+                    },
+                    "months": {
+                      "description": "Monatswerte aufsteigend; Monate ohne Eintrag hatten keine Daten.",
+                      "items": {
+                        "properties": {
+                          "calibration_data_missing": {
+                            "default": null,
+                            "description": "true, wenn für mindestens ein eichpflichtiges Gerät in diesem Wert keine Eichdaten vorliegen. Das heißt nicht, dass die Eichung in Ordnung ist.",
+                            "type": [
+                              "boolean",
+                              "null"
+                            ]
+                          },
+                          "month": {
+                            "description": "Monat als JJJJ-MM.",
+                            "type": "string"
+                          },
+                          "status": {
+                            "description": "measured (gemessen), partially_substituted, substituted (ersetzt), calculated (berechnet), calibration_expired (Gerät mit abgelaufener Eichung trägt nichts bei), missing (keine Daten) oder unknown.",
+                            "type": "string"
+                          },
+                          "value": {
+                            "description": "Verbrauch dieses Monats in der Einheit der Kennzahl.",
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "month",
+                          "value",
+                          "status"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "total": {
+                      "description": "Summe der gelisteten Monate, in derselben Einheit.",
+                      "type": "number"
+                    },
+                    "unit": {
+                      "description": "Einheit dieser Kennzahl: kWh, m3 oder unit (HKV-Einheiten, dimensionslos). Jede Kennzahl hat ihre eigene Einheit.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "metric",
+                    "label",
+                    "unit",
+                    "months",
+                    "total"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "system_id": {
+                "default": null,
+                "description": "ID der Anlage (bei systems und sectors).",
+                "format": "uuid",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "system_name": {
+                "default": null,
+                "description": "Name der Anlage (bei systems und sectors).",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "system_type": {
+                "default": null,
+                "description": "Art der Anlage, z. B. Heating oder Water.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "usage_unit_id": {
+                "default": null,
+                "description": "ID der Nutzeinheit (nur bei usage_units).",
+                "format": "uuid",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "series"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "from_month": {
+          "default": null,
+          "description": "Erster Monat des Zeitraums (JJJJ-MM); nur bei ok.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "message": {
+          "default": null,
+          "description": "Klartext bei ambiguous und not_found.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notes": {
+          "default": null,
+          "description": "Hinweise zur Einordnung der Werte; immer lesen.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "property": {
+          "default": null,
+          "description": "Die Liegenschaft; nur bei ok.",
+          "properties": {
+            "address": {
+              "type": "string"
+            },
+            "id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "address"
+          ],
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "status": {
+          "description": "ok, ambiguous (mehrere Liegenschaften passen, siehe candidates) oder not_found.",
+          "type": "string"
+        },
+        "to_month": {
+          "default": null,
+          "description": "Letzter Monat des Zeitraums (JJJJ-MM); nur bei ok.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "unlinked_measuring_points": {
+          "default": null,
+          "description": "Messpunkte ohne Anlagenzuordnung; sie tragen zu keinem Wert bei.",
+          "items": {
+            "properties": {
+              "id": {
+                "description": "ID des Messpunkts.",
+                "format": "uuid",
+                "type": "string"
+              },
+              "localization": {
+                "description": "Lage / Bezeichnung des Messpunkts.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "localization"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "type": "object"
+    },
+    "title": "Verbrauch je Monat"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": "Gerätestatus"
+    },
+    "description": "Zeigt je Gerät einer Liegenschaft, ob es stumm ist (mehr als 7 Tage kein Funktelegramm), das Datum des letzten Empfangs, den Eichstatus (ok, expired, replaced, not_required, unknown) mit Ablaufdatum sowie Ein- und Ausbau bzw. Tausch. Die Liegenschaft wird als property per Name, Adress-Teilstring oder ID angegeben; passen mehrere, kommt eine Kandidatenliste. Mit only_problems=true erscheinen nur stumme Geräte und Geräte mit abgelaufenem oder unbekanntem Eichstatus. Ausgebaute Geräte erscheinen nur mit include_removed=true. Eichstatus unbekannt — das heißt nicht, dass die Eichung in Ordnung ist. Der letzte Empfang ist nur als Datum angegeben. Differenzzähler: kein Wert in V1. Benötigt das Recht read:devices.",
+    "inputSchema": {
+      "properties": {
+        "include_removed": {
+          "default": false,
+          "description": "Optional: true nimmt auch ausgebaute Geräte auf. Standard false.",
+          "type": "boolean"
+        },
+        "only_problems": {
+          "default": false,
+          "description": "Optional: true zeigt nur stumme Geräte und Geräte mit abgelaufenem oder unbekanntem Eichstatus.",
+          "type": "boolean"
+        },
+        "property": {
+          "description": "Name (auch nur ein Teil), Adresse oder ID der Liegenschaft, z. B. „Gartenweg“.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "property"
+      ],
+      "type": "object"
+    },
+    "name": "get_device_status",
+    "outputSchema": {
+      "properties": {
+        "candidates": {
+          "default": null,
+          "description": "Bei ambiguous: die passenden Liegenschaften (id, Name, Adresse).",
+          "items": {
+            "properties": {
+              "address": {
+                "type": "string"
+              },
+              "id": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "address"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "devices": {
+          "default": null,
+          "description": "Die Geräte, sortiert nach Messpunkt und Seriennummer; nur bei ok.",
+          "items": {
+            "properties": {
+              "calibration_state": {
+                "description": "Eichstatus: ok, expired (abgelaufen), replaced (Gerät wurde getauscht bzw. ausgebaut), not_required (keine Eichpflicht, z. B. Heizkostenverteiler) oder unknown. Eichstatus unbekannt — das heißt nicht, dass die Eichung in Ordnung ist.",
+                "type": "string"
+              },
+              "calibration_valid_until": {
+                "default": null,
+                "description": "Letzter Tag der Eichgültigkeit (JJJJ-MM-TT), wenn bekannt.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "device_type": {
+                "description": "Gerätetyp, z. B. HeatCostAllocator, WaterMeter.",
+                "type": "string"
+              },
+              "id": {
+                "description": "Stabile ID des Geräts.",
+                "format": "uuid",
+                "type": "string"
+              },
+              "installed_on": {
+                "default": null,
+                "description": "Einbaudatum (JJJJ-MM-TT), wenn bekannt.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "last_received_on": {
+                "default": null,
+                "description": "Datum (JJJJ-MM-TT) des letzten Funkempfangs, ohne Uhrzeit; fehlt, wenn das Gerät nie gesendet hat.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "measuring_point": {
+                "description": "Messpunkt, an dem das Gerät hängt (z. B. Raum oder Zählerplatz).",
+                "type": "string"
+              },
+              "removed_on": {
+                "default": null,
+                "description": "Ausbaudatum (JJJJ-MM-TT), wenn das Gerät ausgebaut wurde.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "replaced_by_device_id": {
+                "default": null,
+                "description": "ID des Ersatzgeräts, wenn dieses Gerät getauscht wurde.",
+                "format": "uuid",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "serial_number": {
+                "description": "Seriennummer.",
+                "type": "string"
+              },
+              "silent": {
+                "description": "true, wenn das Gerät seit mehr als 7 Tagen kein Funktelegramm gesendet hat oder nie gesendet hat. Ausgebaute Geräte sind nie stumm.",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "serial_number",
+              "device_type",
+              "measuring_point",
+              "silent",
+              "calibration_state"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "message": {
+          "default": null,
+          "description": "Klartext bei ambiguous und not_found.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notes": {
+          "default": null,
+          "description": "Hinweise zur Einordnung der Werte; immer lesen.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "property": {
+          "default": null,
+          "description": "Die Liegenschaft; nur bei ok.",
+          "properties": {
+            "address": {
+              "type": "string"
+            },
+            "id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "address"
+          ],
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "status": {
+          "description": "ok, ambiguous (mehrere Liegenschaften passen, siehe candidates) oder not_found.",
+          "type": "string"
+        },
+        "summary": {
+          "default": null,
+          "description": "Zählung der Geräte; nur bei ok.",
+          "properties": {
+            "calibration_expired": {
+              "description": "Davon mit abgelaufener Eichung.",
+              "type": "integer"
+            },
+            "calibration_unknown": {
+              "description": "Davon mit unbekanntem Eichstatus.",
+              "type": "integer"
+            },
+            "silent": {
+              "description": "Davon stumm.",
+              "type": "integer"
+            },
+            "total": {
+              "description": "Anzahl der gelisteten Geräte.",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "total",
+            "silent",
+            "calibration_expired",
+            "calibration_unknown"
+          ],
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "unlinked_measuring_points": {
+          "default": null,
+          "description": "Messpunkte ohne Anlagenzuordnung.",
+          "items": {
+            "properties": {
+              "id": {
+                "description": "ID des Messpunkts.",
+                "format": "uuid",
+                "type": "string"
+              },
+              "localization": {
+                "description": "Lage / Bezeichnung des Messpunkts.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "localization"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "type": "object"
+    },
+    "title": "Gerätestatus"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": "Liegenschaft im Überblick"
+    },
+    "description": "Zeigt eine Liegenschaft im Überblick: ihre Nutzeinheiten mit den aktuellen Mietern (wie im Vermieter-Portal, ohne Ausgezogene), ihre Anlagen und die Zahl der Messpunkte. Die Liegenschaft wird als property per Name, Adress-Teilstring oder ID angegeben; passen mehrere, antwortet das Tool mit einer Kandidatenliste. Liefert keine Verbrauchswerte (dafür get_consumption) und keinen Gerätestatus (dafür get_device_status). Benötigt das Recht read:units.",
+    "inputSchema": {
+      "properties": {
+        "property": {
+          "description": "Name (auch nur ein Teil), Adresse oder ID der Liegenschaft, z. B. „Gartenweg“.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "property"
+      ],
+      "type": "object"
+    },
+    "name": "get_property_overview",
+    "outputSchema": {
+      "properties": {
+        "candidates": {
+          "default": null,
+          "description": "Bei ambiguous: die passenden Liegenschaften (id, Name, Adresse).",
+          "items": {
+            "properties": {
+              "address": {
+                "type": "string"
+              },
+              "id": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "address"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "measuring_point_count": {
+          "default": null,
+          "description": "Anzahl der aktiven Messpunkte (nicht der Geräte); nur bei ok.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "message": {
+          "default": null,
+          "description": "Klartext bei ambiguous und not_found.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notes": {
+          "default": null,
+          "description": "Hinweise zur Einordnung der Werte.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "property": {
+          "default": null,
+          "description": "Die Liegenschaft; nur bei ok.",
+          "properties": {
+            "address": {
+              "type": "string"
+            },
+            "id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "address"
+          ],
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "status": {
+          "description": "ok, ambiguous (mehrere Liegenschaften passen, siehe candidates) oder not_found.",
+          "type": "string"
+        },
+        "systems": {
+          "default": null,
+          "description": "Anlagen (Heizung, Wasser ...); nur bei ok.",
+          "items": {
+            "properties": {
+              "id": {
+                "description": "Stabile ID der Anlage.",
+                "format": "uuid",
+                "type": "string"
+              },
+              "name": {
+                "description": "Name der Anlage.",
+                "type": "string"
+              },
+              "type": {
+                "description": "Art der Anlage, z. B. Heating oder Water.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "type"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "unlinked_measuring_point_count": {
+          "default": null,
+          "description": "Davon Messpunkte ohne Anlagenzuordnung, die zu keinem Verbrauch beitragen; nur bei ok.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "usage_units": {
+          "default": null,
+          "description": "Nutzeinheiten mit aktuellen Mietern; nur bei ok.",
+          "items": {
+            "properties": {
+              "current_occupants": {
+                "description": "Aktuelle Mieter. Leer bedeutet: aktuell kein Mieter eingetragen. Ausgezogene und künftige Mieter fehlen.",
+                "items": {
+                  "properties": {
+                    "move_in_date": {
+                      "default": null,
+                      "description": "Einzugsdatum (JJJJ-MM-TT), falls bekannt.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "move_out_date": {
+                      "default": null,
+                      "description": "Auszugsdatum (JJJJ-MM-TT), falls bereits eingetragen (der Auszugstag zählt noch als aktuell).",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "name": {
+                      "description": "Name des Haushalts / Mieters, wie im Vermieter-Portal.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "heated_area_m2": {
+                "default": null,
+                "description": "Beheizte Fläche in m², falls erfasst.",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "id": {
+                "description": "Stabile ID der Nutzeinheit.",
+                "format": "uuid",
+                "type": "string"
+              },
+              "name": {
+                "description": "Name der Nutzeinheit, z. B. „WE 01“.",
+                "type": "string"
+              },
+              "warm_water_area_m2": {
+                "default": null,
+                "description": "Warmwasser-Fläche in m², falls erfasst.",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "current_occupants"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "type": "object"
+    },
+    "title": "Liegenschaft im Überblick"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": "Liegenschaften auflisten"
+    },
+    "description": "Listet die Liegenschaften, die für diese Verbindung freigegeben sind: ID, Name, Adresse, Anzahl Nutzeinheiten und Anlagen. Mit query (Teil des Namens oder der Adresse, Groß-/Kleinschreibung egal) wird gesucht; dann kommen höchstens 10 Treffer und keine weitere Seite. Ohne query wird seitenweise geblättert (cursor aus der vorigen Antwort, limit 1 bis 100, Standard 25). Die Namen der Liegenschaften können bei allen anderen Tools statt der ID verwendet werden. Benötigt das Recht read:units.",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "default": null,
+          "description": "Optional: cursor aus der vorigen Antwort, um die nächste Seite zu holen. Nicht zusammen mit query.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limit": {
+          "default": null,
+          "description": "Optional: Anzahl je Seite, 1 bis 100, Standard 25.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "query": {
+          "default": null,
+          "description": "Optional: Teil des Namens oder der Adresse, z. B. „Gartenweg“.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "name": "list_properties",
+    "outputSchema": {
+      "properties": {
+        "message": {
+          "default": null,
+          "description": "Hinweis in Klartext, z. B. bei leerem Ergebnis oder abgeschnittener Suche.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "next_cursor": {
+          "default": null,
+          "description": "Cursor für die nächste Seite; fehlt, wenn es keine weitere gibt.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "properties": {
+          "description": "Die Liegenschaften, sortiert nach Name.",
+          "items": {
+            "properties": {
+              "address": {
+                "description": "Hauptadresse als eine Zeile.",
+                "type": "string"
+              },
+              "id": {
+                "description": "Stabile ID der Liegenschaft; kann bei allen anderen Tools als property angegeben werden.",
+                "format": "uuid",
+                "type": "string"
+              },
+              "name": {
+                "description": "Name der Liegenschaft.",
+                "type": "string"
+              },
+              "system_count": {
+                "description": "Anzahl der Anlagen (Heizung, Wasser ...).",
+                "type": "integer"
+              },
+              "usage_unit_count": {
+                "description": "Anzahl der Nutzeinheiten (Wohnungen, Läden ...).",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "address",
+              "usage_unit_count",
+              "system_count"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "status": {
+          "description": "ok, oder not_found, wenn die Suche nichts ergeben hat.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "properties"
+      ],
+      "type": "object"
+    },
+    "title": "Liegenschaften auflisten"
+  }
+]
