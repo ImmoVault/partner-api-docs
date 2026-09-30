@@ -193,6 +193,18 @@
             <li><strong>Sandbox:</strong> the data is static up to 2026-12-31, and the fixture contains no <code>substituted</code> values.</li>
           </ul>
         </div>
+        <div class="change-group added">
+          <h3>rc.3 — Addendum (additive)</h3>
+          <p>Additions to the same rc.3 contract before its publication. Only new optional fields, a new enum and descriptions — no field removed, no type changed, no new required field — so the version number stays <code>1.0.0-rc.3</code>.</p>
+          <ul>
+            <li><strong>For AI agents:</strong> the MCP server lists five read-only tools — <code>list_properties</code>, <code>get_property_overview</code>, <code>get_consumption</code>, <code>get_device_status</code> and <code>get_connection_info</code>. Their schemas are in the <a href="../mcp/#tools">MCP tool reference</a>.</li>
+            <li><strong><code>DeviceSegment.baseline_origin</code></strong> (new, optional): where <code>baseline_value</code> comes from — <code>recorded</code>, <code>assumed_zero</code>, <code>first_reading</code>, <code>portal_rule</code>, <code>month_end_before_range</code>, <code>first_known_in_range</code> or <code>none</code>. <code>assumed_zero</code> means the start value of a replacement heat cost allocator was <strong>not recorded</strong> and is assumed to be 0 — the consumption of that segment rests on this assumption.</li>
+            <li><strong><code>is_system_linked</code></strong> (new, optional, default <code>true</code>) on <code>MeasuringPoint</code> and <code>MeasuringPointConsumption</code>: <code>false</code> for a measuring point without an active assignment to a heating or water system. It is delivered with its values; the landlord portal shows 0 for it.</li>
+            <li><strong><code>substituted</code> is not produced today:</strong> ranges end at a completed month end, where messpunkt.io stores only <code>calculated</code> values. <code>substitution_method</code> therefore appears only on <code>calculated</code> values (<code>degree_day_weighted</code> for heat meters and heat cost allocators, <code>linear_interpolation</code> otherwise). The status stays in the contract.</li>
+            <li><strong><code>calibration_expired</code></strong> can come with <code>is_synthetic: true</code> (an interpolated value of a device whose calibration has expired); <code>substitution_method</code> is then <code>null</code>. The value-status table said <code>false</code> only.</li>
+            <li><strong>Usage units:</strong> <code>floor</code>, <code>position</code> and <code>unit_type</code> are taken from the unit's Sector with the highest allocation share; <code>country_code</code> is currently always <code>DE</code>.</li>
+          </ul>
+        </div>
       </section>
 
       <section class="release">
