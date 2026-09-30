@@ -78,7 +78,7 @@ Discovery artifacts so the API is usable by AI assistants and LLM-based agents o
 
 Full detail and constraints for agent authors are in the [*For AI agents*](https://developer.messpunkt.io/#section/For-AI-agents) section of the rendered docs.
 
-**MCP server:** `https://mcp.messpunkt.io/v1` lets landlords ask their own AI assistant (Claude, ChatGPT, Codex) about their data — read-only tools, same consent and data rules as the REST API. Part of V1; goes live together with production.
+**MCP server:** `https://mcp.messpunkt.io/v1` lets landlords ask their own AI assistant (Claude, ChatGPT, Codex) about their data — read-only tools, same consent and data rules as the REST API. Live since 2026-09-30; access is enabled per customer organisation. The production REST API goes live with the first pilot partner.
 
 ## Legal
 

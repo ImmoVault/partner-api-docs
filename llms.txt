@@ -21,7 +21,7 @@ This file follows the [llms.txt standard](https://llmstxt.org) — a Markdown in
 
 ## MCP server (for landlords' own AI assistants)
 
-- Server URL: `https://mcp.messpunkt.io/v1` — part of V1, goes live together with the production REST API
+- Server URL: `https://mcp.messpunkt.io/v1` — live since 2026-09-30; access enabled per customer organisation on request (kontakt@messpunkt.io)
 - [MCP server reference](https://developer.messpunkt.io/mcp/): transport, auth challenge, scopes per tool, tool reference generated from `tools/list`
 - [Landlord guide (German): Mit Claude, ChatGPT oder Codex verbinden](https://developer.messpunkt.io/connect/): connect steps per client, consent, limits, disconnecting
 - Clients: Claude (claude.ai, Claude Code), ChatGPT, Codex and other MCP clients with OAuth support

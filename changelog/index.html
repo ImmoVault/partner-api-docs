@@ -108,6 +108,22 @@
 
       <section class="release">
         <div class="release-header">
+          <span class="version">Operations</span>
+          <span class="date">2026-09-30</span>
+          <span class="status rc">Release candidate</span>
+        </div>
+        <p>No change to the contract (still <strong>1.0.0-rc.3</strong>). The production REST API (<code>api.messpunkt.io</code>) still goes live with the first pilot partner.</p>
+        <div class="change-group added">
+          <h3>Added</h3>
+          <ul>
+            <li><strong>MCP server live</strong> at <code>https://mcp.messpunkt.io/v1</code>, together with the production authorization server <code>https://auth.messpunkt.io</code>. Access is enabled per customer organisation on request (<a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a>). Verified end to end with Claude Code. See the <a href="../mcp/">MCP reference</a> and the <a href="../connect/">landlord guide</a> (German).</li>
+            <li><strong>Sandbox on rc.3.</strong> <code>auth.sandbox.messpunkt.io</code> and <code>api.sandbox.messpunkt.io</code> now serve the rc.3 contract, including <code>resource</code> (RFC 8707) and <code>/oauth/revoke</code>.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="release">
+        <div class="release-header">
           <span class="version">1.0.0-rc.3</span>
           <span class="date">2026-09-29</span>
           <span class="status rc">Release candidate</span>
