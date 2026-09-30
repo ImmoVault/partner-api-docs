@@ -175,7 +175,7 @@
         <p>Bei Claude Team und Enterprise muss zuerst ein Organisations-Owner den Connector unter <strong>Organisationseinstellungen › Connectoren</strong> anlegen. Danach verbindet sich jedes Mitglied selbst über <strong>Anpassen › Connectoren</strong>. Quelle: <a href="https://support.claude.com/en/articles/11175166" target="_blank" rel="noopener">Claude-Hilfe zu Custom Connectors</a>.</p>
         <div class="checks">
           <div class="verified"><h4>Bei uns geprüft</h4><ul><li>Noch nichts, was speziell Claude betrifft.</li></ul></div>
-          <div class="unverified"><h4>Noch nicht geprüft</h4><ul><li>Der ganze Ablauf mit claude.ai gegen den messpunkt.io-Server.</li><li>Ob sich claude.ai bei uns ohne eigene Client-ID anmelden kann. messpunkt.io erwartet, dass der Assistent sich über ein öffentliches Beschreibungsdokument ausweist; eine automatische Registrierung bieten wir nicht an.</li></ul></div>
+          <div class="unverified"><h4>Noch nicht geprüft</h4><ul><li>Der ganze Ablauf mit claude.ai gegen den laufenden messpunkt.io-Server.</li><li>Dass claude.ai sich bei uns ohne eigene Client-ID anmeldet. Laut Anthropic geht das mit dem Verfahren, das unser Anmeldeserver anbietet (<a href="https://claude.com/docs/connectors/building/authentication" target="_blank" rel="noopener">Anthropic-Doku zur Anmeldung von Connectoren</a>); live ausprobiert haben wir es noch nicht.</li></ul></div>
         </div>
       </section>
 
@@ -189,7 +189,7 @@
         </ol>
         <p>Quelle: <a href="https://code.claude.com/docs/en/mcp" target="_blank" rel="noopener">Claude-Code-Dokumentation zu MCP</a>.</p>
         <div class="checks">
-          <div class="verified"><h4>Bei uns geprüft</h4><ul><li>Die Rückleitungsadresse, die Claude Code benutzt (<code>http://localhost:PORT/callback</code>), nimmt unser Anmeldeserver an. Das belegt ein automatischer Test.</li><li>Der Server spricht das MCP-Protokoll mit dem offiziellen Referenzwerkzeug (MCP Inspector), lokal getestet.</li></ul></div>
+          <div class="verified"><h4>Bei uns geprüft</h4><ul><li>Die Rückleitungsadresse, die Claude Code benutzt (<code>http://localhost:PORT/callback</code>, mit wechselndem Port), nimmt unser Anmeldeserver an. Das belegt ein automatischer Test.</li><li>Der Server spricht das MCP-Protokoll mit dem offiziellen Referenzwerkzeug (MCP Inspector), lokal getestet.</li></ul></div>
           <div class="unverified"><h4>Noch nicht geprüft</h4><ul><li>Der ganze Ablauf mit Claude Code gegen den laufenden messpunkt.io-Server.</li></ul></div>
         </div>
       </section>
@@ -245,10 +245,13 @@ url = "https://mcp.messpunkt.io/v1"</code></pre></li>
 
       <h2 id="beispiele">Beispielfragen</h2>
       <p>Du kannst ganz normal fragen und Liegenschaften mit ihrem Namen oder einem Teil der Adresse nennen. Passen mehrere, fragt der Assistent nach.</p>
-      <!-- P08B-BEISPIELE: gekürzte Beispielantworten aus P08B-BERICHT.md (Inspector-Durchlauf, synthetische Daten) -->
-      <div class="qa"><div class="q">„Welche Liegenschaften habe ich?“</div><div class="a"><span class="placeholder">Beispielantwort folgt</span></div></div>
-      <div class="qa"><div class="q">„Wie hoch war der Wärmeverbrauch 2025 in der Musterstraße 12?“</div><div class="a"><span class="placeholder">Beispielantwort folgt</span></div></div>
-      <div class="qa"><div class="q">„Welche Geräte sind stumm?“</div><div class="a"><span class="placeholder">Beispielantwort folgt</span></div></div>
+      <!-- P08B-BEISPIELE: gekürzt aus P08B-BERICHT.md (Durchlauf gegen synthetische Testdaten, Stand 2026-09-29) -->
+      <p>So sehen die Antworten aus, die der Assistent von messpunkt.io bekommt (gekürzt, mit erfundenen Testdaten). Der Assistent formuliert daraus seine eigene Antwort.</p>
+      <div class="qa"><div class="q">„Welche Liegenschaften habe ich?“</div><div class="a">3 Liegenschaften:<br>– Testhaus Gartenweg, Gartenweg 5, 30000 Musterstadt (2 Nutzeinheiten, 2 Anlagen)<br>– Testhaus Gartenweg Nord, Gartenweg 7, 30000 Musterstadt<br>– Testhaus Waldstrasse</div></div>
+      <div class="qa"><div class="q">„Wie hoch war der Wärmeverbrauch 2025 in der Nordstrasse?“</div><div class="a">Verbrauch Testhaus Nordstrasse, 2025-01 bis 2025-12:<br>Heizung Nordstrasse:<br>Wärme (Wärmemenge) [kWh]: Summe 15300.00; 2025-01 2700.00, 2025-02 2520.00, … 2025-12 2700.00<br>Heizkostenverteiler (Verbrauchseinheiten) [unit]: Summe 340.00; 2025-01 60.00, … 2025-11 44.00 (calculated), 2025-12 60.00<br>Hinweis: Werte sind höchstens monatlich aufgelöst.<br>Hinweis: Aussenwasser wird getrennt von Kalt- und Warmwasser ausgewiesen, und jede Kennzahl hat ihre eigene Einheit; eine Summe über verschiedene Kennzahlen gibt es nicht. …</div></div>
+      <div class="qa"><div class="q">„Welche Geräte sind stumm?“</div><div class="a">Geräte Testhaus Gartenweg: 7 gelistet, 7 stumm, 1 mit abgelaufener Eichung, 1 mit unbekanntem Eichstatus.<br>– HKV Wohnung 1, HeatCostAllocator G-HCA-002: STUMM; zuletzt 2026-09-14; keine Eichpflicht<br>– Kaltwasser Wohnung 2, ColdWaterMeter G-KW-005: STUMM; zuletzt 2026-08-01; Eichung ABGELAUFEN (gültig war bis 2024-12-31)<br>– Waermezaehler Technik, HeatMeter G-WMZ-004: STUMM; zuletzt 2026-09-14; Eichstatus unbekannt<br>– …<br>Hinweis: Stumm heißt: seit mehr als 7 Tagen kein Funktelegramm. Der letzte Empfang ist nur als Datum angegeben.<br>Hinweis: Eichstatus unbekannt — das heißt nicht, dass die Eichung in Ordnung ist.</div></div>
+      <div class="qa"><div class="q">„Wie viel Wasser wurde im Gartenweg verbraucht?“ (Name passt auf zwei Liegenschaften)</div><div class="a">Mehrere Liegenschaften passen zu „Gartenweg“: Testhaus Gartenweg (Gartenweg 5, 30000 Musterstadt, id …); Testhaus Gartenweg Nord (Gartenweg 7, 30000 Musterstadt, id …). Bitte erneut mit dem vollständigen Namen oder der id einer dieser Liegenschaften fragen.</div></div>
+      <p>Mit der Frage „Womit bist du verbunden?“ zeigt dir der Assistent, für welchen Kunden, mit welchen Rechten und für welche Liegenschaften die Verbindung gilt.</p>
       <!-- /P08B-BEISPIELE -->
 
       <h2 id="grenzen">Was der Assistent nicht kann und was die Antworten nicht bedeuten</h2>
@@ -279,7 +282,7 @@ url = "https://mcp.messpunkt.io/v1"</code></pre></li>
         <summary>Für Technikinteressierte</summary>
         <ul class="plain">
           <li>Die Anmeldung ist OAuth 2.1 mit PKCE (S256). Der Assistent bekommt ein Zugriffstoken, das höchstens eine Stunde gilt. Es ist auf die Ressource <code>https://mcp.messpunkt.io/v1</code> ausgestellt und gilt nicht für die REST-Schnittstelle.</li>
-          <li>Assistenten weisen sich über ein Client-ID-Metadatendokument aus (eine https-Adresse als <code>client_id</code>). Eine dynamische Client-Registrierung gibt es nicht.</li>
+          <li>Assistenten weisen sich über ein Client-ID-Metadatendokument aus (CIMD, eine https-Adresse als <code>client_id</code>, öffentlicher Client mit <code>token_endpoint_auth_method: none</code>). Eine dynamische Client-Registrierung (DCR) gibt es nicht. Claude, Claude Code, Codex und ChatGPT nennen CIMD in ihrer Dokumentation.</li>
           <li>Freigegebene Rechte: <code>read:units</code> (Struktur mit Mieternamen), <code>read:devices</code> (Geräte und Eichung), <code>read:readings</code> (Monatswerte).</li>
           <li>Die Verbindung wird bei jeder Anfrage geprüft. Deshalb wirkt das Trennen spätestens nach 60 Sekunden.</li>
           <li>Die Werkzeuge, ihre Beschreibungen und Schemas stehen in der <a href="../mcp/">MCP-Referenz</a> (englisch).</li>
