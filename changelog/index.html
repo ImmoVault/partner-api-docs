@@ -97,7 +97,7 @@
 
     <div class="preview-ribbon">
       <span class="badge">Preview</span>
-      <span>V1 release candidate <strong>1.0.0-rc.3</strong> — GA ships with the first pilot partner. Become one:
+      <span>V1 release candidate <strong>1.0.0-rc.3</strong> — production live since 30 September 2026; access per customer organisation on request:
         <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
       </span>
     </div>
@@ -108,11 +108,40 @@
 
       <section class="release">
         <div class="release-header">
+          <span class="version">Documentation</span>
+          <span class="date">2026-10-04</span>
+          <span class="status rc">Release candidate</span>
+        </div>
+        <p>No change to the contract (still <strong>1.0.0-rc.3</strong>). The documentation now shows only what the API does today.</p>
+        <div class="change-group added">
+          <h3>Added</h3>
+          <ul>
+            <li><strong><a href="../roadmap/">Roadmap</a></strong>: who owns which data once an ERP writes occupancies, the planned building blocks (event feed, occupancy writes, <code>external_ref</code>, webhooks) and the semantics a writing ERP can prepare for. Nothing on that page can be called today.</li>
+          </ul>
+        </div>
+        <div class="change-group changed">
+          <h3>Changed</h3>
+          <ul>
+            <li><strong>Production status.</strong> <code>auth.messpunkt.io</code>, <code>api.messpunkt.io</code> and <code>mcp.messpunkt.io</code> have been live since 2026-09-30 against real data. ERP clients are registered on request; API access is enabled per customer organisation. Pages, spec and <code>llms.txt</code> no longer say that production goes live with the first pilot partner.</li>
+            <li><code>external_ref</code> (field and filter) and <code>obis</code> are described as not supported today, without a release promise. The field stays in the contract and is always <code>null</code>; a non-empty <code>external_ref</code> filter returns an empty page.</li>
+            <li>ERP guide: <code>resource</code> — an ERP client that omits it gets a token for the REST API; send it anyway. The spec no longer claims the sandbox consent screen pre-selects nothing: <em>all Properties</em> is pre-selected.</li>
+          </ul>
+        </div>
+        <div class="change-group removed">
+          <h3>Removed</h3>
+          <ul>
+            <li>Forward-looking statements outside the roadmap: first-party SDK packages, BVED 3.10 as a second rendering, a typical integration time, and the hint to prepare for write endpoints on the error page.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="release">
+        <div class="release-header">
           <span class="version">Operations</span>
           <span class="date">2026-09-30</span>
           <span class="status rc">Release candidate</span>
         </div>
-        <p>No change to the contract (still <strong>1.0.0-rc.3</strong>). The production REST API (<code>api.messpunkt.io</code>) still goes live with the first pilot partner.</p>
+        <p>No change to the contract (still <strong>1.0.0-rc.3</strong>). <em>Corrected on 2026-10-04:</em> this entry said the production REST API would go live with the first pilot partner. In fact <code>api.messpunkt.io</code> has been running against real data since this day as well.</p>
         <div class="change-group added">
           <h3>Added</h3>
           <ul>
@@ -319,7 +348,7 @@
     <footer class="site-footer">
       <div class="row">
         <div>
-          <strong>messpunkt.io Partner API</strong> · Preview · 1.0.0-rc.3 · GA with the first pilot partner
+          <strong>messpunkt.io Partner API</strong> · Preview · 1.0.0-rc.3 · production live since 2026-09-30
           <div class="muted">© 2026 messpunkt.io — <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
         </div>
         <div class="links">

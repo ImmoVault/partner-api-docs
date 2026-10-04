@@ -92,13 +92,14 @@
         <a href="../quickstart/">Quickstart</a>
         <a href="./" class="current">SDK</a>
         <a href="../changelog/">Changelog</a>
+        <a href="../roadmap/">Roadmap</a>
         <a href="../erp-api-openapi.yaml">OpenAPI YAML</a>
       </nav>
     </header>
 
     <div class="preview-ribbon">
       <span class="badge">Preview</span>
-      <span>V1 release candidate <strong>1.0.0-rc.3</strong> — GA ships with the first pilot partner. Become one:
+      <span>V1 release candidate <strong>1.0.0-rc.3</strong> — production live since 30 September 2026; access per customer organisation on request:
         <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
       </span>
     </div>
@@ -232,20 +233,14 @@ nswag openapi2csclient \
         <strong>Token refresh is your client's responsibility.</strong> Access tokens last 1 h; wrap your generated client with a thin interceptor that refreshes before calls and retries <code>401</code> once. See the <a href="../errors/">Error-handling guide</a> for the exact action matrix.
       </div>
 
-      <h2>Coming with GA</h2>
-      <p>With GA we plan to publish first-party SDK packages on:</p>
-      <ul>
-        <li><strong>NuGet</strong> — <code>Messpunkt.PartnerApi</code></li>
-        <li><strong>npm</strong> — <code>@messpunkt/partner-api</code></li>
-        <li><strong>PyPI</strong> — <code>messpunkt-partner-api</code></li>
-      </ul>
-      <p>They will be thin wrappers on top of the OpenAPI-generated core, adding opinionated OAuth 2.1 helpers, automatic refresh handling, DPoP-proof generation, and typed error handling. Pilot partners can get pre-release builds by email.</p>
+      <h2>No first-party SDK packages</h2>
+      <p>messpunkt.io does not publish SDK packages (NuGet, npm, PyPI). Generate a client from the OpenAPI document as shown above; the OAuth flow, the refresh handling and, if you want it, DPoP stay in your code.</p>
     </main>
 
     <footer class="site-footer">
       <div class="row">
         <div>
-          <strong>messpunkt.io Partner API</strong> · Preview · 1.0.0-rc.3 · GA with the first pilot partner
+          <strong>messpunkt.io Partner API</strong> · Preview · 1.0.0-rc.3 · production live since 2026-09-30
           <div class="muted">© 2026 messpunkt.io — <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
         </div>
         <div class="links">

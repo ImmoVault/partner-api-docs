@@ -130,13 +130,14 @@
         <span class="divider" aria-hidden="true"></span>
         <a href="../quickstart/">Quickstart</a>
         <a href="../changelog/">Changelog</a>
+        <a href="../roadmap/">Roadmap</a>
         <a href="../erp-api-openapi.yaml">OpenAPI YAML</a>
       </nav>
     </header>
 
     <div class="preview-ribbon">
       <span class="badge">Preview</span>
-      <span>V1 release candidate <strong>1.0.0-rc.3</strong> — GA ships with the first pilot partner. Become one: <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
+      <span>V1 release candidate <strong>1.0.0-rc.3</strong> — production live since 30 September 2026; access per customer organisation on request: <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
       </span>
     </div>
 
@@ -148,7 +149,7 @@
       <p class="lead">Connect a property-management or billing ERP to messpunkt.io: register a client, let the landlord consent once, then read monthly consumption for years without further user interaction. This page covers the whole lifecycle. The <a href="../quickstart/">Quickstart</a> is the five-minute version.</p>
 
       <div class="status">
-        <strong>Where things stand.</strong> The sandbox is live. Production (<code>api.messpunkt.io</code>, <code>auth.messpunkt.io</code>) goes live with the first pilot partner and is announced in the <a href="../changelog/">changelog</a>. Everything on this page is marked where sandbox and production differ.
+        <strong>Where things stand.</strong> Production (<code>auth.messpunkt.io</code>, <code>api.messpunkt.io</code>) has been running against the landlords' real data since 30 September 2026. ERP clients are registered on request (<a href="#register">step 1</a>), and API access is enabled per customer organisation (<a href="#landlord">step 2</a>). The sandbox with synthetic data stays available. Everything on this page is marked where sandbox and production differ. The API is read-only today; what is planned for writing occupancies is on the <a href="../roadmap/">roadmap</a>.
       </div>
 
       <h2 id="overview">How it fits together</h2>
@@ -174,7 +175,7 @@
       </ul>
       <p>You receive a <code>client_id</code> of the form <code>erp_</code> followed by 32 hex characters.</p>
       <div class="note">
-        <strong>Confidential clients go live with production.</strong> The sandbox has only the public demo client, so you cannot try <code>private_key_jwt</code> or <code>client_secret_basic</code> there. The rules below are what the authorization server enforces; the production discovery document lists them in <code>token_endpoint_auth_methods_supported</code> and <code>token_endpoint_auth_signing_alg_values_supported</code>.
+        <strong>Confidential clients exist only in production.</strong> The sandbox has only the public demo client, so you cannot try <code>private_key_jwt</code> or <code>client_secret_basic</code> there. The rules below are what the authorization server enforces; its discovery document lists them in <code>token_endpoint_auth_methods_supported</code> (<code>none</code>, <code>client_secret_basic</code>, <code>private_key_jwt</code>) and <code>token_endpoint_auth_signing_alg_values_supported</code>.
       </div>
 
       <h2 id="landlord"><span class="step-num">2</span>Make sure the landlord can consent</h2>
@@ -200,7 +201,7 @@ STATE=$(openssl rand -hex 16)</code></pre>
 &state=$STATE\
 &code_challenge=$CHALLENGE&code_challenge_method=S256\
 &resource=https%3A%2F%2Fapi.sandbox.messpunkt.io"</code></pre>
-      <div class="note">Since 30 September 2026 the sandbox serves rc.3 and accepts <code>resource</code>; production requires it.</div>
+      <div class="note">Always send <code>resource</code>, in the sandbox and in production. For an ERP client a missing <code>resource</code> falls back to the REST API; an unknown one is <code>invalid_target</code>.</div>
       <p>Open the printed URL in a browser. In production the landlord signs in first. The consent screen then shows your display name and what will be shared, and lets the landlord pick the customer organisation (if they manage several) and either <em>all Properties, including future ones</em> (pre-selected) or a selection. In the sandbox the demo landlord is already signed in and <em>all Properties</em> is pre-selected: approve, or switch to <em>only selected</em> and tick Properties.</p>
       <p>The browser is redirected to <code>http://localhost:3000/callback?code=…&amp;iss=…&amp;state=…</code>. Nothing listens there in this walkthrough, so copy the values from the address bar:</p>
       <pre><code>CODE=...    # from the address bar
@@ -378,7 +379,7 @@ curl -s -H "Authorization: Bearer $TOKEN" \
     <footer class="site-footer">
       <div class="row">
         <div>
-          <strong>messpunkt.io Partner API</strong> · Preview · 1.0.0-rc.3 · GA with the first pilot partner
+          <strong>messpunkt.io Partner API</strong> · Preview · 1.0.0-rc.3 · production live since 2026-09-30
           <div class="muted">© 2026 messpunkt.io — <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
         </div>
         <div class="links">

@@ -13,9 +13,11 @@ info:
     use the MCP server instead — see *For AI agents* below. Both share the same
     consent, the same authorization server and the same data rules.
 
-    **Status:** `1.0.0-rc.3` · V1 release candidate · GA ships with the first
-    pilot partner and will be announced in the [changelog](./changelog/) ·
-    feedback from pilot partners explicitly invited.
+    **Status:** `1.0.0-rc.3` · V1 release candidate · production
+    (`api.messpunkt.io`, `auth.messpunkt.io`) live since 2026-09-30 against
+    the landlords' real data; ERP clients are registered on request. The API
+    is read-only. Planned write functions are described on the
+    [roadmap](./roadmap/), not in this document.
 
     **Coming from rc.2?** rc.3 contains four breaking changes (monthly data
     resolution, nullable `active_device`, nullable `installed_at`, nullable
@@ -389,8 +391,7 @@ info:
     ## How it works
 
     - **At consent time** the landlord chooses *all Properties, including
-      future ones*, or picks individual Properties. (The sandbox consent
-      screen pre-selects nothing.)
+      future ones* (pre-selected), or picks individual Properties.
     - The resulting access token carries a `property_scope` claim — either
       the literal string `"all"` or a list of Property UUIDs.
     - **Every API response is filtered** server-side against this
@@ -436,10 +437,9 @@ info:
     | Auth | same authorization server and consent screen as this API; token audience `https://mcp.messpunkt.io/v1` |
     | Data rules | same as this API — monthly values, Property scope, `404` outside the scope |
 
-    The MCP server is live since 2026-09-30 (access enabled per customer
-    organisation); the setup guide for each client is published at
-    developer.messpunkt.io/connect/. The production REST API goes live with
-    the first pilot partner.
+    The MCP server and the production REST API are live since 2026-09-30
+    (access enabled per customer organisation); the setup guide for each
+    client is published at developer.messpunkt.io/connect/.
     Tokens for the MCP server are not accepted by this REST API and vice versa.
 
     ## REST API from agents
@@ -497,7 +497,7 @@ info:
     | `electricity` | Stromzähler | `kWh` | reserved — messpunkt.io has no readable electricity meters today; you will not receive values |
     | `gas` | Gaszähler | `m3` | reserved — messpunkt.io has no readable gas meters today; you will not receive values |
 
-    **OBIS codes** (`obis`) are reserved for a later minor release and are
+    **OBIS codes** (`obis`) are not supported: the field is
     **always `null` today**. messpunkt.io does not store OBIS codes per
     measuring point; an OBIS value derived from `metric` alone would add no
     information.
@@ -626,7 +626,7 @@ servers:
   - url: https://api.sandbox.messpunkt.io/v1
     description: Sandbox — live, Try-it-out-enabled (default). Synthetic data, no PII.
   - url: https://api.messpunkt.io/v1
-    description: Production (V1) — not yet available; goes live with the first pilot partner, announced in the changelog.
+    description: Production (V1) — live since 2026-09-30. Landlords' real data; ERP clients are registered on request, API access is enabled per customer organisation.
 
 security:
   - OAuth2: [read:units, read:devices, read:readings]
@@ -1916,15 +1916,17 @@ components:
       type: oauth2
       description: |
         OAuth 2.1 Authorization Code with PKCE (S256, mandatory). Send
-        `resource=https://api.messpunkt.io` (RFC 8707) on `/oauth/authorize`
-        and `/oauth/token`. DPoP (RFC 9449) is supported and optional: a
+        `resource` (RFC 8707) on `/oauth/authorize` and `/oauth/token`. DPoP (RFC 9449) is supported and optional: a
         token obtained with a DPoP proof is bound to your key and must then
         be sent as `Authorization: DPoP` with a `DPoP` proof header on every
-        request. See *Authentication* in the API overview.
+        request. See *Authentication* in the API overview. The URLs below
+        are the sandbox ones, so the try-it-out viewers work; production uses
+        `https://auth.messpunkt.io` with the same paths and
+        `resource=https://api.messpunkt.io`.
       flows:
         authorizationCode:
-          # Sandbox endpoints (live). Production uses auth.messpunkt.io —
-          # swap when V1 ships.
+          # Sandbox endpoints, for the try-it-out viewers. Production:
+          # https://auth.messpunkt.io, same paths.
           authorizationUrl: https://auth.sandbox.messpunkt.io/oauth/authorize
           tokenUrl: https://auth.sandbox.messpunkt.io/oauth/token
           refreshUrl: https://auth.sandbox.messpunkt.io/oauth/token
@@ -1960,10 +1962,10 @@ components:
       in: query
       required: false
       description: |
-        Reserved for a later release. messpunkt.io does not store ERP
-        references yet, so `external_ref` is `null` on every resource and
-        this filter currently matches nothing (the response is an empty
-        page). Do not use it to look up resources.
+        **Not functional today.** messpunkt.io does not store ERP
+        references, so `external_ref` is `null` on every resource and any
+        non-empty value of this filter matches nothing (the response is an
+        empty page). Do not use it to look up resources.
       schema: { type: string }
     From:
       name: from
@@ -2183,8 +2185,8 @@ components:
       type: [string, "null"]
       description: |
         Reserved for an ERP-side identifier. **Always `null` today** —
-        messpunkt.io does not store ERP references yet and the API offers no
-        way to write one. A later minor release may populate it.
+        messpunkt.io does not store ERP references and the API offers no
+        way to write one.
       example: null
 
     UsageUnit:

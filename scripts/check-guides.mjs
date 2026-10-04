@@ -168,18 +168,20 @@ for (const file of SCANNED) {
 
 // 6: announcements
 for (const [file, needles] of [
-  ['index.html', ['./connect/', './erp/', './mcp/']],
-  ['llms.txt', ['https://developer.messpunkt.io/connect/', 'https://developer.messpunkt.io/erp/', 'https://developer.messpunkt.io/mcp/']],
+  ['index.html', ['./connect/', './erp/', './mcp/', './roadmap/']],
+  ['llms.txt', ['https://developer.messpunkt.io/connect/', 'https://developer.messpunkt.io/erp/', 'https://developer.messpunkt.io/mcp/', 'https://developer.messpunkt.io/roadmap/']],
+  ['erp/index.html', ['../roadmap/']],
+  ['changelog/index.html', ['../roadmap/']],
 ]) {
   const text = read(file);
   for (const n of needles) if (!text.includes(n)) errors.push(`${file}: does not link ${n}`);
 }
-for (const file of ['index.html', 'llms.txt', 'README.md', ...GUIDES]) {
+for (const file of ['index.html', 'llms.txt', 'README.md', 'erp-api-openapi.yaml', ...GUIDES]) {
   const text = read(file);
-  // Seit 2026-09-30 ist der MCP-Server live; die produktive REST-API geht erst mit dem ersten Pilotpartner live.
-  // Der Waechter haelt fest, dass keine Seite die REST-Produktion vorzeitig als verfuegbar ankuendigt.
-  if (/(api\.messpunkt\.io|production REST API|Produktions-Schnittstelle)[^.\n]{0,80}\b(is|now) (live|available)\b/i.test(text))
-    errors.push(`${file}: announces the production REST API as available`);
+  // Seit 2026-09-30 sind auth., api. und mcp.messpunkt.io live. Der Waechter haelt fest, dass keine Seite die
+  // Produktion wieder als „kommt mit dem ersten Pilotpartner" beschreibt (stand bis 2026-10-04 auf jeder Seite).
+  if (/(goes live|GA ships|GA with) (with )?the first pilot partner|production in preparation|not yet available/i.test(text))
+    errors.push(`${file}: describes production as not yet live; it is live since 2026-09-30`);
 }
 
 // 7: verified / unverified per client

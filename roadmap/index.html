@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>messpunkt.io Partner API — Roadmap</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="What is planned for ERPs that want to write occupancies to messpunkt.io: data ownership per Property, event feed, occupancy writes, external_ref, webhooks and write semantics. Nothing on this page is available today." />
+    <meta name="theme-color" content="#1e534a" />
+    <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+    <link rel="alternate icon" type="image/x-icon" href="../assets/favicon.ico" />
+    <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --brand-primary: #1e534a;
+        --brand-primary-hover: #16403a;
+        --brand-dark: #172636;
+        --brand-gray-bg: #eaf0f6;
+        --brand-gray-border: #d1d5dc;
+        --brand-accent: #f7fafa;
+        --brand-white: #ffffff;
+      }
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--brand-dark); background: var(--brand-white); line-height: 1.65; }
+
+      .topbar { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 24px; padding: 14px 28px; background: var(--brand-white); border-bottom: 1px solid var(--brand-gray-border); }
+      .topbar .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--brand-dark); }
+      .topbar .brand img { height: 28px; width: auto; display: block; }
+      .topbar .brand .subtitle { font-size: 13px; font-weight: 500; padding-left: 12px; border-left: 1px solid var(--brand-gray-border); line-height: 1; }
+      .topbar nav { display: flex; gap: 4px; margin-left: auto; align-items: center; flex-wrap: wrap; }
+      .topbar nav a { font-size: 13px; font-weight: 500; padding: 6px 12px; border-radius: 6px; color: var(--brand-dark); text-decoration: none; transition: background 0.15s; }
+      .topbar nav a:hover { background: var(--brand-accent); color: var(--brand-primary); }
+      .topbar nav a.current { background: var(--brand-primary); color: var(--brand-white); }
+      .topbar nav .divider { width: 1px; height: 18px; background: var(--brand-gray-border); margin: 0 6px; }
+
+      .preview-ribbon { background: var(--brand-accent); color: var(--brand-dark); border-bottom: 1px solid var(--brand-gray-border); padding: 10px 28px; font-size: 13px; line-height: 1.5; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+      .preview-ribbon .badge { background: var(--brand-primary); color: var(--brand-white); font-weight: 600; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
+      .preview-ribbon a { color: var(--brand-primary); font-weight: 500; text-decoration: none; border-bottom: 1px solid currentColor; }
+
+      main { max-width: 1200px; margin: 0 auto; padding: 48px 28px 72px; }
+      .layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 56px; align-items: start; }
+      .content { min-width: 0; }
+      .side-nav { position: sticky; top: 84px; align-self: start; }
+      .side-nav h3 { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; margin: 0 0 12px; }
+      .side-nav .side-cards { display: flex; flex-direction: column; gap: 8px; }
+      .side-nav .side-card { display: block; border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 12px 14px; text-decoration: none; color: inherit; transition: border-color 0.15s, background 0.15s, transform 0.05s; }
+      .side-nav .side-card:hover { border-color: var(--brand-primary); background: var(--brand-accent); transform: translateX(2px); }
+      .side-nav .side-card .title { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; color: var(--brand-primary); margin-bottom: 2px; }
+      .side-nav .side-card .title::after { content: '→'; font-weight: 400; color: var(--brand-primary); opacity: 0.55; transition: transform 0.15s, opacity 0.15s; }
+      .side-nav .side-card:hover .title::after { opacity: 1; transform: translateX(2px); }
+      .side-nav .side-card .desc { font-size: 12px; color: #64748b; line-height: 1.45; }
+      @media (max-width: 960px) {
+        .layout { grid-template-columns: 1fr; gap: 32px; }
+        .side-nav { position: static; max-width: 100%; margin-top: 16px; }
+      }
+      h1 { font-size: 36px; line-height: 1.15; margin: 0 0 12px; letter-spacing: -0.015em; }
+      .lead { color: #3f4c5c; font-size: 18px; margin: 0 0 40px; max-width: 700px; }
+      h2 { font-size: 24px; margin: 48px 0 8px; letter-spacing: -0.005em; }
+      h2 .step-num { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: var(--brand-primary); color: var(--brand-white); border-radius: 50%; font-size: 14px; font-weight: 600; margin-right: 10px; vertical-align: middle; }
+      h3 { font-size: 15px; font-weight: 600; margin: 20px 0 8px; color: var(--brand-dark); letter-spacing: 0.01em; }
+      p { margin: 0 0 14px; }
+      a { color: var(--brand-primary); }
+      a:hover { color: var(--brand-primary-hover); }
+      code { font-family: 'JetBrains Mono', monospace; font-size: 13.5px; background: var(--brand-gray-bg); padding: 1px 6px; border-radius: 4px; }
+      pre { position: relative; background: var(--brand-dark); color: #e8eef5; padding: 16px 18px; border-radius: 8px; overflow: auto; font-size: 13px; line-height: 1.55; margin: 10px 0 18px; }
+      pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+      .copy-btn { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.06); color: #e8eef5; border: 1px solid rgba(255,255,255,0.14); padding: 4px 10px; font-size: 11px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 4px; cursor: pointer; opacity: 0.5; transition: opacity 0.15s, background 0.15s, border-color 0.15s, color 0.15s; z-index: 2; }
+      pre:hover .copy-btn, .copy-btn:focus-visible { opacity: 1; }
+      .copy-btn:hover { background: rgba(255,255,255,0.16); }
+      .copy-btn:focus-visible { outline: none; border-color: rgba(255,255,255,0.4); }
+      .copy-btn.copied { opacity: 1; background: rgba(16,124,63,0.3); border-color: rgba(16,124,63,0.5); color: #a0d5a5; }
+      .note { background: var(--brand-accent); border-left: 3px solid var(--brand-primary); padding: 12px 16px; margin: 14px 0; font-size: 14px; border-radius: 4px; }
+      .note strong { color: var(--brand-primary); }
+
+      .time-badge { display: inline-block; background: var(--brand-accent); color: var(--brand-primary); font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 4px 10px; border-radius: 4px; margin-bottom: 16px; }
+
+      .next-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 24px; }
+      .next-step-card { border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 16px; text-decoration: none; color: inherit; transition: border-color 0.15s, transform 0.05s; display: block; }
+      .next-step-card:hover { border-color: var(--brand-primary); color: inherit; transform: translateY(-1px); }
+      .next-step-card .title { font-size: 15px; font-weight: 600; color: var(--brand-primary); margin-bottom: 4px; }
+      .next-step-card .desc { font-size: 13px; color: #64748b; line-height: 1.5; }
+
+      .site-footer { padding: 24px 28px; border-top: 1px solid var(--brand-gray-border); background: var(--brand-white); color: var(--brand-dark); font-size: 13px; line-height: 1.6; }
+      .site-footer .row { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; justify-content: space-between; max-width: 860px; margin: 0 auto; }
+      .site-footer a { color: var(--brand-primary); text-decoration: none; }
+      .site-footer .links { display: flex; gap: 18px; flex-wrap: wrap; }
+      .site-footer .muted { color: #64748b; }
+
+      .status { background: #fff8e1; border: 1px solid #f2c94c; border-radius: 8px; padding: 14px 18px; margin: 0 0 32px; font-size: 14.5px; }
+      .status strong { color: #7a5b00; }
+      .placeholder { font-family: 'JetBrains Mono', monospace; font-size: 13px; background: #fff3cd; color: #7a5b00; border: 1px dashed #d4a72c; padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
+      table { border-collapse: collapse; width: 100%; margin: 10px 0 20px; font-size: 14px; }
+      th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--brand-gray-border); }
+      th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; font-weight: 600; }
+      .table-wrap { overflow-x: auto; }
+      .checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 12px 0 24px; }
+      .checks > div { border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 12px 14px; font-size: 14px; }
+      .checks .verified { border-left: 4px solid #1f7a3f; }
+      .checks .unverified { border-left: 4px solid #d4a72c; }
+      .checks h4 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; }
+      .checks .verified h4 { color: #1f7a3f; }
+      .checks .unverified h4 { color: #7a5b00; }
+      .checks ul { margin: 0; padding-left: 18px; }
+      ol.steps li, ul.plain li { margin-bottom: 6px; }
+      details.tech { border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 12px 16px; margin: 24px 0; background: var(--brand-accent); }
+      details.tech summary { cursor: pointer; font-weight: 600; color: var(--brand-primary); }
+      .qa { border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 12px 16px; margin: 12px 0; }
+      .qa .q { font-weight: 600; margin-bottom: 6px; }
+      .qa .a { color: #3f4c5c; font-size: 14.5px; }
+      .tool { border: 1px solid var(--brand-gray-border); border-radius: 8px; padding: 16px 18px; margin: 18px 0; }
+      .tool h3 { margin-top: 0; font-family: 'JetBrains Mono', monospace; font-size: 16px; }
+      .tool blockquote { margin: 8px 0 12px; padding: 8px 14px; border-left: 3px solid var(--brand-gray-border); color: #3f4c5c; white-space: pre-line; font-size: 14px; }
+      .tool .meta { font-size: 13px; color: #64748b; margin-bottom: 8px; }
+      .stage { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
+      .stage.wip { background: #fff8e1; color: #7a5b00; border: 1px solid #f2c94c; }
+      .stage.partner { background: var(--brand-accent); color: var(--brand-primary); border: 1px solid var(--brand-primary); }
+      .tool details summary { cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--brand-primary); }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="https://messpunkt.io/" target="_blank" rel="noopener">
+        <img src="../assets/messpunkt-quer.svg" alt="messpunkt.io" />
+        <span class="subtitle">Partner API · Roadmap</span>
+      </a>
+      <nav aria-label="Viewer switcher">
+        <a href="../">Home</a>
+        <a href="../reference/">Reference</a>
+        <span class="divider" aria-hidden="true"></span>
+        <a href="../connect/">Connect AI</a>
+        <a href="../erp/">ERP guide</a>
+        <a href="../mcp/">MCP</a>
+        <span class="divider" aria-hidden="true"></span>
+        <a href="../quickstart/">Quickstart</a>
+        <a href="../changelog/">Changelog</a>
+        <a href="../roadmap/" class="current">Roadmap</a>
+        <a href="../erp-api-openapi.yaml">OpenAPI YAML</a>
+      </nav>
+    </header>
+
+    <div class="preview-ribbon">
+      <span class="badge">Preview</span>
+      <span>V1 release candidate <strong>1.0.0-rc.3</strong> — production live since 30 September 2026; access per customer organisation on request: <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
+      </span>
+    </div>
+
+    <main>
+      <div class="layout">
+        <article class="content">
+      <span class="time-badge">Roadmap</span>
+      <h1>Roadmap: ERPs that write</h1>
+      <p class="lead">The Partner API is read-only today. This page describes what we are building so that an ERP can also write occupancies (who lives in which unit, from when to when). Nothing on this page can be called today, and there are no dates. What the API does today is in the <a href="../erp/">ERP guide</a> and the <a href="../reference/">Reference</a>.</p>
+
+      <div class="status">
+        <strong>Two statuses, no dates.</strong> <span class="stage wip">In progress</span> means we are building it now. <span class="stage partner">With the first write partner</span> means we build it together with the first ERP that writes occupancies, and the details are settled with that partner. Until a building block appears in the <a href="../changelog/">changelog</a> and the <a href="../erp-api-openapi.yaml">OpenAPI document</a>, it does not exist.
+      </div>
+
+      <h2 id="ownership">Who owns which data</h2>
+      <p>This is a fixed commitment, and the building blocks below follow from it.</p>
+      <div class="table-wrap"><table>
+        <tr><th>Data</th><th>Owner</th></tr>
+        <tr><td><strong>Measurement data</strong>: devices, measuring points, meter readings, consumption</td><td>messpunkt.io, always</td></tr>
+        <tr><td><strong>Occupancy</strong>: resident name, move-in, move-out, optionally an e-mail address for the invitation to the resident portal</td><td>the ERP, once the landlord grants that ERP write access for a Property; otherwise messpunkt.io</td></tr>
+      </table></div>
+      <ul class="plain">
+        <li><strong>Exactly one owner per Property.</strong> For each Property, either messpunkt.io or one ERP owns the occupancy, never both.</li>
+        <li><strong>The landlord's consent is the switch.</strong> When the landlord grants your ERP write access for a Property, your ERP owns its occupancy. When the landlord disconnects, ownership returns to messpunkt.io.</li>
+        <li><strong>While your ERP owns a Property</strong>, tenant changes for it are blocked in the messpunkt.io portal and chat. messpunkt.io operations can step in for an emergency; your ERP learns about it through the event feed.</li>
+        <li><strong>The resident's portal access stays with messpunkt.io.</strong> It is derived from the move-out date your ERP writes.</li>
+      </ul>
+
+      <h2 id="blocks">Building blocks</h2>
+      <div class="table-wrap"><table>
+        <tr><th>Building block</th><th>What it is</th><th>Status</th></tr>
+        <tr><td><strong>Event feed</strong><br><code>GET /v1/events</code></td><td>A cursor-based list of events without payload: type, resource ID, time. You read the details through the existing read endpoints. Event types along the lines of <code>consumption.available</code>, <code>device.replaced</code>, <code>measuring_point.created</code>, <code>measuring_point.removed</code>, <code>occupancy.changed</code>.</td><td><span class="stage wip">In progress</span></td></tr>
+        <tr><td><strong>Closed billing periods</strong></td><td>Data in a billing period that has been closed can no longer be changed.</td><td><span class="stage wip">In progress</span></td></tr>
+        <tr><td><strong>Writing occupancies</strong></td><td>Move-in, move-out and corrections, written by the ERP that owns the Property.</td><td><span class="stage partner">With the first write partner</span></td></tr>
+        <tr><td><strong><code>external_ref</code></strong></td><td>Your ERP's own identifier on usage units and occupancies. Today the field is always <code>null</code>.</td><td><span class="stage partner">With the first write partner</span></td></tr>
+        <tr><td><strong>Handover from a cut-off date</strong></td><td>Your ERP takes over a Property's occupancy from a cut-off date and links its own records to ours itself.</td><td><span class="stage partner">With the first write partner</span></td></tr>
+        <tr><td><strong>Webhooks</strong></td><td>A signed nudge without payload: “there are new events”. You then read the event feed.</td><td><span class="stage partner">With the first write partner</span></td></tr>
+      </table></div>
+
+      <h2 id="semantics">Semantics you can prepare for</h2>
+      <p>Whatever the details turn out to be, writing will follow these rules:</p>
+      <ul class="plain">
+        <li><strong><code>Idempotency-Key</code> is mandatory</strong> on every write call.</li>
+        <li><strong><code>If-Match</code> with the <code>ETag</code> is mandatory</strong> on every call that changes a resource. A stale state is answered with <code>412 Precondition Failed</code>.</li>
+        <li><strong><code>409</code> <code>billing_period_closed</code></strong>: the data falls into a billing period that is closed.</li>
+        <li><strong><code>409</code> <code>before_handover</code></strong>: the occupancy lies before the cut-off date from which your ERP owns the Property.</li>
+        <li><strong>History before the cut-off date stays unchanged.</strong></li>
+      </ul>
+
+      <h2 id="contact">Write with us</h2>
+      <p>You want to write occupancies? Write to <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Writing%20occupancies">kontakt@messpunkt.io</a> — the first partner shapes the interface.</p>
+        </article>
+
+        <aside class="side-nav" aria-label="On this page">
+          <h3>On this page</h3>
+          <div class="side-cards">
+            <a class="side-card" href="#ownership"><div class="title">Who owns which data</div><div class="desc">One owner per Property</div></a>
+            <a class="side-card" href="#blocks"><div class="title">Building blocks</div><div class="desc">Event feed, writes, webhooks</div></a>
+            <a class="side-card" href="#semantics"><div class="title">Semantics</div><div class="desc">Idempotency, ETags, 409s</div></a>
+            <a class="side-card" href="../erp/"><div class="title">ERP guide</div><div class="desc">What works today</div></a>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="row">
+        <div>
+          <strong>messpunkt.io Partner API</strong> · Preview · 1.0.0-rc.3 · production live since 2026-09-30
+          <div class="muted">© 2026 messpunkt.io — <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
+        </div>
+        <div class="links">
+          <a href="https://messpunkt.io/impressum" target="_blank" rel="noopener">Impressum</a>
+          <a href="https://messpunkt.io/datenschutz" target="_blank" rel="noopener">Datenschutz</a>
+          <a href="../.well-known/security.txt">Security</a>
+          <a href="../erp-api-openapi.yaml">OpenAPI 3.1 spec</a>
+        </div>
+      </div>
+    </footer>
+
+  </body>
+</html>
