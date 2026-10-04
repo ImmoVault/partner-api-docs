@@ -18,7 +18,7 @@ Property-management ERPs (Immobilienverwaltungs-Software) traditionally pull con
 - Connect via user-delegated OAuth (PKCE, DPoP optional) — no API keys on clipboards
 - Limit exposure to a subset of Properties per connection via a token-scoped whitelist
 
-One spec. One canonical data model. Multiple renderings (REST today; BVED 3.10 push for the ARGE-speaking long tail is designed in but deferred to V2).
+One spec. One canonical data model, read over REST. The API is read-only; what is planned is on the [roadmap](./roadmap/).
 
 ## Rendered documentation
 
@@ -39,6 +39,7 @@ Guides:
 | [developer.messpunkt.io/erp/](https://developer.messpunkt.io/erp/) | ERP developers: registration, consent, tokens, refresh, revocation, errors |
 | [developer.messpunkt.io/connect/](https://developer.messpunkt.io/connect/) | Landlords (German): connect Claude, ChatGPT or Codex |
 | [developer.messpunkt.io/mcp/](https://developer.messpunkt.io/mcp/) | MCP client authors: transport, auth, tool reference |
+| [developer.messpunkt.io/roadmap/](https://developer.messpunkt.io/roadmap/) | ERP vendors: what is planned (occupancy writes, event feed, webhooks) — not available today |
 
 The MCP tool reference is generated from the server's `tools/list` snapshot (`mcp/tools-list.json`): `node scripts/render-tools.mjs`. `node scripts/check-guides.mjs` checks every URL, route, scope and tool name in the guides against the spec and the snapshot. `node scripts/check-links.mjs` checks the relative links of every page. CI (`.github/workflows/checks.yml`) runs both plus `npx @redocly/cli lint erp-api-openapi.yaml` on every pull request.
 
@@ -46,18 +47,18 @@ The MCP tool reference is generated from the server's `tools/list` snapshot (`mc
 
 | | |
 |---|---|
-| **Release** | GA ships with the first pilot partner and is announced in the [changelog](./changelog/) |
+| **Release** | Production live since 2026-09-30; changes are announced in the [changelog](./changelog/) |
 | **Current version** | `1.0.0-rc.3` · September 2026 |
-| **Status** | Preview — release candidate for pilot-partner review; sandbox live, production in preparation |
+| **Status** | Release candidate; production (`api.messpunkt.io`, `auth.messpunkt.io`, `mcp.messpunkt.io`) and sandbox live; read-only |
 | **Source of truth** | Mirrored from an internal engineering repository |
 
-## Become a pilot partner
+## Connect your ERP
 
-messpunkt.io is actively onboarding pilot ERP partners. If you operate a property-management or billing ERP and want to integrate:
+If you operate a property-management or billing ERP and want to integrate:
 
-- **Email:** [kontakt@messpunkt.io](mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration)
-- **What we'll send back:** sandbox credentials, OAuth app registration, a dedicated integration contact, pilot-phase feedback loop
-- **What we'd love from you:** review of the current spec, a list of endpoints that are missing for your use case, your preferred response shape for edge cases (meter replacement, data gaps, tenant moves)
+- **Try it first:** the sandbox needs no credentials — it uses the public demo client `sandbox-demo-client` ([Quickstart](./quickstart/)).
+- **Production:** write to [kontakt@messpunkt.io](mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20ERP%20client%20registration) to register your confidential ERP client (`private_key_jwt` or `client_secret_basic`); see the [ERP guide](./erp/).
+- **Writing occupancies:** not available today. The [roadmap](./roadmap/) describes what is planned; the first partner who wants to write shapes the interface.
 
 ## Design highlights
 
@@ -78,7 +79,7 @@ Discovery artifacts so the API is usable by AI assistants and LLM-based agents o
 
 Full detail and constraints for agent authors are in the [*For AI agents*](https://developer.messpunkt.io/#section/For-AI-agents) section of the rendered docs.
 
-**MCP server:** `https://mcp.messpunkt.io/v1` lets landlords ask their own AI assistant (Claude, ChatGPT, Codex) about their data — read-only tools, same consent and data rules as the REST API. Live since 2026-09-30; access is enabled per customer organisation. The production REST API goes live with the first pilot partner.
+**MCP server:** `https://mcp.messpunkt.io/v1` lets landlords ask their own AI assistant (Claude, ChatGPT, Codex) about their data — read-only tools, same consent and data rules as the REST API. Live since 2026-09-30, like the production REST API; access is enabled per customer organisation.
 
 ## Legal
 

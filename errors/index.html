@@ -91,13 +91,14 @@
         <a href="../quickstart/">Quickstart</a>
         <a href="../sdk/">SDK</a>
         <a href="../changelog/">Changelog</a>
+        <a href="../roadmap/">Roadmap</a>
         <a href="../erp-api-openapi.yaml">OpenAPI YAML</a>
       </nav>
     </header>
 
     <div class="preview-ribbon">
       <span class="badge">Preview</span>
-      <span>V1 release candidate <strong>1.0.0-rc.3</strong> — GA ships with the first pilot partner. Become one:
+      <span>V1 release candidate <strong>1.0.0-rc.3</strong> — production live since 30 September 2026; access per customer organisation on request:
         <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
       </span>
     </div>
@@ -242,7 +243,7 @@ content-type: application/problem+json
         <li><strong>Stop at 5 retries.</strong> Log <code>trace_id</code>, surface a user-facing message, and continue.</li>
       </ul>
       <div class="note">
-        Never retry <strong>non-idempotent</strong> operations without explicit idempotency keys. V1 is read-only, so every operation is safe — but plan the pattern now for when write endpoints ship.
+        The API is read-only today: every operation is a <code>GET</code> and safe to retry. Write endpoints do not exist yet; how they will handle retries (a mandatory <code>Idempotency-Key</code>) is described on the <a href="../roadmap/">roadmap</a>.
       </div>
 
       <h2>Getting help</h2>
@@ -259,7 +260,7 @@ content-type: application/problem+json
     <footer class="site-footer">
       <div class="row">
         <div>
-          <strong>messpunkt.io Partner API</strong> · Preview · 1.0.0-rc.3 · GA with the first pilot partner
+          <strong>messpunkt.io Partner API</strong> · Preview · 1.0.0-rc.3 · production live since 2026-09-30
           <div class="muted">© 2026 messpunkt.io — <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
         </div>
         <div class="links">

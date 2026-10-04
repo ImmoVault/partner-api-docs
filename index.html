@@ -190,13 +190,14 @@
         <a href="./mcp/">MCP</a>
         <a href="./sdk/">SDK</a>
         <a href="./changelog/">Changelog</a>
+        <a href="./roadmap/">Roadmap</a>
         <a href="./erp-api-openapi.yaml">OpenAPI YAML</a>
       </nav>
     </header>
 
     <div class="preview-ribbon">
       <span class="badge">Preview · 1.0.0-rc.3</span>
-      <span>V1 release candidate — GA ships with the first pilot partner. Become one:
+      <span>V1 release candidate — production live since 30 September 2026; access per customer organisation on request:
         <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
       </span>
     </div>
@@ -309,7 +310,7 @@ curl -H <span class="str">"Authorization: Bearer $TOKEN"</span> \
         <div class="two-col">
           <div>
             <h2>The canonical model</h2>
-            <p class="section-lead">One source of truth. REST and (later) BVED 3.10 XML are two renderings on top.</p>
+            <p class="section-lead">One source of truth, read over REST.</p>
             <div class="model-box">
 <span class="lvl-0">Tenant</span>                <span style="color:#64748b">// Vermieter-Organisation</span>
 <span class="lvl-1">└─ Property</span>          <span style="color:#64748b">// Liegenschaft</span>
@@ -321,7 +322,7 @@ curl -H <span class="str">"Authorization: Bearer $TOKEN"</span> \
           </div>
           <div>
             <h2>Endpoints at a glance</h2>
-            <p class="section-lead">Read-only in V1. Linking your own <code>external_ref</code> is planned for a later release.</p>
+            <p class="section-lead">Read-only today. <code>external_ref</code> is always <code>null</code>; what is planned for writing is on the <a href="./roadmap/">roadmap</a>.</p>
             <ul class="endpoint-list">
               <li><span class="method">GET</span><span class="path">/v1/whoami</span><span class="note-inline">Verify token + scope</span></li>
               <li><span class="method">GET</span><span class="path">/v1/properties</span><span class="note-inline">List Liegenschaften</span></li>
@@ -363,6 +364,12 @@ curl -H <span class="str">"Authorization: Bearer $TOKEN"</span> \
             <h3>ERP integration guide</h3>
             <p>Client registration, consent, PKCE and <code>iss</code> check, refresh rotation, revocation, errors and rate limits, step by step against the sandbox.</p>
             <span class="cta">Read the ERP guide</span>
+          </a>
+          <a class="path-card" href="./roadmap/">
+            <div class="path-kicker">Planned</div>
+            <h3>Roadmap for writing ERPs</h3>
+            <p>Who owns which data once an ERP writes occupancies, the planned event feed and webhooks, and the write semantics. Not available today.</p>
+            <span class="cta">Read the roadmap</span>
           </a>
           <a class="path-card" href="./connect/">
             <div class="path-kicker">Für Vermieter · Deutsch</div>
@@ -412,8 +419,8 @@ curl -H <span class="str">"Authorization: Bearer $TOKEN"</span> \
 
     <!-- CTA band -->
     <section class="cta-band">
-      <h2>Pilot partner spots are open.</h2>
-      <p>We're actively working with property-management ERPs on the V1 contract before GA. Integration time is typically <strong>3–5 days</strong> for a seasoned .NET or Java team. Feedback shapes the final shape of the schema.</p>
+      <h2>Connect your ERP.</h2>
+      <p>The production API has been running against real data since 30 September 2026. We register your ERP client on request; the landlord's API access is enabled per customer organisation. You want to write occupancies? Read the <a href="./roadmap/">roadmap</a> — the first partner shapes the interface.</p>
       <div class="cta-row" style="justify-content:center">
         <a class="btn btn-primary" href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">Talk to partnerships</a>
         <a class="btn btn-ghost" href="./quickstart/">Or start the Quickstart</a>
@@ -423,8 +430,8 @@ curl -H <span class="str">"Authorization: Bearer $TOKEN"</span> \
     <footer class="site-footer">
       <div class="row">
         <div>
-          <strong>messpunkt.io Partner API</strong> · Preview · 1.0.0-rc.3 · GA with the first pilot partner
-          <div class="muted">© 2026 messpunkt.io — Questions &amp; pilot inquiries: <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
+          <strong>messpunkt.io Partner API</strong> · Preview · 1.0.0-rc.3 · production live since 2026-09-30
+          <div class="muted">© 2026 messpunkt.io — Questions &amp; client registration: <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
         </div>
         <div class="links">
           <a href="https://messpunkt.io/impressum" target="_blank" rel="noopener">Impressum</a>
