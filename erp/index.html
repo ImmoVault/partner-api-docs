@@ -149,8 +149,18 @@
       <p class="lead">Connect a property-management or billing ERP to messpunkt.io: register a client, let the landlord consent once, then read monthly consumption for years without further user interaction. This page covers the whole lifecycle. The <a href="../quickstart/">Quickstart</a> is the five-minute version.</p>
 
       <div class="status">
-        <strong>Where things stand.</strong> Production (<code>auth.messpunkt.io</code>, <code>api.messpunkt.io</code>) has been running against the landlords' real data since 30 September 2026. ERP clients are registered on request (<a href="#register">step 1</a>), and API access is enabled per customer organisation (<a href="#landlord">step 2</a>). The sandbox with synthetic data stays available. Everything on this page is marked where sandbox and production differ. The API is read-only today; what is planned for writing occupancies is on the <a href="../roadmap/">roadmap</a>.
+        <strong>Where things stand.</strong> Production (<code>auth.messpunkt.io</code>, <code>api.messpunkt.io</code>) has been running against the landlords' real data since 30 September 2026. ERP clients are registered on request (<a href="#register">step 2</a>), and API access is enabled per customer organisation (<a href="#landlord">step 4</a>). The sandbox with synthetic data stays available. Everything on this page is marked where sandbox and production differ. The API is read-only today; what is planned for writing occupancies is on the <a href="../roadmap/">roadmap</a>. Version: <a href="#versioning">1.0.0-rc.3</a>.
       </div>
+
+      <h2 id="steps">Get connected in 5 steps</h2>
+      <ol class="steps">
+        <li><strong>Build and test against the sandbox, right away.</strong> No registration: use the public client <code>sandbox-demo-client</code> with PKCE (<code>S256</code>) against synthetic data. The <a href="#flow">authorization flow</a> below runs end to end in the sandbox, and the <a href="../bruno/">Bruno collection</a> has ready-made requests.</li>
+        <li><strong>Request a production client.</strong> Write to <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20ERP%20client%20registration">kontakt@messpunkt.io</a> with your company, a technical contact, your redirect URI(s) (matched exactly; loopback URIs with any port), the client authentication you want (we recommend <code>private_key_jwt</code> with the URL of your JWKS; <code>client_secret_basic</code> is possible) and the scopes (<code>read:units</code>, <code>read:devices</code>, <code>read:readings</code>). Details: <a href="#register">Register your client</a>.</li>
+        <li><strong>messpunkt.io creates the client.</strong> You receive a <code>client_id</code> of the form <code>erp_…</code>. With <code>client_secret_basic</code> you also receive the client secret, <strong>exactly once</strong>.</li>
+        <li><strong>Each customer connects you.</strong> API access must be enabled for the customer's messpunkt.io account; the customer asks messpunkt.io for it. The customer then authorises your client in the OAuth flow and chooses which Properties you may see. Details: <a href="#landlord">Each customer connects you</a>.</li>
+        <li><strong>Data-processing agreement.</strong> Access to real customer data starts once the data-processing agreement (Auftragsverarbeitungsvertrag, AVV) is in place. <!-- <AVV_HINWEIS> Entwurf, juristisch zu prüfen: Text und Vermerk erst nach der Prüfung ersetzen. --><span class="placeholder">Draft, under legal review</span> The current wording on data processing is under <a href="../connect/#datenschutz">Datenschutz</a> on the Connect AI page (German). Questions: <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a>.</li>
+      </ol>
+      <p>Before you bill from the API, read <a href="#billing">What your billing must not miss</a>.</p>
 
       <h2 id="overview">How it fits together</h2>
       <div class="table-wrap"><table>
@@ -164,11 +174,12 @@
       </table></div>
       <p>The ERP uses the same authorization server and the same consent screen as AI assistants. Tokens are issued for one resource: a token for the REST API is not accepted by the MCP server and vice versa.</p>
 
-      <h2 id="register"><span class="step-num">1</span>Register your client</h2>
+      <h2 id="register">Register your client (steps 2 and 3)</h2>
       <p>ERP clients are registered by messpunkt.io. Write to <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20ERP%20client%20registration">kontakt@messpunkt.io</a> with:</p>
       <ul class="plain">
+        <li><strong>Company and technical contact</strong>: who we talk to about the integration.</li>
         <li><strong>Display name</strong>: shown to landlords on the consent screen and in their portal under <em>Verbundene Anwendungen</em>.</li>
-        <li><strong>Redirect URIs</strong>: matched exactly. Use <code>https</code>; loopback URIs (<code>http://localhost</code>, <code>http://127.0.0.1</code>, <code>http://[::1]</code>) are matched with any port for desktop installations (RFC 8252). No fragments.</li>
+        <li><strong>Redirect URIs</strong> (up to 10): matched exactly. Use <code>https</code>; loopback URIs (<code>http://localhost</code>, <code>http://127.0.0.1</code>, <code>http://[::1]</code>) are matched with any port for desktop installations (RFC 8252). No fragments.</li>
         <li><strong>Scopes</strong> you need: <code>read:units</code>, <code>read:devices</code>, <code>read:readings</code>.</li>
         <li><strong>Client authentication</strong>: <code>private_key_jwt</code> (preferred; send us the <code>https</code> URL of your JWKS) or <code>client_secret_basic</code>. A client secret is shown <strong>once</strong>, in the registration response, and stored by us only as a hash. Keep it in your secret store; if it is lost, we rotate it and the old one stops working.</li>
         <li><strong>DPoP</strong>: optional. On request we mark your client as DPoP-bound; the token endpoint then refuses to issue tokens without a proof.</li>
@@ -178,10 +189,11 @@
         <strong>Confidential clients exist only in production.</strong> The sandbox has only the public demo client, so you cannot try <code>private_key_jwt</code> or <code>client_secret_basic</code> there. The rules below are what the authorization server enforces; its discovery document lists them in <code>token_endpoint_auth_methods_supported</code> (<code>none</code>, <code>client_secret_basic</code>, <code>private_key_jwt</code>) and <code>token_endpoint_auth_signing_alg_values_supported</code>.
       </div>
 
-      <h2 id="landlord"><span class="step-num">2</span>Make sure the landlord can consent</h2>
+      <h2 id="landlord">Each customer connects you (step 4)</h2>
       <p>API access is part of the landlord's contract with messpunkt.io and is enabled per customer organisation. If it is not enabled, the consent screen shows a notice (“Verbindung noch nicht freigeschaltet”) instead of a form, and no code is issued. Ask the landlord to contact messpunkt.io. If the landlord later loses API access, all their connections are revoked. Re-enabling access does not restore them: the landlord connects again.</p>
+      <p>Once access is enabled, the landlord starts the <a href="#flow">authorization flow</a> from your ERP, signs in with their messpunkt.io portal account and approves your client on the consent screen. There they pick the customer organisation (if they manage several) and either <em>all Properties, including future ones</em> or only selected Properties. Your tokens see exactly that selection (<a href="#property-scope">Property scope</a>).</p>
 
-      <h2 id="flow"><span class="step-num">3</span>Run the authorization flow (sandbox)</h2>
+      <h2 id="flow">Run the authorization flow (sandbox)</h2>
       <p>Every command below runs against the sandbox. Read the endpoints from the discovery document instead of hard-coding them:</p>
       <pre><code>curl -s https://auth.sandbox.messpunkt.io/.well-known/oauth-authorization-server | python3 -m json.tool</code></pre>
       <p>Look for <code>issuer</code>, <code>authorization_endpoint</code>, <code>token_endpoint</code>, <code>revocation_endpoint</code>, <code>code_challenge_methods_supported: ["S256"]</code> and <code>authorization_response_iss_parameter_supported: true</code>.</p>
@@ -239,7 +251,7 @@ client_assertion=&lt;signed JWT&gt;</code></pre>
       <p><strong><code>client_secret_basic</code></strong>. Send the secret only in the <code>Authorization</code> header: <code>Basic base64(urlencode(client_id) ":" urlencode(client_secret))</code>, for example <code>curl -u "$CLIENT_ID:$CLIENT_SECRET"</code>. A secret in the form body (<code>client_secret_post</code>) is not supported and is refused.</p>
       <p>The public demo client of the sandbox sends only <code>client_id</code>. A public client that sends a secret or an assertion is refused.</p>
 
-      <h2 id="read"><span class="step-num">4</span>Read data</h2>
+      <h2 id="read">Read data</h2>
       <pre><code>curl -s -H "Authorization: Bearer $TOKEN" https://api.sandbox.messpunkt.io/v1/whoami | python3 -m json.tool
 curl -s -H "Authorization: Bearer $TOKEN" https://api.sandbox.messpunkt.io/v1/properties | python3 -m json.tool
 
@@ -272,16 +284,11 @@ curl -s -H "Authorization: Bearer $TOKEN" \
         <li><strong>Usage unit</strong> (<code>/v1/usage-units/{id}/consumption</code>): bill <code>period_consumption.weighted_billable_value</code> summed over the segments. It is <code>billable_value</code> × <code>unit_share</code>: equal to <code>billable_value</code> for a measuring point the unit does not share (<code>unit_share: 1</code>), the unit's share of a shared meter otherwise. Never sum <code>billable_value</code> per unit: that bills a shared meter in full to every unit.</li>
         <li><strong>Sum rule:</strong> the sum of <code>weighted_billable_value</code> over all units of a Sector equals the Sector's consumption (up to rounding), so a shared measuring point is never counted twice. Details: <em>Shared Sectors</em> under <a href="../reference/#section/Canonical-model">Canonical model</a> in the Reference.</li>
         <li>Do not bill <code>last − first</code> reading yourself: that misses the baseline before <code>from</code>, the start value of a replacement device and the factor.</li>
-        <li><code>baseline_origin</code> on each segment says where <code>baseline_value</code> comes from: <code>recorded</code>, <code>assumed_zero</code>, <code>first_reading</code>, <code>portal_rule</code>, <code>month_end_before_range</code>, <code>first_known_in_range</code> or <code>none</code> (tolerate unknown values; the field is optional). <strong><code>assumed_zero</code>: the start value of a replacement heat cost allocator was not recorded and is assumed to be 0 — the consumption of that segment rests on this assumption.</strong> Show it to the landlord instead of billing it silently. Example: <code>hca_replacement_assumed_zero</code> in the Reference under <code>/v1/measuring-points/{id}/readings</code>; details in <a href="../reference/#section/Meter-readings-and-consumption">Meter readings and consumption</a>.</li>
-        <li>Never bill a value with status <code>calibration_expired</code>. <code>calculated</code> values are interpolated (<code>is_synthetic: true</code>).</li>
-        <li><code>water_outdoor</code> is a separate metric and not part of residents' water. Each metric has its own unit.</li>
-        <li>Difference meters (<code>is_difference_meter: true</code>) have no device and no value in V1.</li>
-        <li><strong><code>is_system_linked: false</code>:</strong> the measuring point has no active system assignment (heating or water system). You get its values, but the landlord portal shows 0 for it — clarify with the landlord before billing. An absent field means <code>true</code>.</li>
-        <li><em>Without a unit</em> (no allocation, <code>usage_unit_id: null</code>, <a href="#no-unit">below</a>) is not the same as <em>not system-linked</em> (<code>is_system_linked: false</code>). A plant-room meter can be system-linked and still belong to no unit; an apartment meter can belong to a unit and still lack a system link.</li>
+        <li>Start values, value status and the fields that change what you may bill: <a href="#billing">What your billing must not miss</a>.</li>
       </ul>
       <p>Full contract: <a href="../reference/#section/Data-resolution:-monthly-never-finer">Data resolution</a> in the Reference.</p>
       <h3 id="no-unit">Meters that belong to no apartment (plant room, main meters)</h3>
-      <p>Not every meter belongs to a usage unit: a total heat meter, a boiler room or a main water meter sits in an area that is allocated to no unit. These measuring points are part of the API. Their <code>usage_unit_id</code> is <code>null</code> and <code>allocations</code> is empty; <code>property_id</code> always names the property. List them with <code>GET /v1/properties/{id}/measuring-points</code> (scope <code>read:devices</code>, paginated) — the list contains every measuring point of the property, with and without a unit — and read their values with <code>GET /v1/measuring-points/{id}/readings</code>. They never appear under a unit and are not part of <code>GET /v1/usage-units/{id}/consumption</code>, and they are never spread over the units for you: the total meter is the property's own figure, and how it is split among apartments is your billing rule. Handle <code>usage_unit_id: null</code> in your client — it is a breaking change of rc.3, which is not published yet.</p>
+      <p>Not every meter belongs to a usage unit: a total heat meter, a boiler room or a main water meter sits in an area that is allocated to no unit. These measuring points are part of the API. Their <code>usage_unit_id</code> is <code>null</code> and <code>allocations</code> is empty; <code>property_id</code> always names the property. List them with <code>GET /v1/properties/{id}/measuring-points</code> (scope <code>read:devices</code>, paginated) — the list contains every measuring point of the property, with and without a unit — and read their values with <code>GET /v1/measuring-points/{id}/readings</code>. They never appear under a unit and are not part of <code>GET /v1/usage-units/{id}/consumption</code>, and they are never spread over the units for you: the total meter is the property's own figure, and how it is split among apartments is your billing rule. Handle <code>usage_unit_id: null</code> in your client — it was a breaking change of rc.3.</p>
       <pre><code>curl -s -H "Authorization: Bearer $TOKEN" \
   "https://api.sandbox.messpunkt.io/v1/properties/$PROPERTY_ID/measuring-points?limit=100" \
   | python3 -m json.tool
@@ -304,10 +311,33 @@ curl -s -H "Authorization: Bearer $TOKEN" \
   "next_cursor": null
 }</code></pre>
       <p>Details: <em>Shared Sectors</em> and <em>Sectors without a share</em> under <a href="../reference/#section/Canonical-model">Canonical model</a> in the Reference.</p>
-      <h3>Property scope</h3>
+      <h3 id="property-scope">Property scope</h3>
       <p>Call <code>/v1/whoami</code> after every token issue and refresh and reconcile your local Property list with <code>property_scope</code> (<code>"all"</code> or a list of UUIDs). A resource outside the landlord's selection returns <code>404</code>, never <code>403</code>. Treat a <code>404</code> on an ID you knew as “access withdrawn”, not as a reason to retry. When the landlord wants a different selection, they disconnect and consent again.</p>
 
-      <h2 id="refresh"><span class="step-num">5</span>Refresh, rotation and replay</h2>
+      <h2 id="billing">What your billing must not miss</h2>
+      <h3 id="baseline-origin">Start values: <code>baseline_origin</code></h3>
+      <p>Each device segment says in <code>baseline_origin</code> where its <code>baseline_value</code>, the value its consumption is measured from, comes from: <code>recorded</code>, <code>assumed_zero</code>, <code>first_reading</code>, <code>portal_rule</code>, <code>month_end_before_range</code>, <code>first_known_in_range</code> or <code>none</code>. The field is optional; tolerate values not listed here.</p>
+      <div class="note">
+        <strong><code>assumed_zero</code></strong>: a heat cost allocator was installed inside the range (a replacement or a newly fitted device) and its start value was not recorded. The API assumes a start value of <strong>0</strong>, so the consumption of that segment rests on this assumption. A recorded start value always takes precedence.<br><br>
+        <strong>What to do:</strong> check the device's real start value before you bill, and show the segment to the landlord instead of billing it silently. For a new device, 0 is usually correct. For a second-hand device it is not, and the consumption would be too high.
+      </div>
+      <p><code>first_reading</code> is the counterpart for other replacement devices without a recorded start value: the baseline is the first reading after installation, and consumption between installation and that reading is not included. Example response: <code>hca_replacement_assumed_zero</code> under <code>/v1/measuring-points/{id}/readings</code> in the Reference; definitions: <em>Per segment</em> under <a href="../reference/#section/Meter-readings-and-consumption">Meter readings and consumption</a>.</p>
+
+      <h3 id="billing-checklist">Checklist</h3>
+      <ul class="plain">
+        <li><strong>Status <code>calibration_expired</code>:</strong> the device's statutory calibration period (Eichfrist) had ended. The value is shown but must not be billed; <code>billable_value</code> is <code>0</code>.</li>
+        <li><strong><code>is_synthetic: true</code></strong> (status <code>calculated</code>): interpolated by messpunkt.io at the month boundary between two real readings; <code>substitution_method</code> says how. Mark these values if you display readings.</li>
+        <li><strong>Status <code>missing</code></strong> on <code>period_consumption</code>: no end value could be determined. <code>end_value</code>, <code>value</code> and <code>billable_value</code> are <code>null</code>; an earlier month is not carried forward.</li>
+        <li><strong><code>data_gap: true</code>:</strong> the measuring point has no value in the range. It is listed, never omitted. <code>electricity</code> and <code>gas</code> measuring points always have <code>data_gap: true</code>.</li>
+        <li><strong>Shared Sectors (<code>unit_share</code>):</strong> per unit, bill <code>weighted_billable_value</code> (= <code>billable_value</code> × <code>unit_share</code>), never <code>billable_value</code>; see <a href="#monthly">the monthly rule</a>.</li>
+        <li><strong><code>water_outdoor</code></strong> (garden, sprinkler water) is a separate metric and not part of the water billed to residents. Keep it separate. Each metric has its own unit.</li>
+        <li><strong><code>is_difference_meter: true</code>:</strong> no device of its own, no readings, and no consumption value in V1.</li>
+        <li><strong><code>is_system_linked: false</code>:</strong> the measuring point has no active system assignment (heating or water system). You get its values, but the landlord portal shows 0 for it. Clarify with the landlord before billing. An absent field means <code>true</code>.</li>
+        <li><strong><code>usage_unit_id: null</code>:</strong> plant-room and main meters that belong to no unit (<a href="#no-unit">above</a>). They are not part of a unit's consumption and are never spread over the units for you. <em>Without a unit</em> is not the same as <em>not system-linked</em>: a plant-room meter can be system-linked and belong to no unit; an apartment meter can belong to a unit and lack a system link.</li>
+      </ul>
+      <p>Full definitions: <a href="../reference/#section/Meter-readings-and-consumption/Value-status">Value status</a>, <a href="../reference/#section/Metrics-and-units">Metrics and units</a> and <a href="../reference/#section/Canonical-model">Canonical model</a> in the Reference.</p>
+
+      <h2 id="refresh">Refresh, rotation and replay</h2>
       <pre><code>curl -s -X POST https://auth.sandbox.messpunkt.io/oauth/token \
   -d "grant_type=refresh_token" \
   -d "refresh_token=$REFRESH_TOKEN" \
@@ -320,7 +350,7 @@ curl -s -H "Authorization: Bearer $TOKEN" \
         <li>You may narrow <code>scope</code> on refresh, never widen it (<code>invalid_scope</code>).</li>
       </ul>
 
-      <h2 id="revoke"><span class="step-num">6</span>Disconnect</h2>
+      <h2 id="revoke">Disconnect</h2>
       <pre><code>curl -s -o /dev/null -w "%{http_code}\n" -X POST https://auth.sandbox.messpunkt.io/oauth/revoke \
   -d "token=$REFRESH_TOKEN" \
   -d "client_id=sandbox-demo-client"</code></pre>
@@ -353,6 +383,9 @@ curl -s -H "Authorization: Bearer $TOKEN" \
       </table></div>
       <p>The limit on <code>/v1/*</code> is per connection, not per <code>client_id</code> or address, because one ERP system serves many landlords from one address, and addresses behind proxies are unreliable. Above a limit you get <code>429</code> with <code>Retry-After</code>, as <code>application/problem+json</code> with <code>type</code> <code>…/errors/#too-many-requests</code>. Production and sandbox use the same numbers. They are counted in memory per server instance, so the effective limit can be higher than the number above, never lower.</p>
 
+      <h2 id="versioning">Version and stability</h2>
+      <p>The API is a release candidate: <strong>1.0.0-rc.3</strong>, the <code>version</code> of the <a href="../erp-api-openapi.yaml">OpenAPI document</a>. Until 1.0, changes are additive only: new fields, new enum values, new optional parameters, new endpoints. Ignore fields you do not know and tolerate unknown enum values. Version 1.0 with the stability promise follows soon: no breaking changes within <code>/v1</code>, and deprecations announced with a <code>Sunset</code> header and at least 6 months of overlap. Details: <a href="../reference/#section/API-stability-and-versioning">API stability &amp; versioning</a> in the Reference; history in the <a href="../changelog/">changelog</a>.</p>
+
       <h2 id="sandbox">Sandbox notes</h2>
       <ul class="plain">
         <li>The data is synthetic and static up to 2026-12-31. A range reaching past December 2026 is shortened, and one starting after it returns no values.</li>
@@ -364,11 +397,14 @@ curl -s -H "Authorization: Bearer $TOKEN" \
         <aside class="side-nav" aria-label="On this page">
           <h3>On this page</h3>
           <div class="side-cards">
+            <a class="side-card" href="#steps"><div class="title">5 steps to connect</div><div class="desc">Sandbox to production</div></a>
             <a class="side-card" href="#register"><div class="title">Register a client</div><div class="desc">What to send us</div></a>
             <a class="side-card" href="#flow"><div class="title">Authorization flow</div><div class="desc">PKCE, consent, iss check, token</div></a>
             <a class="side-card" href="#client-auth"><div class="title">Client authentication</div><div class="desc">private_key_jwt, client_secret_basic</div></a>
+            <a class="side-card" href="#billing"><div class="title">Billing checklist</div><div class="desc">baseline_origin, status, shares</div></a>
             <a class="side-card" href="#refresh"><div class="title">Refresh and replay</div><div class="desc">Rotation, 90-day inactivity</div></a>
             <a class="side-card" href="#errors"><div class="title">Errors</div><div class="desc">Problem+JSON and OAuth errors</div></a>
+            <a class="side-card" href="#versioning"><div class="title">Version</div><div class="desc">1.0.0-rc.3, additive until 1.0</div></a>
             <a class="side-card" href="../dpop/"><div class="title">DPoP guide</div><div class="desc">Optional, fully verified</div></a>
             <a class="side-card" href="../reference/"><div class="title">Full reference</div><div class="desc">Every endpoint and schema</div></a>
           </div>
