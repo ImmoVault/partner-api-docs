@@ -170,7 +170,7 @@
         <tr><td><code>resource</code> (RFC 8707)</td><td><code>https://api.sandbox.messpunkt.io</code></td><td><code>https://api.messpunkt.io</code></td></tr>
         <tr><td>Client</td><td>public demo client <code>sandbox-demo-client</code> (PKCE only)</td><td>your pre-registered confidential client</td></tr>
         <tr><td>Landlord sign-in</td><td>demo landlord, already signed in</td><td>the landlord's messpunkt.io portal account</td></tr>
-        <tr><td>Data</td><td>synthetic, static until 2026-12-31</td><td>the landlord's real data</td></tr>
+        <tr><td>Data</td><td>synthetic, static until 2027-12-31</td><td>the landlord's real data</td></tr>
       </table></div>
       <p>The ERP uses the same authorization server and the same consent screen as AI assistants. Tokens are issued for one resource: a token for the REST API is not accepted by the MCP server and vice versa.</p>
 
@@ -388,7 +388,7 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 
       <h2 id="sandbox">Sandbox notes</h2>
       <ul class="plain">
-        <li>The data is synthetic and static up to 2026-12-31. A range reaching past December 2026 is shortened, and one starting after it returns no values.</li>
+        <li>The data is synthetic and static up to 2027-12-31. A range reaching past December 2027 is shortened, and one starting after it returns no values.</li>
         <li>The status <code>substituted</code> does not occur in the sandbox. It is documented in the Reference but cannot be tried out.</li>
         <li>Since 30 September 2026 the sandbox serves the rc.3 contract, including <code>resource</code> and <code>/oauth/revoke</code> (see the <a href="../changelog/">changelog</a>).</li>
       </ul>
