@@ -109,6 +109,21 @@
       <section class="release">
         <div class="release-header">
           <span class="version">Documentation</span>
+          <span class="date">2026-10-31</span>
+          <span class="status rc">Release candidate</span>
+        </div>
+        <p>No change to the contract (still <strong>1.0.0-rc.3</strong>), no breaking change. A clarification of behaviour that sandbox and production already share.</p>
+        <div class="change-group changed">
+          <h3>Changed</h3>
+          <ul>
+            <li><strong>Reserved metrics <code>electricity</code> and <code>gas</code>.</strong> The spec now states what you get: such measuring points are listed like any other (<code>GET /properties/{id}/measuring-points</code>, the measuring points of a usage unit, <code>GET /measuring-points/{id}</code>) with <code>metric</code>, <code>unit</code> and, if a device is fitted, <code>active_device</code>. They never carry values: <code>GET /measuring-points/{id}/readings</code> returns <code>segments: []</code> and <code>data_gap: true</code>, and <code>GET /usage-units/{id}/consumption</code> returns them with <code>data_gap: true</code> — also with <code>metric=electricity</code> or <code>metric=gas</code>, which returns these measuring points rather than an empty list.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="release">
+        <div class="release-header">
+          <span class="version">Documentation</span>
           <span class="date">2026-10-04</span>
           <span class="status rc">Release candidate</span>
         </div>
