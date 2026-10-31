@@ -180,7 +180,8 @@ for (const file of ['index.html', 'llms.txt', 'README.md', 'erp-api-openapi.yaml
   const text = read(file);
   // Seit 2026-09-30 sind auth., api. und mcp.messpunkt.io live. Der Waechter haelt fest, dass keine Seite die
   // Produktion wieder als „kommt mit dem ersten Pilotpartner" beschreibt (stand bis 2026-10-04 auf jeder Seite).
-  if (/(goes live|GA ships|GA with) (with )?the first pilot partner|production in preparation|not yet available/i.test(text))
+  // Die deutschen Wendungen und „rc.3 is unpublished" standen bis 2026-10-31 noch in connect/ und llms.txt.
+  if (/(goes live|GA ships|GA with) (with )?the first pilot partner|production in preparation|not yet available|V1 in Vorbereitung|zusammen mit der Produktions-Schnittstelle live|rc\.3 is unpublished/i.test(text))
     errors.push(`${file}: describes production as not yet live; it is live since 2026-09-30`);
 }
 

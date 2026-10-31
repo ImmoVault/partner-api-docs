@@ -125,7 +125,7 @@
 
       <h2>Get started</h2>
       <ol class="steps">
-        <li>Download <strong>messpunkt-sandbox.zip</strong> above and unzip it anywhere — you get a folder <code>messpunkt-sandbox-api/</code> containing 12 request files.</li>
+        <li>Download <strong>messpunkt-sandbox.zip</strong> above and unzip it anywhere — you get a folder <code>messpunkt-sandbox-api/</code> containing 14 request files.</li>
         <li>Open <a href="https://www.usebruno.com/downloads" target="_blank" rel="noopener">Bruno</a> → <strong>Open Collection</strong> → pick the <code>messpunkt-sandbox-api</code> folder.</li>
         <li>Click the collection name → <strong>Auth</strong> tab → <strong>Get Access Token</strong>. A browser popup opens the sandbox consent screen with the demo landlord <em>Musterhausverwaltung GmbH</em>. Pick one or more Properties → <strong>Approve</strong>.</li>
         <li>Send <strong>Whoami</strong> → you should see the tenant name and granted scopes. Then drill into any <code>List Properties</code>, <code>List Usage Units</code> or <code>Get Consumption …</code> request.</li>
@@ -147,6 +147,7 @@
           <tr><td>10</td><td>Get Consumption — HCA (Data-Gap)</td><td><code>data_gap: true</code> scenario</td></tr>
           <tr><td>11</td><td>Get Measuring Point</td><td><code>GET /v1/measuring-points/{id}</code></td></tr>
           <tr><td>12</td><td>Get Measuring Point Readings</td><td><code>GET /v1/measuring-points/{id}/readings</code></td></tr>
+          <tr><td>13</td><td>List Property Measuring Points</td><td><code>GET /v1/properties/{id}/measuring-points</code></td></tr>
         </tbody>
       </table>
       <p>Every request has its own <code>docs {}</code> block with the expected response shape and a hint for what to try next. All three read scopes (<code>read:units</code>, <code>read:devices</code>, <code>read:readings</code>) are requested by default.</p>

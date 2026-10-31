@@ -4,7 +4,7 @@
 ![OAuth](https://img.shields.io/badge/OAuth-2.1%20%2B%20PKCE-1e534a?style=flat-square)
 ![DPoP](https://img.shields.io/badge/DPoP-optional%20(RFC%209449)-1e534a?style=flat-square)
 ![AI-ready](https://img.shields.io/badge/AI--ready-tool%20schemas%20%2B%20llms.txt-1e534a?style=flat-square)
-![Status](https://img.shields.io/badge/status-preview-f2c94c?style=flat-square)
+![Status](https://img.shields.io/badge/status-production%20live%20%C2%B7%20GA%20pending-f2c94c?style=flat-square)
 ![Version](https://img.shields.io/badge/V1-1.0.0--rc.3-2d9cdb?style=flat-square)
 
 **Partner-facing API documentation for [messpunkt.io](https://messpunkt.io)** — the metering platform for German real estate. This repo hosts the OpenAPI 3.1 specification and the rendered documentation at **https://developer.messpunkt.io**.
