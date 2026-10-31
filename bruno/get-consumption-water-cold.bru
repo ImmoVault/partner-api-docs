@@ -5,19 +5,19 @@ meta {
 }
 
 get {
-  url: https://api.sandbox.messpunkt.io/v1/usage-units/:id/consumption?from=2026-01-01&to=2026-12-31&metric=water_cold
+  url: https://api.sandbox.messpunkt.io/v1/usage-units/:id/consumption?from=2025-01-01&to=2025-12-31&metric=water_cold
   body: none
   auth: inherit
 }
 
 params:query {
-  from: 2026-01-01
-  to: 2026-12-31
+  from: 2025-01-01
+  to: 2025-12-31
   metric: water_cold
 }
 
 params:path {
-  id: cfd6280b-b3c7-47db-aef2-70dc9505096e
+  id: 280bb3c7-07db-4ef2-b0dc-9505096e676b
 }
 
 settings {
@@ -29,7 +29,8 @@ docs {
 
   Same contract as `consumption-water-warm`, but a simpler scenario: a
   single device segment with no replacement and no data gap. Good baseline
-  to contrast against the meter-replacement response.
+  to contrast against the meter-replacement response. Default unit is
+  **WE 01** (Musterstraße 2-4), the same unit as the warm-water request.
 
   - `unit` is `m3`
   - `obis` is `null` (not populated, see the Reference)

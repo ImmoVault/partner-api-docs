@@ -11,7 +11,7 @@ get {
 }
 
 params:path {
-  id: 0051c69f-e4e0-450e-b105-2d7eefe9b3e5
+  id: 7c8eb987-8018-40e0-8480-ea1527eeee80
 }
 
 settings {
@@ -33,18 +33,22 @@ docs {
 
   ## Default `id`
 
-  `0051c69f-e4e0-450e-b105-2d7eefe9b3e5` = **WE 01 / water_warm** — the
-  measuring point with the meter-replacement demo (two device segments).
+  `7c8eb987-8018-40e0-8480-ea1527eeee80` = **WE 01 / water_warm**
+  (Musterstraße 2-4) — the measuring point with the meter-replacement demo.
+  `active_device` is the replacement device installed on 2025-06-12; the
+  two device segments show up in its readings for 2025.
 
-  ## Other measuring points
+  ## Other measuring points (Musterstraße 2-4)
 
-  | Unit | Metric | measuring_point_id |
-  |---|---|---|
-  | WE 01 | heat        | `f10d46d8-27ba-4d27-a2fb-b9e4fed66787` |
-  | WE 01 | water_warm  | `0051c69f-e4e0-450e-b105-2d7eefe9b3e5` |
-  | WE 01 | water_cold  | `801810e0-4480-4a15-a7ee-ee80d2645125` |
-  | WE 02 | heat        | `0c36d1d8-2251-443e-bc3c-6007750cf1f8` |
-  | WE 02 | water_warm  | `bc37dc2c-83eb-416a-b214-8bb486f728d5` |
-  | WE 02 | water_cold  | `75c7a764-809f-43a7-97c6-757a67ce4e0e` |
-  | WE 02 | hca         | `3f734067-ba52-4675-b9ea-aab47f82ea75` |
+  | Unit | Metric | Scenario | measuring_point_id |
+  |---|---|---|---|
+  | WE 01 | heat          | interpolated month end (`degree_day_weighted`) | `27baed27-22fb-49e4-bed6-67871a85b386` |
+  | WE 01 | water_cold    | single segment, all measured                   | `eba16a32-148b-4486-b728-d5a1e8706f0f` |
+  | WE 02 | water_cold    | `calibration_expired` from 2025-07             | `347321c9-6a5d-45e6-80bf-348bb9e98b12` |
+  | WE 03 | water_outdoor | garden tap, installed 2025-04-02               | `e8d86ad4-90d0-4c46-8c49-8e69ace031dd` |
+  | WE 04 | hca           | installation date unknown (`installed_at: null`) | `2a206e2f-f8e6-4f98-904d-430c8342cc3d` |
+  | WE 05 | hca           | data gap, no readings                          | `443ab660-90fa-4e43-8704-3a335e7703b3` |
+  | WE 06 | water_warm    | difference meter, `active_device: null`        | `d246ad75-2df4-45bd-8637-1979060d30a9` |
+  | WE 07 | electricity   | reserved metric, no device                     | `acc25994-7a04-4b9b-9275-9bbb43f4b527` |
+  | —     | heat          | total heat meter, no usage unit                | `b455c523-12ab-4895-8620-e9422ab4b506` |
 }

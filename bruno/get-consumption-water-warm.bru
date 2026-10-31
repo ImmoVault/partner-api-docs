@@ -5,19 +5,19 @@ meta {
 }
 
 get {
-  url: https://api.sandbox.messpunkt.io/v1/usage-units/:id/consumption?from=2026-01-01&to=2026-12-31&metric=water_warm
+  url: https://api.sandbox.messpunkt.io/v1/usage-units/:id/consumption?from=2025-01-01&to=2025-12-31&metric=water_warm
   body: none
   auth: inherit
 }
 
 params:query {
-  from: 2026-01-01
-  to: 2026-12-31
+  from: 2025-01-01
+  to: 2025-12-31
   metric: water_warm
 }
 
 params:path {
-  id: cfd6280b-b3c7-47db-aef2-70dc9505096e
+  id: 280bb3c7-07db-4ef2-b0dc-9505096e676b
 }
 
 settings {
@@ -27,13 +27,17 @@ settings {
 docs {
   # Consumption — water_warm with meter replacement
 
-  Default unit is **WE 01, Musterfrau**, which carries the demo meter-
-  replacement scenario. The response has **two device segments** under the
-  same `measuring_point_id`:
+  Default unit is **WE 01** (Musterstraße 2-4), which carries the demo meter-
+  replacement scenario: the warm-water meter was replaced on 2025-06-12, so
+  the 2025 billing year has **two device segments** under the same
+  `measuring_point_id`:
 
-  1. Old device, deinstalled mid-year, `replacement_reason: DeviceReplacement`.
+  1. Old device, deinstalled 2025-06-12, `replacement_reason: DeviceReplacement`.
   2. Replacement device, no deinstall date. Its `baseline_value` is its own
-     start value at installation — not necessarily 0.
+     start value at installation (`0.004`) — not necessarily 0.
+
+  A range that starts after the replacement (e.g. 2026) shows only the
+  replacement device.
 
   Each segment contains **one reading per calendar month end** (never finer;
   `is_synthetic: true` marks values messpunkt.io interpolated) and a

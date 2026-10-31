@@ -144,10 +144,10 @@ info:
       querying a Property outside your selected scope returns `404`.
     - **Stateless by design:** no writes, no persistence. Same fixture
       every time.
-    - **Static data until 2026-12-31.** The fixture holds month-end values
-      up to December 2026 and is not extended automatically. From 2027 on,
+    - **Static data until 2027-12-31.** The fixture holds month-end values
+      up to December 2027 and is not extended automatically. From 2028 on,
       the latest months stop looking "current": a range that reaches past
-      December 2026 is shortened to end on `2026-12-31` (check the echoed
+      December 2027 is shortened to end on `2027-12-31` (check the echoed
       `to`), and a range that starts after it returns no values.
     - **Not every status is demonstrated.** The sandbox fixture contains no
       `substituted` values; you can read the status in this document and in
@@ -551,9 +551,11 @@ info:
     - `baseline_origin` — where `baseline_value` comes from (`recorded`,
       `assumed_zero`, `first_reading`, `portal_rule`,
       `month_end_before_range`, `first_known_in_range`, `none`; see
-      `BaselineOrigin`). `assumed_zero` means the start value of a
-      replacement heat cost allocator was **not recorded** and is assumed to
-      be 0 — the consumption of that segment rests on this assumption.
+      `BaselineOrigin`). `assumed_zero` means the segment is a heat cost
+      allocator installed inside the range (a replacement or a newly fitted
+      one) whose start value was **not recorded**; it is assumed to be 0 at
+      `installed_at` — the consumption of that segment rests on this
+      assumption. Other device types in that situation get `first_reading`.
       *(Added in rc.3 addendum; optional.)*
     - `installed_at` / `deinstalled_at` — set only when the date is
       documented. An unknown installation date is `null`, never a
@@ -2527,14 +2529,19 @@ components:
         without the field says nothing about the origin. Tolerate values not
         listed here. *(Added in rc.3 addendum.)*
         - `recorded` — a start value recorded for this device: its value at
-          installation (replacement device) or a recorded start value at the
-          beginning of the range
-        - `assumed_zero` — the start value of a replacement heat cost
-          allocator was **not recorded** and is assumed to be 0 — the
-          consumption of that segment rests on this assumption. A recorded
-          start value always takes precedence.
-        - `first_reading` — replacement device without a recorded start
-          value: the first reading after installation. Consumption between
+          installation (device installed inside the range, replacement or
+          newly fitted) or a recorded start value at the beginning of the
+          range
+        - `assumed_zero` — a heat cost allocator installed inside the range
+          (`installed_at` on or after `from`; a replacement or a newly fitted
+          one) without a recorded start value: the start value is assumed to
+          be 0 at `installed_at` (`baseline_date` = `installed_at`). It is
+          **not recorded** — the consumption of that segment rests on this
+          assumption. A recorded start value always takes precedence. Only
+          heat cost allocators get this origin.
+        - `first_reading` — any other device type installed inside the range
+          (replacement or newly fitted) without a recorded start value: the
+          first reading on or after installation. Consumption between
           installation and that reading is not included.
         - `portal_rule` — device installed before the period; start value
           determined the way the landlord portal determines it for its

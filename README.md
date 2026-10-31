@@ -41,7 +41,7 @@ Guides:
 | [developer.messpunkt.io/mcp/](https://developer.messpunkt.io/mcp/) | MCP client authors: transport, auth, tool reference |
 | [developer.messpunkt.io/roadmap/](https://developer.messpunkt.io/roadmap/) | ERP vendors: what is planned (occupancy writes, event feed, webhooks) — not available today |
 
-The MCP tool reference is generated from the server's `tools/list` snapshot (`mcp/tools-list.json`): `node scripts/render-tools.mjs`. `node scripts/check-guides.mjs` checks every URL, route, scope and tool name in the guides against the spec and the snapshot. `node scripts/check-links.mjs` checks the relative links of every page. CI (`.github/workflows/checks.yml`) runs both plus `npx @redocly/cli lint erp-api-openapi.yaml` on every pull request.
+The MCP tool reference is generated from the server's `tools/list` snapshot (`mcp/tools-list.json`): `node scripts/render-tools.mjs`. `node scripts/check-guides.mjs` checks every URL, route, scope and tool name in the guides against the spec and the snapshot. It also checks that `bruno/messpunkt-sandbox.zip` holds exactly `bruno/*.bru` and `bruno/bruno.json` (rebuild: copy them into a folder `messpunkt-sandbox-api/` and zip that folder) and — with `AZURE_FUNCTIONS_DIR` pointing at an azure-functions checkout — that every UUID in `bruno/*.bru` is an ID of the sandbox fixture `SandboxApi/Fixtures/sandbox-data.json` (except the all-zeros UUID of the 404 demo). The fixture is private, so this repo's CI skips that part with a notice; the `docs-guides` job of azure-functions runs it. `node scripts/check-links.mjs` checks the relative links of every page. CI (`.github/workflows/checks.yml`) runs both plus `npx @redocly/cli lint erp-api-openapi.yaml` on every pull request.
 
 ## Status
 
