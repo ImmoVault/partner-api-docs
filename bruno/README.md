@@ -41,6 +41,7 @@ and unzip it anywhere. In Bruno: **Open Collection** → pick the unzipped folde
 | 10 | Get Consumption — HCA (Data-Gap) | `data_gap: true` scenario |
 | 11 | Get Measuring Point | `GET /v1/measuring-points/{id}` |
 | 12 | Get Measuring Point Readings | `GET /v1/measuring-points/{id}/readings` |
+| 13 | List Property Measuring Points | `GET /v1/properties/{id}/measuring-points` |
 
 Each request has its own `docs {}` block with the expected response shape
 and a hint for what to try next.
