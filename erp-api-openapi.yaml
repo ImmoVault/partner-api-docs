@@ -494,8 +494,20 @@ info:
     | `water_cold` | Kaltwasserzähler | `m3` | |
     | `water_warm` | Warmwasserzähler | `m3` | |
     | `water_outdoor` | Außenwasserzähler (Garten, Sprengwasser) | `m3` | **not** part of the water billed to residents — keep it separate |
-    | `electricity` | Stromzähler | `kWh` | reserved — messpunkt.io has no readable electricity meters today; you will not receive values |
-    | `gas` | Gaszähler | `m3` | reserved — messpunkt.io has no readable gas meters today; you will not receive values |
+    | `electricity` | Stromzähler | `kWh` | reserved — messpunkt.io has no readable electricity meters today; you will not receive values (see below) |
+    | `gas` | Gaszähler | `m3` | reserved — messpunkt.io has no readable gas meters today; you will not receive values (see below) |
+
+    **`electricity` and `gas` measuring points** are listed like any
+    other — in `GET /properties/{id}/measuring-points`, in the measuring
+    points of a usage unit and in `GET /measuring-points/{id}` — with
+    `metric` and `unit` set and `active_device` set when a device is
+    fitted (otherwise `null`). They never carry values, whatever the device
+    transmits: `GET /measuring-points/{id}/readings` returns `segments: []`
+    and `data_gap: true`, and `GET /usage-units/{id}/consumption` returns
+    them with `data_gap: true` and no values — also when filtered with
+    `metric=electricity` or `metric=gas`, which therefore returns these
+    measuring points, not an empty list. Sandbox and production behave the
+    same.
 
     **OBIS codes** (`obis`) are not supported: the field is
     **always `null` today**. messpunkt.io does not store OBIS codes per
@@ -586,6 +598,8 @@ info:
     | `calibration_expired` | `false` or `true` | the device's statutory calibration period (Eichfrist) had ended; the value is shown but **must not be billed** — `billable_value` is `0`. `is_synthetic: true` when the value was interpolated at the month boundary; `substitution_method` is then `null` |
 
     A MeasuringPoint without any value in the range has `data_gap: true`.
+    `electricity` and `gas` measuring points always have `data_gap: true`
+    (see *Metrics and units*).
 
     **`substituted` is not produced today.** A range always ends at a
     completed month end, and for month ends messpunkt.io stores only
@@ -2684,6 +2698,9 @@ components:
         | `water_outdoor` | Außenwasserzähler — **not** part of the water billed to residents *(added in rc.3)* | `m3` |
         | `electricity` | Stromzähler — reserved, no readable devices today | `kWh` |
         | `gas` | Gaszähler — reserved, no readable devices today | `m3` |
+
+        `electricity` and `gas` measuring points are listed, but never carry
+        values: they always have `data_gap: true`. See *Metrics and units*.
       enum:
         - heat
         - hca
