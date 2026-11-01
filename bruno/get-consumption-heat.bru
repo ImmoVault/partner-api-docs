@@ -5,19 +5,19 @@ meta {
 }
 
 get {
-  url: https://api.sandbox.messpunkt.io/v1/usage-units/:id/consumption?from=2026-01-01&to=2026-12-31&metric=heat
+  url: https://api.sandbox.messpunkt.io/v1/usage-units/:id/consumption?from=2025-01-01&to=2025-12-31&metric=heat
   body: none
   auth: inherit
 }
 
 params:query {
-  from: 2026-01-01
-  to: 2026-12-31
+  from: 2025-01-01
+  to: 2025-12-31
   metric: heat
 }
 
 params:path {
-  id: cfd6280b-b3c7-47db-aef2-70dc9505096e
+  id: 280bb3c7-07db-4ef2-b0dc-9505096e676b
 }
 
 settings {
@@ -37,5 +37,7 @@ docs {
     strongly seasonal.
   - Bill `period_consumption.billable_value`, not last minus first reading.
 
-  Default unit `WE 01` has a single heat-meter segment, no replacement.
+  Default unit `WE 01` (Musterstraße 2-4) has a single heat-meter segment, no
+  replacement. In the 2025 billing year its February month end is such an
+  interpolated value (`degree_day_weighted`).
 }

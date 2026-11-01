@@ -109,6 +109,23 @@
       <section class="release">
         <div class="release-header">
           <span class="version">Documentation</span>
+          <span class="date">2026-11-01</span>
+          <span class="status rc">Release candidate</span>
+        </div>
+        <p>No change to the contract (still <strong>1.0.0-rc.3</strong>), no breaking change. Two clarifications and longer sandbox data.</p>
+        <div class="change-group changed">
+          <h3>Changed</h3>
+          <ul>
+            <li><strong><code>baseline_origin: assumed_zero</code></strong> applies to every heat cost allocator installed inside the range without a recorded start value — a newly fitted one as well as a replacement. The start value is assumed to be 0 at <code>installed_at</code>. Other device types in that situation get <code>first_reading</code>. The API already behaved this way; the spec said "replacement heat cost allocator".</li>
+            <li><strong>Sandbox data until 2027-12-31.</strong> The sandbox fixture now holds month-end values up to December 2027 (before: December 2026). Every ID stays the same; only months were added. A range reaching past December 2027 is shortened to end on <code>2027-12-31</code>.</li>
+            <li><strong>Bruno collection.</strong> Every request now uses an ID the sandbox serves, and the descriptions name the current demo data (<em>Musterstraße 2-4</em>, units <em>WE 01</em> … <em>WE 07</em>, <em>GE 01</em>). The consumption requests query the 2025 billing year, which contains the meter-replacement demo.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="release">
+        <div class="release-header">
+          <span class="version">Documentation</span>
           <span class="date">2026-10-31</span>
           <span class="status rc">Release candidate</span>
         </div>

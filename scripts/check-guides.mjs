@@ -6,6 +6,7 @@
 //   AZURE_FUNCTIONS_DIR=<checkout> node scripts/check-guides.mjs
 //                                                  also compares the auth-server routes with SandboxAuth/Functions
 //                                                  and the tool scopes with [RequiresScope] in PartnerMcp/Tools
+//                                                  and the Bruno UUIDs with SandboxApi/Fixtures/sandbox-data.json
 //
 // What it checks:
 //   1. every https://api(.sandbox).messpunkt.io/v1/... URL matches a path of erp-api-openapi.yaml
@@ -20,9 +21,13 @@
 //      no absolute cap) and authorization-code extraction that assumes hex (codes are base64url)
 //  10. every problem type https://developer.messpunkt.io/errors/#<code> in the spec and the pages has an anchor
 //      of that name on errors/, and no page or example uses the old api(.sandbox)…/errors/<code> form
+//  11. bruno/messpunkt-sandbox.zip holds exactly bruno/*.bru and bruno/bruno.json (same bytes); with
+//      AZURE_FUNCTIONS_DIR also: every UUID in bruno/*.bru is an "id" of the sandbox fixture, except the all-zeros
+//      UUID of get-property-out-of-scope.bru. Without it this part is skipped with a notice (the fixture is private).
 // Placeholders (<SUPPORT_KONTAKT> …) are listed, never treated as errors: they must stay visible.
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { inflateRawSync } from 'node:zlib';
 import { dirname, join, normalize } from 'node:path';
 import { ROOT, loadTools, renderPage } from './render-tools.mjs';
 
@@ -216,10 +221,64 @@ try {
   }
 }
 
+// 11: Bruno collection: zip = repo files; request IDs exist in the sandbox fixture
+const BRUNO_ZIP_DIR = 'messpunkt-sandbox-api/';
+const NULL_UUID = '00000000-0000-0000-0000-000000000000';
+const brunoFiles = readdirSync(join(ROOT, 'bruno')).filter(f => f.endsWith('.bru') || f === 'bruno.json').sort();
+// Minimal zip reader (central directory; stored or deflated entries), so the check needs no unzip binary.
+function readZip(buf) {
+  const eocd = buf.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+  if (eocd < 0) throw new Error('not a zip file');
+  const entries = new Map();
+  for (let i = 0, p = buf.readUInt32LE(eocd + 16); i < buf.readUInt16LE(eocd + 10); i++) {
+    const method = buf.readUInt16LE(p + 10), size = buf.readUInt32LE(p + 20);
+    const nameLen = buf.readUInt16LE(p + 28), extraLen = buf.readUInt16LE(p + 30), commentLen = buf.readUInt16LE(p + 32);
+    const local = buf.readUInt32LE(p + 42);
+    const name = buf.toString('utf8', p + 46, p + 46 + nameLen);
+    const start = local + 30 + buf.readUInt16LE(local + 26) + buf.readUInt16LE(local + 28);
+    const data = buf.subarray(start, start + size);
+    if (!name.endsWith('/')) entries.set(name, method === 0 ? data : method === 8 ? inflateRawSync(data) : null);
+    p += 46 + nameLen + extraLen + commentLen;
+  }
+  return entries;
+}
+try {
+  const zip = readZip(readFileSync(join(ROOT, 'bruno/messpunkt-sandbox.zip')));
+  for (const f of brunoFiles) {
+    const entry = zip.get(BRUNO_ZIP_DIR + f);
+    if (!entry) errors.push(`bruno/messpunkt-sandbox.zip: ${BRUNO_ZIP_DIR}${f} missing (rebuild the zip)`);
+    else if (!entry.equals(readFileSync(join(ROOT, 'bruno', f)))) errors.push(`bruno/messpunkt-sandbox.zip: ${f} differs from bruno/${f} (rebuild the zip)`);
+  }
+  for (const name of zip.keys())
+    if (!name.startsWith(BRUNO_ZIP_DIR) || !brunoFiles.includes(name.slice(BRUNO_ZIP_DIR.length)))
+      errors.push(`bruno/messpunkt-sandbox.zip: ${name} is not a file of bruno/`);
+} catch (e) {
+  errors.push(`bruno/messpunkt-sandbox.zip: ${e.message}`);
+}
+let brunoIdCheck = 'skipped (set AZURE_FUNCTIONS_DIR to check the request IDs against the sandbox fixture)';
+if (process.env.AZURE_FUNCTIONS_DIR) {
+  const fixturePath = join(process.env.AZURE_FUNCTIONS_DIR, 'SandboxApi/Fixtures/sandbox-data.json');
+  if (!existsSync(fixturePath)) errors.push(`bruno: sandbox fixture ${fixturePath} not found`);
+  else {
+    const fixtureIds = new Set([...readFileSync(fixturePath, 'utf8').matchAll(/"id":\s*"([0-9a-f-]{36})"/gi)].map(m => m[1].toLowerCase()));
+    let count = 0;
+    for (const f of brunoFiles.filter(f => f.endsWith('.bru'))) {
+      for (const m of read('bruno/' + f).matchAll(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi)) {
+        const id = m[0].toLowerCase();
+        if (id === NULL_UUID && f === 'get-property-out-of-scope.bru') continue;   // the 404 demo, deliberately not in the fixture
+        count++;
+        if (!fixtureIds.has(id)) errors.push(`bruno/${f}: ${id} is not an id in the sandbox fixture (${fixturePath})`);
+      }
+    }
+    brunoIdCheck = `${count} UUID(s) checked against ${fixturePath}`;
+  }
+}
+
 // --- report ---------------------------------------------------------------------------------------------
 console.log(`spec: ${specPaths.length} paths, scopes ${[...specScopes].sort().join(' ')}`);
 console.log(`tools/list: ${tools ? `${tools.tools.length} tools (${[...toolNames].join(', ')})` : 'pending'}`);
 console.log(`auth routes: ${process.env.AZURE_FUNCTIONS_DIR ? 'checked against ' + process.env.AZURE_FUNCTIONS_DIR : 'static list (set AZURE_FUNCTIONS_DIR to check against the code)'}`);
+console.log(`bruno IDs: ${brunoIdCheck}`);
 console.log('placeholders (must stay visible until filled):');
 for (const p of placeholderHits) console.log('  ' + p);
 for (const w of warnings) console.log('WARN ' + w);

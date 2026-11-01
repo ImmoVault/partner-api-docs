@@ -22,7 +22,8 @@ jobs:
       - name: Lint the OpenAPI spec
         run: npx --yes @redocly/cli@2.56.0 lint erp-api-openapi.yaml
       # Guides against the spec and the committed tools/list snapshot (includes render-tools.mjs --check).
-      # Without AZURE_FUNCTIONS_DIR: the route and scope comparison with the code runs when the snapshot is taken.
+      # Without AZURE_FUNCTIONS_DIR: the route and scope comparison with the code runs when the snapshot is taken, and the
+      # Bruno request IDs are not compared with the (private) sandbox fixture; azure-functions' docs-guides job does both.
       - name: Check the guides
         run: node scripts/check-guides.mjs
       - name: Check relative links on every page

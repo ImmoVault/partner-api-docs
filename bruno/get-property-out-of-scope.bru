@@ -44,9 +44,9 @@ docs {
 
   ## Why the all-zeros UUID?
 
-  The sandbox fixture currently has two Properties, both belonging to the
-  same demo Tenant. If you tick **both** boxes on the consent screen, both
-  are in your `property_scope` — so using another fixture UUID would return
+  The sandbox fixture has three Properties, all belonging to the same demo
+  Tenant. Every one you tick on the consent screen is in your
+  `property_scope` — so using another fixture UUID would return
   200, not 404. The all-zeros UUID is guaranteed to miss the fixture,
   giving you the 404 shape no matter what you picked.
 }

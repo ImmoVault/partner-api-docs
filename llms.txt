@@ -46,7 +46,7 @@ Under a single OAuth token scoped per Tenant **and** per Property (selection cho
 - Shared Sectors: a measuring point shared by several units appears under each of them with its `unit_share`; `usage_unit_id` is the primary unit (highest share), `allocations[]` lists all units. Device values are never weighted.
 - `status`: `measured` · `calculated` (interpolated month end, `is_synthetic: true`) · `substituted` (extrapolated end value; not produced today) · `missing` · `calibration_expired` (never bill; can be `is_synthetic: true`).
 - `usage_unit_id` is `null` (and `allocations` empty) for a measuring point whose area is allocated to no unit, e.g. a total heat meter in a plant room. Such measuring points are not part of any unit or `/usage-units/{id}/consumption`; list them with `GET /properties/{id}/measuring-points`. `property_id` is always set. *(Breaking change in rc.3, made before rc.3 was published.)*
-- `baseline_origin` on a segment says where the start value comes from; `assumed_zero` means the start value of a replacement heat cost allocator was not recorded and is assumed to be 0 — that segment's consumption rests on this assumption.
+- `baseline_origin` on a segment says where the start value comes from; `assumed_zero` means a heat cost allocator installed inside the range (replacement or newly fitted) has no recorded start value, so it is assumed to be 0 at `installed_at` — that segment's consumption rests on this assumption. Other device types in that situation get `first_reading`.
 - `is_system_linked: false` marks a measuring point without an active system assignment: delivered with its values, while the landlord portal shows 0 for it — clarify before billing.
 - Metrics: `heat` (kWh) · `hca` (unit) · `water_cold` · `water_warm` · `water_outdoor` (m3, not part of residents' water). `electricity` and `gas` are reserved — there are no readable devices for them today.
 - `obis`, `resolution` and `external_ref` are always `null` today. Identify quantities by `metric` + `unit`.
@@ -54,7 +54,7 @@ Under a single OAuth token scoped per Tenant **and** per Property (selection cho
 - Difference meters: `is_difference_meter: true`, `active_device: null`, no readings. Pre-metering points (Vorerfassung) are not exposed.
 - A missing value at the end of the range is never filled from an earlier month: `period_consumption.status` is then `missing` (unless `substituted`). A device removed inside the range ends with the value on the removal day.
 - Invalid parameters (`limit`, `page_cursor`, `property_id`, dates, unknown `metric`, a range after the last completed month) return `400` with a `detail`; `500`/`503` carry no detail — retry with backoff.
-- Sandbox data is static up to 2026-12-31 and contains no `substituted` values.
+- Sandbox data is static up to 2027-12-31 and contains no `substituted` values.
 
 ## Authentication
 
