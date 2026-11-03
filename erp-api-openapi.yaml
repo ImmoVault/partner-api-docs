@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: messpunkt.io Partner API
-  version: "1.0.0-rc.3"
+  version: "1.0.0-rc.4"
   summary: |
     Partner-facing read API for monthly consumption and meter data.
   description: |
@@ -13,7 +13,7 @@ info:
     use the MCP server instead — see *For AI agents* below. Both share the same
     consent, the same authorization server and the same data rules.
 
-    **Status:** `1.0.0-rc.3` · V1 release candidate · production
+    **Status:** `1.0.0-rc.4` · V1 release candidate · production
     (`api.messpunkt.io`, `auth.messpunkt.io`) live since 2026-09-30 against
     the landlords' real data; ERP clients are registered on request. The API
     is read-only. Planned write functions are described on the
@@ -22,7 +22,7 @@ info:
     **Coming from rc.2?** rc.3 contains four breaking changes (monthly data
     resolution, nullable `active_device`, nullable `installed_at`, nullable
     `usage_unit_id`). Read *Migrating from rc.2* below before you upgrade.
-    One further change was made before GA: the calibration of a device
+    **rc.4** makes one further change before GA: the calibration of a device
     (Eichung) is a statement on the segment (`calibration`), no longer a
     value status — see *Calibration (Eichung)* below and the
     [changelog](./changelog/).
@@ -57,7 +57,7 @@ info:
       Correcting that before the first partner goes live is cheap; afterwards
       it would be a `/v2`. From rc.3 on, `UsageUnit`, `MeasuringPoint`,
       `DeviceSegment` and `MeterReading` change only additively — with one
-      deliberate exception before GA: `calibration_expired` is no longer a
+      deliberate exception before GA (rc.4): `calibration_expired` is no longer a
       `ReadingStatus` and every `DeviceSegment` carries `calibration` (see
       the [changelog](./changelog/), 2026-11-03).
 
@@ -2625,7 +2625,7 @@ components:
         their real status and `billable_value` is `value × factor` in every
         state. Whether a value of a device outside its calibration period is
         billed is for the landlord and the ERP to decide. *(Changed before
-        GA: replaces the former status `calibration_expired`.)*
+        GA, rc.4: replaces the former status `calibration_expired`.)*
       properties:
         state:
           type: string
