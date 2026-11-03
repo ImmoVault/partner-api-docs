@@ -75,7 +75,8 @@ info:
     | `SubstitutionMethod` | 3 values | + `weighted_recent_2values`, `weighted_recent_3values`, `baseline_fallback`, `baseline_single_value` | Treat as informational. |
     | `replacement_reason` | `EndOfLife`, `Defect`, … | + `DeviceReplacement` (the value you will actually see) | Map `DeviceReplacement` to "meter swap". |
     | `Metric` | 6 values | + `water_outdoor` | Keep outdoor water out of tenant water billing. |
-    | `DeviceSegment` | — | + `baseline_value`, `baseline_date`, `factor`, `period_consumption`, `calibration` | Use them. Whether a device is out of calibration is `calibration`, not a value status. |
+    | `DeviceSegment` | — | + `baseline_value`, `baseline_date`, `factor`, `period_consumption` | Use them. |
+    | `DeviceSegment.calibration` *(rc.4)* | — | + `calibration` (`state`, `valid_until`) | Not part of rc.3. Whether a device is out of calibration is `calibration`, not a value status; see *Calibration (Eichung)* and the changelog. |
     | `MeterReading` | — | + `is_synthetic` | Show "calculated" values differently if you display readings. |
     | `MeasuringPoint` | — | + `is_difference_meter` | Expect no device and no readings for these. |
     | `obis`, `resolution`, `external_ref` | documented as populated | always `null` today | Do not rely on them. |
@@ -162,6 +163,8 @@ info:
 
     **Since 2026-09-30 the sandbox serves the rc.3 contract**, including
     `resource` (RFC 8707) and `/oauth/revoke` (announced in the changelog).
+    Once the rc.4 release is rolled out, the sandbox serves the current
+    contract (rc.4), including `calibration` on every segment.
 
     # Authentication
 
@@ -646,8 +649,17 @@ info:
     `expired` for the year its segment ended. For a range that crosses the
     end of the validity, `state` is `expired` while the earlier readings were
     still inside it: classify each reading yourself, a reading dated `at` is
-    outside the calibration period when `at` is after `valid_until`. The
-    same rule applies to the aggregated monthly values of the MCP server
+    outside the calibration period when `at` is after `valid_until`.
+
+    **Billing only inside the calibration period.** A segment that crosses
+    `valid_until` splits like this: the part up to the end of validity is
+    (the `value` of the reading dated `valid_until` − `baseline_value`) ×
+    `factor`, the rest is `billable_value` minus that part. The reading
+    dated 31 December is the December month-end reading in `readings[]`; if
+    it is absent (no value that month), the split cannot be computed from
+    the API.
+
+    The same rule applies to the aggregated monthly values of the MCP server
     (`calibration_expired: true` beside the status).
 
     ## Precision
