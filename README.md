@@ -66,7 +66,7 @@ If you operate a property-management or billing ERP and want to integrate:
 - **Per-Property authorization scope** — each token carries an explicit Property whitelist; out-of-scope resources return `404 Not Found` (not `403`) so no information about other Properties leaks.
 - **Explicit meter-replacement semantics** — responses are nested per-MeasuringPoint with `DeviceSegment[]`; ERPs never have to diff serials to detect a swap.
 - **Monthly, never finer** — month-end readings plus the billable consumption per device segment, computed like the landlord portal. No daily or per-telegram series: that would be a behavioural profile of residents.
-- **Honest statuses** — `measured`, `calculated` (interpolated, `is_synthetic`), `substituted`, `missing`, `calibration_expired`; K-factor and start values per segment, so a mid-year meter swap bills correctly.
+- **Honest statuses** — `measured`, `calculated` (interpolated, `is_synthetic`), `substituted`, `missing`; K-factor and start values per segment, so a mid-year meter swap bills correctly. The calibration (Eichung) of each device is flagged on its segment (`calibration.state`, `valid_until`) and never withholds consumption.
 - **RFC 7807** problem-details for errors, ISO 8601 UTC for timestamps, cursor-based pagination, rate limiting with `Retry-After`.
 
 ## AI-ready

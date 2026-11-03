@@ -44,7 +44,8 @@ docs {
   |---|---|---|---|
   | WE 01 | heat          | interpolated month end (`degree_day_weighted`) | `27baed27-22fb-49e4-bed6-67871a85b386` |
   | WE 01 | water_cold    | single segment, all measured                   | `eba16a32-148b-4486-b728-d5a1e8706f0f` |
-  | WE 02 | water_cold    | `calibration_expired` from 2025-07             | `347321c9-6a5d-45e6-80bf-348bb9e98b12` |
+  | WE 02 | water_cold    | `calibration.state: expired` (valid until 2024-12-31), consumption still billable | `347321c9-6a5d-45e6-80bf-348bb9e98b12` |
+  | WE 03 | water_cold    | no calibration data, `calibration.state: unknown` | `78e36cb4-5395-44f8-85bb-21e3223be699` |
   | WE 03 | water_outdoor | garden tap, installed 2025-04-02               | `e8d86ad4-90d0-4c46-8c49-8e69ace031dd` |
   | WE 04 | hca           | installation date unknown (`installed_at: null`) | `2a206e2f-f8e6-4f98-904d-430c8342cc3d` |
   | WE 05 | hca           | data gap, no readings                          | `443ab660-90fa-4e43-8704-3a335e7703b3` |

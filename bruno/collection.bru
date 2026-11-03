@@ -67,6 +67,11 @@ docs {
   - **Meter replacement** — `WE 01 / water_warm` returns two device segments
     for 2025 (replaced 2025-06-12); bill the sum of their
     `period_consumption.billable_value`.
+  - **Calibration** — every segment carries `calibration`. `WE 02 / water_cold`
+    is `expired` (valid until 2024-12-31), `WE 03 / water_cold` is `unknown`
+    (no calibration data), heat cost allocators are `not_required`. The
+    consumption of all of them is delivered and billable; the landlord and
+    the ERP decide whether to bill a device outside its calibration period.
   - **Data gap** — `WE 05 / hca` (`Schlafzimmer Heizkörper`) returns
     `data_gap: true` with `readings: []`.
   - **Difference meter** — `WE 06 / water_warm` has `is_difference_meter: true`

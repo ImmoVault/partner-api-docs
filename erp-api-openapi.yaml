@@ -22,6 +22,10 @@ info:
     **Coming from rc.2?** rc.3 contains four breaking changes (monthly data
     resolution, nullable `active_device`, nullable `installed_at`, nullable
     `usage_unit_id`). Read *Migrating from rc.2* below before you upgrade.
+    One further change was made before GA: the calibration of a device
+    (Eichung) is a statement on the segment (`calibration`), no longer a
+    value status — see *Calibration (Eichung)* below and the
+    [changelog](./changelog/).
 
     # API stability & versioning
 
@@ -52,7 +56,10 @@ info:
       meters of a plant room (see *Migrating from rc.2*).
       Correcting that before the first partner goes live is cheap; afterwards
       it would be a `/v2`. From rc.3 on, `UsageUnit`, `MeasuringPoint`,
-      `DeviceSegment` and `MeterReading` change only additively.
+      `DeviceSegment` and `MeterReading` change only additively — with one
+      deliberate exception before GA: `calibration_expired` is no longer a
+      `ReadingStatus` and every `DeviceSegment` carries `calibration` (see
+      the [changelog](./changelog/), 2026-11-03).
 
     See [/changelog/](./changelog/) for the full release history.
 
@@ -65,11 +72,10 @@ info:
     | **`MeasuringPoint.active_device`** *(breaking)* | required object | object **or `null`** (difference meters, removed devices) | Handle `null`. |
     | **`installed_at`** on `Device` / `DeviceSegment` *(breaking)* | required date | date **or `null`** (installation date not documented) | Handle `null`; never substitute a made-up date. |
     | **`MeasuringPoint.usage_unit_id`** *(breaking)* | required UUID | UUID **or `null`** (measuring point of a plant room or a main meter, whose area is allocated to no usage unit); `property_id` is now always set and such measuring points are listed by the new `GET /properties/{id}/measuring-points` | Handle `null`. Read plant-room and main meters (e.g. a total heat meter) from `GET /properties/{id}/measuring-points`. |
-    | `ReadingStatus` | 4 values | + `calibration_expired` | Never bill a value with this status. |
     | `SubstitutionMethod` | 3 values | + `weighted_recent_2values`, `weighted_recent_3values`, `baseline_fallback`, `baseline_single_value` | Treat as informational. |
     | `replacement_reason` | `EndOfLife`, `Defect`, … | + `DeviceReplacement` (the value you will actually see) | Map `DeviceReplacement` to "meter swap". |
     | `Metric` | 6 values | + `water_outdoor` | Keep outdoor water out of tenant water billing. |
-    | `DeviceSegment` | — | + `baseline_value`, `baseline_date`, `factor`, `period_consumption` | Use them. |
+    | `DeviceSegment` | — | + `baseline_value`, `baseline_date`, `factor`, `period_consumption`, `calibration` | Use them. Whether a device is out of calibration is `calibration`, not a value status. |
     | `MeterReading` | — | + `is_synthetic` | Show "calculated" values differently if you display readings. |
     | `MeasuringPoint` | — | + `is_difference_meter` | Expect no device and no readings for these. |
     | `obis`, `resolution`, `external_ref` | documented as populated | always `null` today | Do not rely on them. |
@@ -578,6 +584,9 @@ info:
     - `factor` — multiplier from raw to billable consumption (K-factor /
       Bewertungsfaktor for heat cost allocators, usually `1` for all other
       meters).
+    - `calibration` — the device's calibration (`state`, `valid_until`); a
+      statement, not a restriction: the consumption is delivered and
+      billable in every state (see *Calibration (Eichung)*).
 
     **Billable consumption of a MeasuringPoint** = sum of
     `period_consumption.billable_value` over its segments. **For a
@@ -597,7 +606,6 @@ info:
     | `calculated` | `true` | interpolated by messpunkt.io at the month boundary between two real readings (`substitution_method` says how) |
     | `substituted` | `true` | extrapolated because the device has not reported since; only at the end of a range, from readings at most 20 days old. **Not produced today** — see below |
     | `missing` | — | no value could be determined; only on `period_consumption` (then `end_value`, `value` and `billable_value` are `null`) |
-    | `calibration_expired` | `false` or `true` | the device's statutory calibration period (Eichfrist) had ended; the value is shown but **must not be billed** — `billable_value` is `0`. `is_synthetic: true` when the value was interpolated at the month boundary; `substitution_method` is then `null` |
 
     A MeasuringPoint without any value in the range has `data_gap: true`.
     `electricity` and `gas` measuring points always have `data_gap: true`
@@ -610,6 +618,37 @@ info:
     meters and heat cost allocators, `linear_interpolation` for all other
     meters. The value and its methods stay in the contract; handle them if
     they appear.
+
+    ## Calibration (Eichung)
+
+    Every segment carries `calibration`, a statement about the segment's
+    device. **It never changes a value:** a device whose calibration period
+    (Eichfrist) has ended still delivers its readings with their real status
+    (`measured`, `calculated`, …), and `billable_value` is `value × factor`
+    like for every other device. messpunkt.io flags the calibration; whether
+    a value of a device outside its calibration period is billed is for the
+    landlord and the ERP to decide.
+
+    | `calibration.state` | Meaning |
+    | --- | --- |
+    | `ok` | the calibration is valid in the year of `period_consumption.end_date` |
+    | `expired` | the calibration period had ended before that year |
+    | `unknown` | the device is subject to statutory calibration, but messpunkt.io has no calibration data for it. **This does not mean the calibration is in order** |
+    | `not_required` | no statutory calibration applies (heat cost allocators) |
+
+    `calibration.valid_until` is the last day of validity (31 December of the
+    last valid year); `null` for `unknown` and `not_required`.
+
+    **Reference day.** `state` is assessed for the year of
+    `period_consumption.end_date` — the removal day if the device left inside
+    the range, otherwise the last day of the range. A segment is bounded in
+    time, so there is no `replaced` state: a removed device is `ok` or
+    `expired` for the year its segment ended. For a range that crosses the
+    end of the validity, `state` is `expired` while the earlier readings were
+    still inside it: classify each reading yourself, a reading dated `at` is
+    outside the calibration period when `at` is after `valid_until`. The
+    same rule applies to the aggregated monthly values of the MCP server
+    (`calibration_expired: true` beside the status).
 
     ## Precision
 
@@ -1393,6 +1432,7 @@ paths:
                             replacement_reason: "DeviceReplacement"
                             resolution: null
                             factor: 1
+                            calibration: { state: "ok", valid_until: "2027-12-31" }
                             baseline_value: 412.318
                             baseline_date: "2024-12-31"
                             baseline_origin: "month_end_before_range"
@@ -1418,6 +1458,7 @@ paths:
                             replacement_reason: null
                             resolution: null
                             factor: 1
+                            calibration: { state: "ok", valid_until: "2031-12-31" }
                             baseline_value: 0.004
                             baseline_date: "2025-06-12"
                             baseline_origin: "recorded"
@@ -1467,6 +1508,7 @@ paths:
                             replacement_reason: null
                             resolution: null
                             factor: 1
+                            calibration: { state: "ok", valid_until: "2028-12-31" }
                             baseline_value: 88.140
                             baseline_date: "2024-12-31"
                             baseline_origin: "month_end_before_range"
@@ -1683,6 +1725,7 @@ paths:
                         replacement_reason: null
                         resolution: null
                         factor: 0.625
+                        calibration: { state: "not_required", valid_until: null }
                         baseline_value: 0
                         baseline_date: "2024-12-31"
                         baseline_origin: "month_end_before_range"
@@ -1720,6 +1763,7 @@ paths:
                         replacement_reason: "DeviceReplacement"
                         resolution: null
                         factor: 0.625
+                        calibration: { state: "not_required", valid_until: null }
                         baseline_value: 0
                         baseline_date: "2024-12-31"
                         baseline_origin: "month_end_before_range"
@@ -1740,6 +1784,7 @@ paths:
                         replacement_reason: null
                         resolution: null
                         factor: 0.625
+                        calibration: { state: "not_required", valid_until: null }
                         baseline_value: 0
                         baseline_date: "2025-02-10"
                         baseline_origin: "assumed_zero"
@@ -1771,6 +1816,7 @@ paths:
                         replacement_reason: null
                         resolution: null
                         factor: 1
+                        calibration: { state: "ok", valid_until: "2029-12-31" }
                         baseline_value: 12480
                         baseline_date: "2024-12-31"
                         baseline_origin: "month_end_before_range"
@@ -1786,7 +1832,13 @@ paths:
                           value: 2370
                           billable_value: 2370
                 calibration_expired:
-                  summary: Cold-water meter whose calibration period has ended — do not bill
+                  summary: Cold-water meter whose calibration period has ended — consumption delivered, calibration flagged
+                  description: |
+                    The readings keep their real status and `billable_value` is
+                    `value × factor`; `calibration.state` is `expired` and
+                    `calibration.valid_until` tells which readings fall after the
+                    end of the calibration period. Whether to bill this device is
+                    the landlord's and the ERP's decision.
                   value:
                     measuring_point_id: "c2a1f0e3-7d44-4b0a-8e59-6a1b2c3d4e5f"
                     metric: "water_cold"
@@ -1803,20 +1855,59 @@ paths:
                         replacement_reason: null
                         resolution: null
                         factor: 1
+                        calibration: { state: "expired", valid_until: "2024-12-31" }
                         baseline_value: 301.550
                         baseline_date: "2024-12-31"
                         baseline_origin: "month_end_before_range"
                         readings:
-                          - { at: "2025-01-31", value: 304.112, status: "calibration_expired", is_synthetic: false }
-                          - { at: "2025-02-28", value: 306.540, status: "calibration_expired", is_synthetic: false }
-                          - { at: "2025-03-31", value: 309.301, status: "calibration_expired", is_synthetic: false }
+                          - { at: "2025-01-31", value: 304.112, status: "measured", is_synthetic: false }
+                          - { at: "2025-02-28", value: 306.540, status: "measured", is_synthetic: false }
+                          - { at: "2025-03-31", value: 309.301, status: "measured", is_synthetic: false }
                         period_consumption:
                           end_date: "2025-03-31"
                           end_value: 309.301
-                          status: "calibration_expired"
+                          status: "measured"
                           substitution_method: null
                           value: 7.751
-                          billable_value: 0
+                          billable_value: 7.751
+                calibration_unknown:
+                  summary: Cold-water meter without calibration data — state is unknown, not "in order"
+                  description: |
+                    The device is subject to statutory calibration, but messpunkt.io
+                    has no calibration data for it: `calibration.state` is `unknown`
+                    and `valid_until` is `null`. Consumption is delivered and
+                    billable as usual.
+                  value:
+                    measuring_point_id: "7b3e9d21-5c48-4f6a-a0d2-8e1f4c6b9a35"
+                    metric: "water_cold"
+                    obis: null
+                    unit: "m3"
+                    is_difference_meter: false
+                    data_gap: false
+                    segments:
+                      - device_id: "3a9c5e71-2d84-4b06-b1f3-6e8d0a4c7f92"
+                        serial: "31700977"
+                        manufacturer: "DWZ"
+                        installed_at: "2019-05-14"
+                        deinstalled_at: null
+                        replacement_reason: null
+                        resolution: null
+                        factor: 1
+                        calibration: { state: "unknown", valid_until: null }
+                        baseline_value: 188.020
+                        baseline_date: "2024-12-31"
+                        baseline_origin: "month_end_before_range"
+                        readings:
+                          - { at: "2025-01-31", value: 190.114, status: "measured", is_synthetic: false }
+                          - { at: "2025-02-28", value: 192.061, status: "measured", is_synthetic: false }
+                          - { at: "2025-03-31", value: 194.230, status: "measured", is_synthetic: false }
+                        period_consumption:
+                          end_date: "2025-03-31"
+                          end_value: 194.230
+                          status: "measured"
+                          substitution_method: null
+                          value: 6.210
+                          billable_value: 6.210
                 outdoor_water:
                   summary: Outdoor water meter (garden) — separate metric, not billed to residents
                   value:
@@ -1835,6 +1926,7 @@ paths:
                         replacement_reason: null
                         resolution: null
                         factor: 1
+                        calibration: { state: "ok", valid_until: "2031-12-31" }
                         baseline_value: 0.000
                         baseline_date: "2025-04-02"
                         baseline_origin: "recorded"
@@ -1867,6 +1959,7 @@ paths:
                         replacement_reason: null
                         resolution: null
                         factor: 1.25
+                        calibration: { state: "not_required", valid_until: null }
                         baseline_value: null
                         baseline_date: null
                         baseline_origin: "none"
@@ -2484,7 +2577,7 @@ components:
 
     DeviceSegment:
       type: object
-      required: [device_id, serial, manufacturer, installed_at, factor, readings, period_consumption]
+      required: [device_id, serial, manufacturer, installed_at, factor, calibration, readings, period_consumption]
       properties:
         device_id:        { type: string, format: uuid }
         serial:           { type: string }
@@ -2494,6 +2587,7 @@ components:
         replacement_reason: { $ref: "#/components/schemas/ReplacementReason" }
         resolution:       { $ref: "#/components/schemas/Resolution" }
         factor:           { $ref: "#/components/schemas/Factor" }
+        calibration:      { $ref: "#/components/schemas/Calibration" }
         baseline_value:
           type: [number, "null"]
           description: |
@@ -2521,6 +2615,48 @@ components:
           items: { $ref: "#/components/schemas/MeterReading" }
         period_consumption:
           $ref: "#/components/schemas/PeriodConsumption"
+
+    Calibration:
+      type: object
+      required: [state, valid_until]
+      description: |
+        Calibration (Eichung) of the segment's device. A statement about the
+        device, **never a reason to withhold consumption**: readings keep
+        their real status and `billable_value` is `value × factor` in every
+        state. Whether a value of a device outside its calibration period is
+        billed is for the landlord and the ERP to decide. *(Changed before
+        GA: replaces the former status `calibration_expired`.)*
+      properties:
+        state:
+          type: string
+          description: |
+            Assessed for the year of `period_consumption.end_date` (the
+            removal day if the device left inside the range, otherwise the
+            last day of the range).
+            - `ok` — the calibration is valid in that year
+            - `expired` — the calibration period (Eichfrist) had ended before
+              that year
+            - `unknown` — the device is subject to statutory calibration, but
+              messpunkt.io has no calibration data for it. **Not the same as
+              "in order"**
+            - `not_required` — no statutory calibration applies (heat cost
+              allocators)
+
+            There is no `replaced` state: a segment is bounded in time, a
+            removed device is `ok` or `expired` for the year its segment
+            ended.
+          enum: [ok, expired, unknown, not_required]
+          example: "ok"
+        valid_until:
+          type: [string, "null"]
+          format: date
+          description: |
+            Last day of the calibration validity: 31 December of the last
+            valid year. `null` for `unknown` and `not_required`. A reading
+            dated after `valid_until` was taken outside the calibration
+            period — use this to classify single readings when the range
+            crosses the end of the validity.
+          example: "2029-12-31"
 
     BaselineOrigin:
       type: string
@@ -2592,8 +2728,8 @@ components:
         billable_value:
           type: [number, "null"]
           description: |
-            `value × factor`. **`0` when `status = calibration_expired`** (the
-            device must not be billed), `null` when `status = missing`.
+            `value × factor`, also when the device's calibration is expired
+            (see `calibration`), `null` when `status = missing`.
             The device's value — never weighted by a unit share.
           example: 20.043
         weighted_billable_value:
@@ -2629,8 +2765,8 @@ components:
             `true` when messpunkt.io derived the value (interpolated at the
             month boundary or extrapolated) instead of receiving it from the
             device. `false` for values the device reported or stored itself.
-            Independent of `status`: a `calibration_expired` value can be
-            synthetic.
+            Always `true` for `calculated` and `substituted`, `false` for
+            `measured`.
         substitution_method: { $ref: "#/components/schemas/SubstitutionMethod" }
 
     ReadingStatus:
@@ -2648,18 +2784,16 @@ components:
           `calculated` values.
         - `missing` — no value could be determined; appears only on
           `period_consumption`
-        - `calibration_expired` — the device's statutory calibration period
-          (Eichfrist) had ended; the value is shown for information and
-          **must not be billed** *(added in rc.3)*. Takes precedence over
-          `calculated`: an interpolated value of such a device has this
-          status with `is_synthetic: true`.
-      enum: [measured, substituted, calculated, missing, calibration_expired]
+
+        The calibration of the device is not a status: see `calibration` on
+        the segment.
+      enum: [measured, substituted, calculated, missing]
 
     SubstitutionMethod:
       type: [string, "null"]
       description: |
         How a `calculated` or `substituted` value was derived; `null`
-        otherwise (also for `calibration_expired`, even when interpolated).
+        otherwise.
         Today only the two `calculated` methods occur — `substituted` is not
         produced (see *Value status* in the API overview).
 
