@@ -1,7 +1,7 @@
 {
-  "source": "azure-functions PartnerMcp.Tests/Snapshots/tools-list.json (branch feat/partner-eichung-eigene-angabe, PR open; replace by the main commit after the merge)",
-  "commit": "1ff78c5",
-  "snapshot_last_changed_in": "1ff78c5",
+  "source": "azure-functions PartnerMcp.Tests/Snapshots/tools-list.json (main)",
+  "commit": "e73839d",
+  "snapshot_last_changed_in": "e73839d",
   "sha256": "79ca0b969237ff9b54673aa31063775133723f2f0d6484a512b0dfbd6cf06350",
   "scopes_from": "[RequiresScope(McpScopes.*)] in azure-functions PartnerMcp/Tools/*.cs and PartnerMcp/Security/McpScopes.cs at fb5c773",
   "scopes": {
