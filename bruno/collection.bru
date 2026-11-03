@@ -28,9 +28,10 @@ docs {
   deterministic synthetic fixture, zero PII. DPoP is optional — this
   collection uses plain `Bearer` tokens.
 
-  The request docs describe the `1.0.0-rc.3` contract (monthly readings,
+  The request docs describe the `1.0.0-rc.4` contract (monthly readings,
   `period_consumption`). The sandbox serves the rc.3 shape since
-  2026-09-30.
+  2026-09-30 and the rc.4 shape (`calibration` on every segment) since its
+  deployment.
 
   **Hosts**
   - Authorization server: `https://auth.sandbox.messpunkt.io`
@@ -67,6 +68,11 @@ docs {
   - **Meter replacement** — `WE 01 / water_warm` returns two device segments
     for 2025 (replaced 2025-06-12); bill the sum of their
     `period_consumption.billable_value`.
+  - **Calibration** — every segment carries `calibration`. `WE 02 / water_cold`
+    is `expired` (valid until 2024-12-31), `WE 03 / water_cold` is `unknown`
+    (no calibration data), heat cost allocators are `not_required`. The
+    consumption of all of them is delivered and billable; the landlord and
+    the ERP decide whether to bill a device outside its calibration period.
   - **Data gap** — `WE 05 / hca` (`Schlafzimmer Heizkörper`) returns
     `data_gap: true` with `readings: []`.
   - **Difference meter** — `WE 06 / water_warm` has `is_difference_meter: true`

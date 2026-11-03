@@ -5,7 +5,7 @@
 ![DPoP](https://img.shields.io/badge/DPoP-optional%20(RFC%209449)-1e534a?style=flat-square)
 ![AI-ready](https://img.shields.io/badge/AI--ready-tool%20schemas%20%2B%20llms.txt-1e534a?style=flat-square)
 ![Status](https://img.shields.io/badge/status-production%20live%20%C2%B7%20GA%20pending-f2c94c?style=flat-square)
-![Version](https://img.shields.io/badge/V1-1.0.0--rc.3-2d9cdb?style=flat-square)
+![Version](https://img.shields.io/badge/V1-1.0.0--rc.4-2d9cdb?style=flat-square)
 
 **Partner-facing API documentation for [messpunkt.io](https://messpunkt.io)** — the metering platform for German real estate. This repo hosts the OpenAPI 3.1 specification and the rendered documentation at **https://developer.messpunkt.io**.
 
@@ -48,7 +48,7 @@ The MCP tool reference is generated from the server's `tools/list` snapshot (`mc
 | | |
 |---|---|
 | **Release** | Production live since 2026-09-30; changes are announced in the [changelog](./changelog/) |
-| **Current version** | `1.0.0-rc.3` · September 2026 |
+| **Current version** | `1.0.0-rc.4` · September 2026 |
 | **Status** | Release candidate; production (`api.messpunkt.io`, `auth.messpunkt.io`, `mcp.messpunkt.io`) and sandbox live; read-only |
 | **Source of truth** | Mirrored from an internal engineering repository |
 
@@ -66,7 +66,7 @@ If you operate a property-management or billing ERP and want to integrate:
 - **Per-Property authorization scope** — each token carries an explicit Property whitelist; out-of-scope resources return `404 Not Found` (not `403`) so no information about other Properties leaks.
 - **Explicit meter-replacement semantics** — responses are nested per-MeasuringPoint with `DeviceSegment[]`; ERPs never have to diff serials to detect a swap.
 - **Monthly, never finer** — month-end readings plus the billable consumption per device segment, computed like the landlord portal. No daily or per-telegram series: that would be a behavioural profile of residents.
-- **Honest statuses** — `measured`, `calculated` (interpolated, `is_synthetic`), `substituted`, `missing`, `calibration_expired`; K-factor and start values per segment, so a mid-year meter swap bills correctly.
+- **Honest statuses** — `measured`, `calculated` (interpolated, `is_synthetic`), `substituted`, `missing`; K-factor and start values per segment, so a mid-year meter swap bills correctly. The calibration (Eichung) of each device is flagged on its segment (`calibration.state`, `valid_until`) and never withholds consumption.
 - **RFC 7807** problem-details for errors, ISO 8601 UTC for timestamps, cursor-based pagination, rate limiting with `Retry-After`.
 
 ## AI-ready

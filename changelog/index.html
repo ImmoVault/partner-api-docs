@@ -108,6 +108,31 @@
 
       <section class="release">
         <div class="release-header">
+          <span class="version">1.0.0-rc.4</span>
+          <span class="date">2026-11-03</span>
+          <span class="status rc">Release candidate</span>
+        </div>
+        <p>Deliberately breaking, before GA 1.0. The version is now <strong>1.0.0-rc.4</strong> (was rc.3). Consumption of a device whose calibration (Eichung) has expired is delivered and billable; the calibration is flagged on the segment instead of being a value status.</p>
+        <div class="change-group removed">
+          <h3>Breaking</h3>
+          <ul>
+            <li><strong><code>ReadingStatus</code> no longer has the value <code>calibration_expired</code>.</strong> A value keeps its real status (<code>measured</code>, <code>calculated</code>, <code>substituted</code>, <code>missing</code>), also when the device's calibration has expired. Handle the removed value if your client matched on it.</li>
+            <li><strong><code>billable_value</code> is no longer <code>0</code> for an expired calibration.</strong> It is <code>value</code> × <code>factor</code> for every device (and <code>weighted_billable_value</code> follows). Whether a value of a device outside its calibration period is billed is for the landlord and the ERP to decide; messpunkt.io no longer decides it by delivering 0.</li>
+            <li><strong><code>DeviceSegment.calibration</code></strong> (new, <strong>required</strong>): an object with <code>state</code> (<code>ok</code>, <code>expired</code>, <code>unknown</code>, <code>not_required</code>) and <code>valid_until</code> (date, 31 December of the last valid year; <code>null</code> for <code>unknown</code> and <code>not_required</code>). <code>state</code> is assessed for the year of <code>period_consumption.end_date</code>; a reading dated after <code>valid_until</code> lies outside the calibration period. <code>unknown</code> means the device is subject to calibration but messpunkt.io has no data for it — not that the calibration is in order. There is no <code>replaced</code> state on a segment.</li>
+          </ul>
+        </div>
+        <div class="change-group changed">
+          <h3>Changed</h3>
+          <ul>
+            <li><strong>MCP server:</strong> the monthly values of <code>get_consumption</code> no longer have the status <code>calibration_expired</code>; the new flag <code>calibration_expired: true</code> stands beside the real status (next to <code>calibration_data_missing</code>). The consumption of such a device is included in the value.</li>
+            <li><strong>Sandbox:</strong> <em>WE 02</em> cold water is <code>expired</code> (valid until 2024-12-31, so for every month of the fixture), <em>WE 03</em> cold water is <code>unknown</code>, heat cost allocators are <code>not_required</code>, all others <code>ok</code>. Every ID stays the same.</li>
+            <li><strong>Spec:</strong> new schema <code>Calibration</code>, a section <em>Calibration (Eichung)</em> in the overview and a response example <code>calibration_unknown</code>; the example <code>calibration_expired</code> now shows real values with status <code>measured</code>.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="release">
+        <div class="release-header">
           <span class="version">Documentation</span>
           <span class="date">2026-11-01</span>
           <span class="status rc">Release candidate</span>

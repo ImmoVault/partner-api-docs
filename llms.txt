@@ -2,7 +2,7 @@
 
 > REST / OAuth 2.1 API that lets property-management ERPs read monthly consumption and meter-reading data from messpunkt.io on behalf of a landlord, plus an MCP server that lets landlords ask their own AI assistant about the same data. messpunkt.io is a metering platform for German real estate (sub-metering: heat, heat cost allocators, cold, warm and outdoor water).
 
-**Status:** V1 release candidate `1.0.0-rc.3` · production (`https://api.messpunkt.io/v1`, `https://auth.messpunkt.io`) live since 2026-09-30 against real data · ERP clients registered on request · read-only
+**Status:** V1 release candidate `1.0.0-rc.4` · production (`https://api.messpunkt.io/v1`, `https://auth.messpunkt.io`) live since 2026-09-30 against real data · ERP clients registered on request · read-only
 **Hosted at:** https://developer.messpunkt.io
 
 This file follows the [llms.txt standard](https://llmstxt.org) — a Markdown index for LLMs and AI agents.
@@ -13,7 +13,7 @@ This file follows the [llms.txt standard](https://llmstxt.org) — a Markdown in
 - [Reference documentation (Redoc)](https://developer.messpunkt.io/reference/): narrative documentation in English
 - [Endpoint explorer (Swagger UI)](https://developer.messpunkt.io/swagger-ui/): request builder with try-it-out
 - [Modern explorer (Scalar)](https://developer.messpunkt.io/scalar/): code samples in curl / JavaScript / Python / C#
-- [Changelog](https://developer.messpunkt.io/changelog/): release history, including the rc.2 → rc.3 migration notes
+- [Changelog](https://developer.messpunkt.io/changelog/): release history, including the rc.2 → rc.3 migration notes and the rc.4 change
 - [ERP integration guide](https://developer.messpunkt.io/erp/): client registration, consent, PKCE, `iss` check, refresh rotation, revocation, DPoP, errors, rate limits
 - [Roadmap](https://developer.messpunkt.io/roadmap/): what is planned and not available today — occupancy writes by the ERP, event feed, webhooks, `external_ref`. Nothing on it can be called today
 - [Error handling](https://developer.messpunkt.io/errors/): `application/problem+json` types and client actions
@@ -44,7 +44,7 @@ Under a single OAuth token scoped per Tenant **and** per Property (selection cho
 - **Monthly at the finest.** Readings are month-end values (`at` is a date); there are no daily, hourly or per-telegram values and no parameter to request them. Finer series per apartment would be a behavioural profile of residents.
 - Bill `period_consumption.billable_value` (raw consumption × `factor`), summed over segments — not `last − first` reading. For a usage unit, bill `weighted_billable_value` (= `billable_value` × `unit_share`) from `/usage-units/{id}/consumption`.
 - Shared Sectors: a measuring point shared by several units appears under each of them with its `unit_share`; `usage_unit_id` is the primary unit (highest share), `allocations[]` lists all units. Device values are never weighted.
-- `status`: `measured` · `calculated` (interpolated month end, `is_synthetic: true`) · `substituted` (extrapolated end value; not produced today) · `missing` · `calibration_expired` (never bill; can be `is_synthetic: true`).
+- `status`: `measured` · `calculated` (interpolated month end, `is_synthetic: true`) · `substituted` (extrapolated end value; not produced today) · `missing`. The calibration of a device is not a status: every segment carries `calibration` (`state`: `ok` · `expired` · `unknown` · `not_required`; `valid_until`: date or `null`). Consumption of a device with an expired calibration is delivered and billable (`billable_value` = `value` × `factor`); the landlord and the ERP decide whether to bill it.
 - `usage_unit_id` is `null` (and `allocations` empty) for a measuring point whose area is allocated to no unit, e.g. a total heat meter in a plant room. Such measuring points are not part of any unit or `/usage-units/{id}/consumption`; list them with `GET /properties/{id}/measuring-points`. `property_id` is always set. *(Breaking change in rc.3, made before rc.3 was published.)*
 - `baseline_origin` on a segment says where the start value comes from; `assumed_zero` means a heat cost allocator installed inside the range (replacement or newly fitted) has no recorded start value, so it is assumed to be 0 at `installed_at` — that segment's consumption rests on this assumption. Other device types in that situation get `first_reading`.
 - `is_system_linked: false` marks a measuring point without an active system assignment: delivered with its values, while the landlord portal shows 0 for it — clarify before billing.
