@@ -108,6 +108,21 @@
 
       <section class="release">
         <div class="release-header">
+          <span class="version">Documentation</span>
+          <span class="date">2026-11-05</span>
+          <span class="status rc">Release candidate</span>
+        </div>
+        <p>No change to the contract (still <strong>1.0.0-rc.4</strong>), no breaking change. One clarification the API already behaved by.</p>
+        <div class="change-group changed">
+          <h3>Changed</h3>
+          <ul>
+            <li><strong>Heat cost allocators: yearly reset.</strong> <code>readings[]</code> are raw, as the device reports them, including the drop to zero after the reading date (Stichtag). <code>period_consumption.value</code> is already corrected for the reset: the sum of the increases between the stored values inside the range, not <code>end_value − baseline_value</code>. Bill heat cost allocators with <code>period_consumption</code>, never by subtracting readings. New paragraph under <em>Metrics and units</em>.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="release">
+        <div class="release-header">
           <span class="version">1.0.0-rc.4</span>
           <span class="date">2026-11-03</span>
           <span class="status rc">Release candidate</span>
