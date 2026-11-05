@@ -499,7 +499,7 @@ info:
     | `metric` | Meter | `unit` | Notes |
     | --- | --- | --- | --- |
     | `heat` | Wärmezähler (WMZ) | `kWh` | |
-    | `hca` | Heizkostenverteiler (HKV) | `unit` | raw allocator units; multiply by `factor` |
+    | `hca` | Heizkostenverteiler (HKV) | `unit` | raw allocator units; multiply by `factor`; the counter resets once a year (see *Heat cost allocators: yearly reset*) |
     | `water_cold` | Kaltwasserzähler | `m3` | |
     | `water_warm` | Warmwasserzähler | `m3` | |
     | `water_outdoor` | Außenwasserzähler (Garten, Sprengwasser) | `m3` | **not** part of the water billed to residents — keep it separate |
@@ -517,6 +517,27 @@ info:
     `metric=electricity` or `metric=gas`, which therefore returns these
     measuring points, not an empty list. Sandbox and production behave the
     same.
+
+    **Heat cost allocators: yearly reset.** A heat cost allocator sets its
+    counter back to zero once a year, on its reading date (Stichtag). The
+    two parts of the response treat this differently:
+
+    - `readings[]` are the values **as the device reports them** — raw,
+      including the drop to (near) zero after the reading date. A month
+      after the reset can therefore show a lower value than the month
+      before.
+    - `period_consumption.value` is **already corrected** for the reset.
+      It is the sum of the increases between the device's stored values
+      inside the range, not `end_value − baseline_value`; a drop counts as
+      the reset, and the value after it is consumption since the reset.
+      Without a reset inside the range the result equals
+      `end_value − baseline_value`. Calculated month-end values
+      (`is_synthetic: true`) are not used for this sum.
+      `billable_value` is `value` × `factor`, as for every metric.
+
+    Bill heat cost allocators with `period_consumption`, never by
+    subtracting readings yourself — across a reset that subtraction is
+    negative or too small. The landlord portal computes the same way.
 
     **OBIS codes** (`obis`) are not supported: the field is
     **always `null` today**. messpunkt.io does not store OBIS codes per
@@ -584,6 +605,10 @@ info:
         `end_value`, `value` and `billable_value` are `null` — unless the
         value is extrapolated (`substituted`), which messpunkt.io does not
         produce today (see *Value status*).
+      - *Heat cost allocator with a yearly reset inside the range:* `value`
+        is corrected for the reset (see *Heat cost allocators: yearly
+        reset* under *Metrics and units*), so it is not
+        `end_value − baseline_value`.
     - `factor` — multiplier from raw to billable consumption (K-factor /
       Bewertungsfaktor for heat cost allocators, usually `1` for all other
       meters).
@@ -598,8 +623,8 @@ info:
     (`unit_share: 1`) and is the unit's share otherwise (see *Shared Sectors*
     under *Canonical model*). Do not compute
     billing values as `last reading − first reading`: that misses the
-    baseline before `from`, the start value of a replacement device and the
-    factor.
+    baseline before `from`, the start value of a replacement device, the
+    factor and — for heat cost allocators — the yearly reset.
 
     ## Value status
 
