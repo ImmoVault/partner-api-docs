@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: messpunkt.io Partner API
-  version: "1.0.0-rc.4"
+  version: "1.0.0"
   summary: |
     Partner-facing read API for monthly consumption and meter data.
   description: |
@@ -13,19 +13,19 @@ info:
     use the MCP server instead — see *For AI agents* below. Both share the same
     consent, the same authorization server and the same data rules.
 
-    **Status:** `1.0.0-rc.4` · V1 release candidate · production
+    **Status:** `1.0.0` · V1 generally available since 2026-11-09 · production
     (`api.messpunkt.io`, `auth.messpunkt.io`) live since 2026-09-30 against
     the landlords' real data; ERP clients are registered on request. The API
     is read-only. Planned write functions are described on the
     [roadmap](./roadmap/), not in this document.
 
+    **Coming from rc.4?** 1.0.0 has the same contract; nothing to change.
     **Coming from rc.2?** rc.3 contains four breaking changes (monthly data
     resolution, nullable `active_device`, nullable `installed_at`, nullable
-    `usage_unit_id`). Read *Migrating from rc.2* below before you upgrade.
-    **rc.4** makes one further change before GA: the calibration of a device
+    `usage_unit_id`), and rc.4 one more: the calibration of a device
     (Eichung) is a statement on the segment (`calibration`), no longer a
-    value status — see *Calibration (Eichung)* below and the
-    [changelog](./changelog/).
+    value status. Read *Migrating from rc.2* and *Calibration (Eichung)*
+    below and the [changelog](./changelog/) before you upgrade.
 
     # API stability & versioning
 
@@ -49,7 +49,9 @@ info:
       enum values.
     - **Bug fixes, clarifications and documentation-only edits** are
       **patch** releases.
-    - **Release candidate phase (current).** rc.2 promised that core types
+    - **GA 1.0.0 (2026-11-09).** The rules above apply from this version
+      on. The release candidates before it were allowed to break, and did:
+    - **Release candidate phase (closed).** rc.2 promised that core types
       would no longer be reshaped. **rc.3 breaks that promise once, on
       purpose**: the published contract described data messpunkt.io does not
       have, a resolution it must not deliver, and no way to reach the total
@@ -161,10 +163,9 @@ info:
       the examples of `GET /measuring-points/{id}/readings`, but not try it
       out against the sandbox.
 
-    **Since 2026-09-30 the sandbox serves the rc.3 contract**, including
-    `resource` (RFC 8707) and `/oauth/revoke` (announced in the changelog).
-    Once the rc.4 release is rolled out, the sandbox serves the current
-    contract (rc.4), including `calibration` on every segment.
+    **The sandbox serves the same contract as production (1.0.0)**,
+    including `resource` (RFC 8707), `/oauth/revoke` and `calibration` on
+    every segment.
 
     # Authentication
 
