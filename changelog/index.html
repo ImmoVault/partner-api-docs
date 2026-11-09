@@ -96,8 +96,8 @@
     </header>
 
     <div class="preview-ribbon">
-      <span class="badge">Preview</span>
-      <span>V1 release candidate <strong>1.0.0-rc.3</strong> — production live since 30 September 2026; access per customer organisation on request:
+      <span class="badge">V1 · 1.0.0</span>
+      <span>Generally available since 9 November 2026 — production live since 30 September 2026; access per customer organisation on request:
         <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
       </span>
     </div>
@@ -105,6 +105,23 @@
     <main>
       <h1>Changelog</h1>
       <p class="lead">Release history of the messpunkt.io Partner API. We follow <a href="https://semver.org/" target="_blank" rel="noopener">Semantic Versioning</a> and use the category labels from <a href="https://keepachangelog.com/" target="_blank" rel="noopener">Keep a Changelog</a>.</p>
+
+      <section class="release">
+        <div class="release-header">
+          <span class="version">1.0.0</span>
+          <span class="date">2026-11-09</span>
+          <span class="status stable">Generally available</span>
+        </div>
+        <p>V1 is generally available. The contract is the same as <strong>1.0.0-rc.4</strong>, including the clarification of 2026-11-05: no field, value or endpoint changes. If your client works with rc.4, it works with 1.0.0 without a change.</p>
+        <div class="change-group changed">
+          <h3>Changed</h3>
+          <ul>
+            <li><strong>The stability contract applies from now on.</strong> No breaking changes within <code>/v1</code>. A breaking change needs a new path prefix (<code>/v2</code>), and we run the previous major version in parallel for at least 6 months. Deprecations carry <code>deprecated: true</code> in the OpenAPI document and a <code>Sunset</code> header, with at least 6 months of overlap.</li>
+            <li><strong>Additive changes stay possible</strong> in minor releases: new fields, new enum values, new optional parameters, new endpoints. Ignore fields you do not know and tolerate unknown enum values.</li>
+            <li>The <code>version</code> of the OpenAPI document is <code>1.0.0</code>. The pages no longer carry the "Preview" label.</li>
+          </ul>
+        </div>
+      </section>
 
       <section class="release">
         <div class="release-header">
@@ -420,7 +437,7 @@
     <footer class="site-footer">
       <div class="row">
         <div>
-          <strong>messpunkt.io Partner API</strong> · Preview · 1.0.0-rc.3 · production live since 2026-09-30
+          <strong>messpunkt.io Partner API</strong> · 1.0.0 · production live since 2026-09-30
           <div class="muted">© 2026 messpunkt.io — <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
         </div>
         <div class="links">

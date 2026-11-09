@@ -24,14 +24,13 @@ auth:oauth2 {
 docs {
   # messpunkt.io Partner API — Sandbox
 
-  Public preview sandbox for partner ERPs. OAuth 2.1 Authorization Code + PKCE,
+  Public sandbox for partner ERPs. OAuth 2.1 Authorization Code + PKCE,
   deterministic synthetic fixture, zero PII. DPoP is optional — this
   collection uses plain `Bearer` tokens.
 
-  The request docs describe the `1.0.0-rc.4` contract (monthly readings,
-  `period_consumption`). The sandbox serves the rc.3 shape since
-  2026-09-30 and the rc.4 shape (`calibration` on every segment) since its
-  deployment.
+  The request docs describe the `1.0.0` contract (monthly readings,
+  `period_consumption`, `calibration` on every segment). The sandbox
+  serves the same contract as production.
 
   **Hosts**
   - Authorization server: `https://auth.sandbox.messpunkt.io`
