@@ -99,7 +99,7 @@
     <div class="preview-ribbon">
       <span class="badge">V1 · 1.0.0</span>
       <span>Generally available since 9 November 2026 — production live since 30 September 2026; access per customer organisation on request:
-        <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
+        <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Integration">kontakt@messpunkt.io</a>
       </span>
     </div>
 
@@ -142,7 +142,7 @@ content-type: application/problem+json
             <td class="status"><code>401</code></td>
             <td><code>invalid-token</code></td>
             <td class="retry"><span class="pill cond">After refresh</span></td>
-            <td>Access token missing, expired, malformed, issued for another audience, a refresh token sent as access token, or the landlord's API access has ended (also on <code>/whoami</code> — never <code>404</code>). Refresh the token via <code>grant_type=refresh_token</code> and retry once. If refresh also fails, restart the authorization flow. For tokens bound to a DPoP key, a failed proof (wrong <code>htu</code>/<code>htm</code>, clock skew, reused <code>jti</code>, key not matching <code>cnf.jkt</code>) also returns <code>401</code>, with <code>WWW-Authenticate: DPoP error="invalid_dpop_proof"</code> — fix the proof generation instead of refreshing, see the <a href="../dpop/">DPoP guide</a>.</td>
+            <td>Access token missing, expired, invalid, issued for another audience, a refresh token sent as access token, or the landlord's API access has ended (also on <code>/whoami</code> — never <code>404</code>). Refresh the token via <code>grant_type=refresh_token</code> and retry once. If refresh also fails, restart the authorization flow. For tokens bound to a DPoP key, a failed proof (wrong <code>htu</code>/<code>htm</code>, clock skew, reused <code>jti</code>, key not matching <code>cnf.jkt</code>) also returns <code>401</code>, with <code>WWW-Authenticate: DPoP error="invalid_dpop_proof"</code> — fix the proof generation instead of refreshing, see the <a href="../dpop/">DPoP guide</a>. A malformed <code>Authorization</code> header (for example a space inside the token) is <code>400 invalid-request</code>, not <code>401</code>.</td>
           </tr>
           <tr id="insufficient-scope">
             <td class="status"><code>403</code></td>
@@ -184,7 +184,7 @@ content-type: application/problem+json
       </table>
 
       <h2>OAuth endpoint errors</h2>
-      <p>The <code>/oauth/authorize</code> and <code>/oauth/token</code> endpoints follow RFC 6749 §5.2 — a flat <code>{"error": "...", "error_description": "..."}</code> body:</p>
+      <p>The <code>/oauth/authorize</code>, <code>/oauth/token</code> and <code>/oauth/revoke</code> endpoints follow RFC 6749 §5.2 — a flat <code>{"error": "...", "error_description": "..."}</code> body:</p>
       <table>
         <thead>
           <tr>
@@ -201,23 +201,33 @@ content-type: application/problem+json
           </tr>
           <tr>
             <td><code>invalid_client</code></td>
-            <td>Unknown <code>client_id</code>, or client_id mismatch between the authorization code and the token request.</td>
+            <td>Unknown <code>client_id</code>, client authentication failed (<code>401</code>; also on <code>/oauth/revoke</code>), or client_id mismatch between the authorization code and the token request.</td>
             <td>Fix client config. Do not retry the same request.</td>
           </tr>
           <tr>
             <td><code>invalid_grant</code></td>
-            <td>Authorization code is expired, wrong <code>redirect_uri</code>, PKCE verifier doesn't match, refresh token is replayed or the session was revoked.</td>
+            <td>Authorization code is expired, wrong <code>redirect_uri</code>, PKCE verifier doesn't match, refresh token is replayed, the session was revoked or inactive for too long, or the refresh token is bound to a DPoP key and the proof uses another key.</td>
             <td><strong>Restart the authorization flow</strong> — do not retry. If this happened on refresh, the refresh-token family was revoked: the user must re-consent.</td>
           </tr>
           <tr>
             <td><code>invalid_scope</code></td>
-            <td>Requested a scope that's not in the original grant (refresh-time scope narrowing only).</td>
+            <td>On <code>/oauth/authorize</code>: none of the requested scopes is available to this client. On refresh: a scope that's not in the original grant.</td>
             <td>Request a subset of the original scopes, or re-authorize to widen.</td>
           </tr>
           <tr>
             <td><code>invalid_target</code></td>
             <td>The <code>resource</code> parameter (RFC 8707) names a resource this server does not issue tokens for.</td>
             <td>Use <code>https://api.messpunkt.io</code> for this REST API (the MCP server has its own resource).</td>
+          </tr>
+          <tr>
+            <td><code>access_denied</code></td>
+            <td>On <code>/oauth/authorize</code>: the landlord declined the consent (sent to your <code>redirect_uri</code>).</td>
+            <td>Show this to the user; do not retry automatically.</td>
+          </tr>
+          <tr>
+            <td><code>invalid_dpop_proof</code></td>
+            <td>On <code>/oauth/token</code>: the DPoP proof is invalid, or missing for a DPoP-bound client.</td>
+            <td>Fix the proof generation, see the <a href="../dpop/">DPoP guide</a>.</td>
           </tr>
           <tr>
             <td><code>unsupported_grant_type</code></td>
@@ -254,7 +264,7 @@ content-type: application/problem+json
         <li>Your <code>client_id</code></li>
         <li>The HTTP method + path (without secrets)</li>
       </ol>
-      <p>Email: <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Error">kontakt@messpunkt.io</a> — we respond within 3 business days during the pilot phase.</p>
+      <p>Email: <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Error">kontakt@messpunkt.io</a> — we respond within 3 business days.</p>
     </main>
 
     <footer class="site-footer">

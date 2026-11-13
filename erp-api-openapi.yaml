@@ -151,6 +151,12 @@ info:
       any `invalid_grant` response as "start a new authorization flow."
     - **Property-scope enforcement** is identical to production —
       querying a Property outside your selected scope returns `404`.
+    - **Sessions are kept in memory, without the per-request connection
+      check of production.** A revoked access token stays valid until it
+      expires (at most 1 h), and after a server restart or scale-out a
+      refresh can fail with `invalid_grant` ("Session is unknown") — start
+      a new authorization flow. Production stores sessions in its database
+      and checks the connection on every request.
     - **Stateless by design:** no writes, no persistence. Same fixture
       every time.
     - **Static data until 2027-12-31.** The fixture holds month-end values
@@ -204,7 +210,9 @@ info:
     **ERP clients** are registered by messpunkt.io — write to
     [kontakt@messpunkt.io](mailto:kontakt@messpunkt.io). Registered clients
     authenticate at the token endpoint with `private_key_jwt` (preferred) or
-    `client_secret_basic`. The sandbox uses the public demo client
+    `client_secret_basic`. Redirect URIs, the JWKS URL and the DPoP
+    setting are fixed per client at registration; changing them later
+    means a new registration. The sandbox uses the public demo client
     `sandbox-demo-client` (PKCE only, no client secret).
 
     **Revocation:** a client ends its own session with `POST /oauth/revoke`
@@ -220,8 +228,8 @@ info:
     with a valid proof — the server checks `htm`, `htu`, `iat` (±60 s), `jti`
     replay, `ath` and the key thumbprint. A bound token presented as `Bearer`
     is rejected. Tokens obtained without a proof are plain bearer tokens.
-    messpunkt.io can make DPoP mandatory for an individual registered client
-    on request. See the [DPoP guide](./dpop/).
+    messpunkt.io makes DPoP mandatory for an individual registered client
+    if you ask for it at registration. See the [DPoP guide](./dpop/).
 
     # Conventions
 
@@ -258,7 +266,7 @@ info:
 
     | Status | `type` fragment | Meaning | Retry? |
     | --- | --- | --- | --- |
-    | `400` | `invalid-request` | malformed request, e.g. `from` not a date, `to` before `from`, a range that starts after the last completed month, an unknown `metric` value, an invalid `limit`, `page_cursor` or `property_id`; `detail` names the problem | no — fix the request |
+    | `400` | `invalid-request` | malformed request, e.g. `from` not a date, `to` before `from`, a range that starts after the last completed month, an unknown `metric` value, an invalid `limit`, `page_cursor` or `property_id`, a malformed `Authorization` header (for example a space inside the token); `detail` names the problem | no — fix the request |
     | `401` | `invalid-token` | token missing, expired, not an access token, wrong audience, or DPoP proof invalid | after refreshing the token |
     | `403` | `insufficient-scope` | token lacks the scope this endpoint needs | no — re-authorize with the scope |
     | `404` | `resource-not-found` | resource does not exist **or** lies outside your Property scope; also for an `{id}` in the path that is not a UUID | no — see *Implications for ERP clients* |
@@ -402,8 +410,10 @@ info:
 
     - **At consent time** the landlord chooses *all Properties, including
       future ones* (pre-selected), or picks individual Properties.
-    - The resulting access token carries a `property_scope` claim — either
-      the literal string `"all"` or a list of Property UUIDs.
+    - The resulting access token carries a `property_scope` claim — a
+      string: either `"all"` or the selected Property UUIDs, separated by
+      commas. `GET /whoami` returns the same selection as `"all"` or a JSON
+      array; read it there instead of parsing the token.
     - **Every API response is filtered** server-side against this
       selection. Endpoints that target a single Property, UsageUnit or
       MeasuringPoint return **`404 Not Found`** if the resource is outside
@@ -441,11 +451,11 @@ info:
     | | |
     | --- | --- |
     | Server URL | `https://mcp.messpunkt.io/v1` |
-    | Clients | Claude (claude.ai, Claude Code), ChatGPT, Codex and other MCP clients with OAuth support |
+    | Clients | Claude (claude.ai, Claude Code), ChatGPT, Codex and other MCP clients that support OAuth Client ID Metadata Documents (CIMD); dynamic client registration is not offered |
     | Tools (read-only) | `list_properties`, `get_property_overview`, `get_consumption`, `get_device_status`, `get_connection_info` |
     | Tool reference | [developer.messpunkt.io/mcp/](https://developer.messpunkt.io/mcp/#tools) — input and output schemas generated from the server's `tools/list`; not repeated in this document |
     | Auth | same authorization server and consent screen as this API; token audience `https://mcp.messpunkt.io/v1` |
-    | Data rules | same as this API — monthly values, Property scope, `404` outside the scope |
+    | Data rules | same as this API — monthly values, Property scope; outside the scope a tool answers as if the Property did not exist (`not_found` in the tool result, not HTTP `404`) |
 
     The MCP server and the production REST API are live since 2026-09-30
     (access enabled per customer organisation); the setup guide for each
@@ -562,8 +572,10 @@ info:
 
     `from` and `to` are calendar dates. The range is **widened to whole
     months** (`from` → first day of its month, `to` → last day of its month)
-    and capped at the end of the last completed month. The response echoes
-    the effective range in `from` / `to`. A range that lies entirely after
+    and capped at the end of the last completed month.
+    `GET /usage-units/{id}/consumption` echoes the effective range in
+    `from` / `to`; `GET /measuring-points/{id}/readings` has no such
+    fields, so compute it there from the rule above. A range that lies entirely after
     the last completed month (for example only the running month) has no
     month-end data yet and is rejected with `400 invalid-request`; `detail`
     names the last completed month.
@@ -577,8 +589,10 @@ info:
       inside the range, it is the device's start value at installation —
       **not necessarily 0**. If the installation date is unknown
       (`installed_at: null`), it is the month-end value before `from` when
-      one exists, otherwise the first value known for the device — which
-      can lie **inside** the range.
+      one exists. If no month-end value before `from` is stored — with an
+      unknown installation date or one before the range — it is the first
+      month-end value known inside the range (`first_known_in_range`), and
+      the consumption before that month is not included.
     - `baseline_origin` — where `baseline_value` comes from (`recorded`,
       `assumed_zero`, `first_reading`, `portal_rule`,
       `month_end_before_range`, `first_known_in_range`, `none`; see
@@ -597,8 +611,10 @@ info:
     - `period_consumption` — end value, raw consumption, `factor` and the
       **billable value**. This is the number the landlord portal uses.
       - *Device removed inside the range:* `end_date` is the removal date
-        and `end_value` the meter value on that day, with status `measured`
-        (`missing` if the value at removal is not known). If the removal
+        and `end_value` the meter value on that day, with status `measured`.
+        Without a measured value from that day it is a value interpolated
+        by messpunkt.io (status `calculated`, with `substitution_method`),
+        or `missing` if none can be calculated. If the removal
         date is a month end, the same value also appears as that month's
         reading.
       - *No value at the end of the range:* the end value is **not carried
@@ -1004,13 +1020,17 @@ paths:
       tags: [Measuring points]
       summary: List all measuring points of a Property, with and without a usage unit
       description: |
-        Returns **every** active measuring point of the Property as a
+        Returns every active measuring point of the Property as a
         `MeasuringPoint`: those of a usage unit (`usage_unit_id` set) and
         those in areas allocated to no unit, such as a plant room or a main
         meter (`usage_unit_id: null`, `allocations: []`). The latter are not
         reachable through `GET /usage-units` and are what you need for a
         total (for example the total heat meter of a heating-cost
         statement). See *Sectors without a share* in the API overview.
+        Not listed are measuring points of a kind
+        without a metric in this API (smoke detectors, and measuring points
+        whose kind is not yet recorded in messpunkt.io), and deactivated
+        measuring points — also for a range in which they still had values.
 
         Sorted by `localization`, then `id`; paginated like the other lists.
         Difference meters are listed with `active_device: null`; the
@@ -1361,8 +1381,12 @@ paths:
         are widened to whole months; the response echoes the effective range.
 
         A MeasuringPoint without any value in the range is returned with
-        `data_gap: true` — never silently omitted. Difference meters are
-        returned with `is_difference_meter: true` and no segments.
+        `data_gap: true` — never silently omitted. Not listed at all are
+        measuring points of a kind without a metric in this API (smoke
+        detectors, and measuring points whose kind is not yet recorded in
+        messpunkt.io), and deactivated measuring points — also for a range
+        in which they still had values. Difference meters are returned with
+        `is_difference_meter: true` and no segments.
 
         A measuring point of a Sector shared with other units is listed here
         with this unit's `unit_share`; bill
@@ -2723,9 +2747,10 @@ components:
         - `month_end_before_range` — device installed before the range (or
           installation date unknown): the month-end value of the month
           before `from`
-        - `first_known_in_range` — installation date unknown and no month-end
-          value before `from`: the first known month-end value, which lies
-          **inside** the range
+        - `first_known_in_range` — no month-end value before `from` stored
+          (installation date unknown or before the range): the first known
+          month-end value, which lies **inside** the range; consumption
+          before it is not included
         - `none` — no start value known; `baseline_value` and
           `baseline_date` are `null`
       enum: [recorded, assumed_zero, first_reading, portal_rule, month_end_before_range, first_known_in_range, none]
@@ -2778,7 +2803,7 @@ components:
             queried UsageUnit**. Set only in `/usage-units/{id}/consumption`;
             equals `billable_value` for an unshared measuring point. Summed
             over the units of a shared sector it gives the sector's
-            consumption. `null` when `billable_value` is `null`.
+            consumption. Omitted when `billable_value` is `null`.
             *(Added in rc.3 addendum.)*
           example: 20.043
 

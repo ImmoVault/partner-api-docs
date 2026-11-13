@@ -98,16 +98,16 @@
     <div class="preview-ribbon">
       <span class="badge">V1 · 1.0.0</span>
       <span>Generally available since 9 November 2026 — production live since 30 September 2026; access per customer organisation on request:
-        <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
+        <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Integration">kontakt@messpunkt.io</a>
       </span>
     </div>
 
     <main>
       <h1>DPoP — proof of possession</h1>
-      <p class="lead"><a href="https://datatracker.ietf.org/doc/html/rfc9449" target="_blank" rel="noopener">DPoP (RFC 9449)</a> is <strong>supported and optional</strong> on the messpunkt.io Partner API. If you send a DPoP proof when you obtain the token, the token is bound to your key — a stolen token is then useless without the private key. Tokens obtained without a proof are plain <code>Bearer</code> tokens, which is why Swagger UI and curl work without extra setup. messpunkt.io can make DPoP mandatory for an individual registered ERP client on request.</p>
+      <p class="lead"><a href="https://datatracker.ietf.org/doc/html/rfc9449" target="_blank" rel="noopener">DPoP (RFC 9449)</a> is <strong>supported and optional</strong> on the messpunkt.io Partner API. If you send a DPoP proof when you obtain the token, the token is bound to your key — a stolen token is then useless without the private key. Tokens obtained without a proof are plain <code>Bearer</code> tokens, which is why Swagger UI and curl work without extra setup. messpunkt.io makes DPoP mandatory for an individual registered ERP client if you ask for it at registration.</p>
 
       <h2>What DPoP does in one paragraph</h2>
-      <p>Your client generates an ECDSA (ES256) or RSA (RS256) key pair once and keeps it in memory or a secure store. On every API call, you sign a short-lived JWT — the <em>DPoP proof</em> — that contains the HTTP method, full URL, a unique <code>jti</code>, and the current timestamp. You send it in a <code>DPoP</code> header alongside the access token. The server checks the signature against the public-key thumbprint bound into the access token (<code>cnf.jkt</code> claim). If they match, the request is authentic.</p>
+      <p>Your client generates an ECDSA (ES256) or RSA (RS256) key pair once and keeps it in a secure store. If your client is registered as DPoP-bound, the refresh token is bound to this key as well: keep the key persistent — if it is lost, the landlord has to connect again. On every API call, you sign a short-lived JWT — the <em>DPoP proof</em> — that contains the HTTP method, full URL, a unique <code>jti</code>, and the current timestamp. You send it in a <code>DPoP</code> header alongside the access token. The server checks the signature against the public-key thumbprint bound into the access token (<code>cnf.jkt</code> claim). If they match, the request is authentic.</p>
 
       <h2>Request shape</h2>
       <pre><code>GET /v1/whoami HTTP/2
@@ -294,14 +294,14 @@ curl -H "Authorization: DPoP $ACCESS" -H "DPoP: $PROOF" "$URL"</code></pre>
       <ul>
         <li><strong>Clock skew.</strong> <code>iat</code> must be within ±60&nbsp;seconds of the server clock. Use NTP. Don't reuse a proof from a paused debugger session.</li>
         <li><strong>URL mismatch.</strong> <code>htu</code> is the target URL <em>without</em> query string and without port when default. <code>https://api.sandbox.messpunkt.io/v1/whoami</code>, not <code>https://api.sandbox.messpunkt.io:443/v1/whoami</code>.</li>
-        <li><strong>Key reuse across processes.</strong> If your app scales horizontally, every instance must either share the key or register its own public key with the authorization server. The token is bound to a specific key thumbprint.</li>
+        <li><strong>Key reuse across processes.</strong> If your app scales horizontally, every instance must use the same key from a shared secure store. The token (and, for a DPoP-bound client, the refresh token) is bound to one key thumbprint.</li>
         <li><strong>Replay window.</strong> Each <code>jti</code> must be unique within a 5-minute window. Always use <code>uuid.v4()</code>.</li>
         <li><strong>ES256 vs RS256.</strong> Prefer ES256 (smaller proofs, faster sign). Only use RS256 if your HSM or legacy crypto library forces it.</li>
       </ul>
 
       <h2>Next</h2>
       <div class="note">
-        Bruno, Swagger UI, and Scalar do not generate DPoP proofs out of the box. Use the sandbox's <strong>plain Bearer</strong> mode for interactive exploration, and implement DPoP for server-to-server integration. DPoP stays optional in V1; a per-client requirement is only enabled on your request.
+        Bruno, Swagger UI, and Scalar do not generate DPoP proofs out of the box. Use the sandbox's <strong>plain Bearer</strong> mode for interactive exploration, and implement DPoP for server-to-server integration. DPoP stays optional in V1; a per-client requirement is set at registration, on your request.
       </div>
       <p>See also: <a href="../errors/">Error handling</a> · <a href="../quickstart/">Quickstart</a> · <a href="../reference/">Full API reference</a></p>
     </main>
