@@ -25,12 +25,15 @@ settings {
 docs {
   # GET /v1/properties/{id}/measuring-points
 
-  **Every** active MeasuringPoint of the Property (scope `read:devices`):
+  Every active MeasuringPoint of the Property (scope `read:devices`):
   those of a usage unit (`usage_unit_id` set) and those in areas allocated
   to no unit, such as a plant room or a main meter (`usage_unit_id: null`,
   `allocations: []`). The latter are not reachable through
   `GET /v1/usage-units` — they are what you need for a total, e.g. the
   total heat meter of a heating-cost statement.
+
+  Not listed: smoke detectors, measuring points whose kind is not yet
+  recorded in messpunkt.io, and deactivated measuring points.
 
   Sorted by `localization`, then `id`; paginated like the other lists
   (follow `next_cursor`). Difference meters are listed with
