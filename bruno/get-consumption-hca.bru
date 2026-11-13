@@ -40,9 +40,10 @@ docs {
   - The Device is still reported so the ERP knows the meter exists
   - `period_consumption.status: "missing"`, with `billable_value: null`
 
-  Treat `data_gap: true` as a hard signal: messpunkt.io already substitutes
-  where the readings allow it (`status: "substituted"`); where it reports
-  `missing`, there is nothing to bill from the meter. Clarify with the
+  Treat `data_gap: true` as a hard signal: messpunkt.io already interpolates
+  month ends between real readings where it can (`status: "calculated"`,
+  `is_synthetic: true`); where it reports `missing`, there is nothing to bill
+  from the meter. Clarify with the
   landlord (estimate per HeizkostenV § 9a) instead of inventing a value.
 
   HCA = Heat Cost Allocator (Heizkostenverteiler), unit `unit` (raw allocator

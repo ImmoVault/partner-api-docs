@@ -17,8 +17,8 @@ settings {
 docs {
   # GET /v1/usage-units
 
-  List of UsageUnits (*Wohn-/Gewerbeeinheiten*) under the Property the token
-  is scoped to. The UsageUnit is the ERP-facing resource — ERPs map their
+  List of UsageUnits (*Wohn-/Gewerbeeinheiten*) of all Properties in the
+  token's scope (filter with `property_id`). The UsageUnit is the ERP-facing resource — ERPs map their
   internal "Einheit" to this.
 
   Each unit exposes:
@@ -29,6 +29,6 @@ docs {
   - `address` — one per unit (unit addresses may differ inside the same Property)
   - `external_ref` — partner-supplied reference (`null` in sandbox)
 
-  Pick an `id` from the response and feed it into **specific-usage-unit** or
-  any of the **consumption-*** requests.
+  Pick an `id` from the response and feed it into **Get Usage Unit** or any
+  of the **Get Consumption** requests.
 }
