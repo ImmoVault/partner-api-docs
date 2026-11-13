@@ -111,7 +111,7 @@
     <div class="preview-ribbon">
       <span class="badge">V1 · 1.0.0</span>
       <span>Generally available since 9 November 2026 — production live since 30 September 2026; access per customer organisation on request:
-        <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
+        <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Integration">kontakt@messpunkt.io</a>
       </span>
     </div>
 
@@ -148,7 +148,7 @@ echo "Challenge: $CHALLENGE"</code></pre>
 echo "Got authorization code: $CODE"</code></pre>
 
       <h2><span class="step-num">2</span>Exchange the code for a token</h2>
-      <p>The code is an opaque base64url string (letters, digits, <code>-</code> and <code>_</code>); if <code>$CODE</code> is empty, print the <code>location</code> header without the pipe and look at the <code>error</code> parameter. The authorization code is single-use and expires after 5 minutes. Redeem it at <code>/oauth/token</code>, presenting the PKCE verifier:</p>
+      <p>The code is an opaque base64url string (letters, digits, <code>-</code> and <code>_</code>); if <code>$CODE</code> is empty, print the <code>location</code> header without the pipe and look at the <code>error</code> parameter. The authorization code is single-use and expires after 5 minutes in the sandbox (60 seconds in production). Redeem it at <code>/oauth/token</code>, presenting the PKCE verifier:</p>
       <pre><code>curl -s -X POST \
   -d "grant_type=authorization_code" \
   -d "code=$CODE" \

@@ -98,13 +98,37 @@
     <div class="preview-ribbon">
       <span class="badge">V1 · 1.0.0</span>
       <span>Generally available since 9 November 2026 — production live since 30 September 2026; access per customer organisation on request:
-        <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Pilot%20Integration">kontakt@messpunkt.io</a>
+        <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Integration">kontakt@messpunkt.io</a>
       </span>
     </div>
 
     <main>
       <h1>Changelog</h1>
       <p class="lead">Release history of the messpunkt.io Partner API. We follow <a href="https://semver.org/" target="_blank" rel="noopener">Semantic Versioning</a> and use the category labels from <a href="https://keepachangelog.com/" target="_blank" rel="noopener">Keep a Changelog</a>.</p>
+
+      <section class="release">
+        <div class="release-header">
+          <span class="version">Documentation</span>
+          <span class="date">2026-11-13</span>
+          <span class="status stable">Generally available</span>
+        </div>
+        <p>No change to the contract (still <strong>1.0.0</strong>), no field, value or endpoint changes. The documentation now describes what the API already does.</p>
+        <div class="change-group changed">
+          <h3>Changed</h3>
+          <ul>
+            <li><strong>Which measuring points are listed.</strong> Smoke detectors, measuring points whose kind is not yet recorded in messpunkt.io, and deactivated measuring points (also for past ranges) are not part of any response. <code>data_gap: true</code> still marks a listed measuring point without values.</li>
+            <li><strong>Effective range:</strong> only <code>/usage-units/{id}/consumption</code> echoes <code>from</code>/<code>to</code>; <code>/measuring-points/{id}/readings</code> has no such fields.</li>
+            <li><strong>Start value <code>first_known_in_range</code></strong> also applies when the installation date is known and lies before the range, but no month-end value before <code>from</code> is stored.</li>
+            <li><strong>Removal inside the range:</strong> the end value can be <code>calculated</code> (interpolated), not only <code>measured</code> or <code>missing</code>.</li>
+            <li><strong><code>weighted_billable_value</code></strong> is omitted, not <code>null</code>, when <code>billable_value</code> is <code>null</code>.</li>
+            <li><strong>Client registration:</strong> redirect URIs, JWKS URL and DPoP binding are fixed at registration. For a DPoP-bound client the refresh token is bound to the key: keep it persistent.</li>
+            <li><strong><code>property_scope</code> in the token</strong> is a comma-separated string; <code>/whoami</code> returns it as a list. Authorization codes live 60 seconds in production (5 minutes in the sandbox).</li>
+            <li><strong>Errors:</strong> a malformed <code>Authorization</code> header is <code>400</code>; the OAuth table adds <code>access_denied</code>, <code>invalid_dpop_proof</code> and <code>/oauth/revoke</code>.</li>
+            <li><strong>Sandbox:</strong> sessions are kept in memory; a revoked token stays valid up to 1 h, and a restart can end sessions.</li>
+            <li><strong>MCP:</strong> clients need CIMD support; outside the scope a tool answers <code>not_found</code>, not HTTP <code>404</code>.</li>
+          </ul>
+        </div>
+      </section>
 
       <section class="release">
         <div class="release-header">
