@@ -323,6 +323,13 @@ curl -s -H "Authorization: Bearer $TOKEN" \
         <strong>What to do:</strong> check the device's real start value before you bill, and show the segment to the landlord instead of billing it silently. For a new device, 0 is usually correct. For a second-hand device it is not, and the consumption would be too high.
       </div>
       <p><code>first_reading</code> is the counterpart for other replacement devices without a recorded start value: the baseline is the first reading after installation, and consumption between installation and that reading is not included. Example response: <code>hca_replacement_assumed_zero</code> under <code>/v1/measuring-points/{id}/readings</code> in the Reference; definitions: <em>Per segment</em> under <a href="../reference/#section/Meter-readings-and-consumption">Meter readings and consumption</a>.</p>
+      <h3 id="installed-in-range">A device installed inside the range is not a gap</h3>
+      <p>If <code>installed_at</code> lies inside the queried range, the segment starts at installation. Before that, the device did not exist: the consumption up to the meter change belongs to the previous meter, which may not be a messpunkt.io device. Do <strong>not</strong> report this as missing consumption.</p>
+      <ul class="plain">
+        <li><code>recorded</code> or <code>assumed_zero</code> with <code>baseline_date</code> = <code>installed_at</code>: the start value is the value at installation. Nothing is missing.</li>
+        <li><code>first_reading</code>: the start value is the first reading after installation. Consumption between installation and <code>baseline_date</code> is not included. If <code>baseline_value</code> is <code>0</code>, the device had not counted anything by then, so nothing is missing either.</li>
+        <li>A real gap is a segment whose <code>baseline_date</code> lies after both <code>from</code> and <code>installed_at</code> with a start value above 0, or <code>first_known_in_range</code> / <code>none</code>. Show these to the landlord.</li>
+      </ul>
 
       <h3 id="billing-checklist">Checklist</h3>
       <ul class="plain">
