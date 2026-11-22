@@ -25,7 +25,9 @@ docs {
   - `id` — stable UUID
   - `name` — e.g. `WE 01`
   - `floor`, `position`
-  - `area_heated_m2`, `area_ww_m2` — the fields ERPs need for billing
+  - `area` — usable floor area (Nutzfläche) in m², the area ERPs need for billing
+    (`area_heated_m2`, `area_ww_m2` carry the same value, kept for compatibility)
+  - `valid_from`, `valid_to` — the days the unit exists; a new unit carries its start day
   - `address` — one per unit (unit addresses may differ inside the same Property)
   - `external_ref` — partner-supplied reference (`null` in sandbox)
 
