@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: messpunkt.io Partner API
-  version: "1.0.0"
+  version: "1.1.0"
   summary: |
     Partner-facing read API for monthly consumption and meter data.
   description: |
@@ -13,12 +13,15 @@ info:
     use the MCP server instead — see *For AI agents* below. Both share the same
     consent, the same authorization server and the same data rules.
 
-    **Status:** `1.0.0` · V1 generally available since 2026-11-09 · production
+    **Status:** `1.1.0` · V1 generally available since 2026-11-09 · production
     (`api.messpunkt.io`, `auth.messpunkt.io`) live since 2026-09-30 against
     the landlords' real data; ERP clients are registered on request. The API
     is read-only. Planned write functions are described on the
     [roadmap](./roadmap/), not in this document.
 
+    **Coming from 1.0.0?** 1.1.0 is additive: a `UsageUnit` now carries
+    `valid_from`, `valid_to` and `area`. Nothing to change; read the
+    [changelog](./changelog/) to use the new fields.
     **Coming from rc.4?** 1.0.0 has the same contract; nothing to change.
     **Coming from rc.2?** rc.3 contains four breaking changes (monthly data
     resolution, nullable `active_device`, nullable `installed_at`, nullable
@@ -2391,8 +2394,51 @@ components:
         unit_type:
           $ref: "#/components/schemas/UnitType"
           description: Taken from the unit's Sector with the highest allocation share (see `floor`).
-        area_heated_m2: { type: [number, "null"], example: 72.4 }
-        area_ww_m2:     { type: [number, "null"], example: 72.4 }
+        area:
+          type: [number, "null"]
+          description: |
+            Usable floor area (Nutzfläche) of the unit in m². messpunkt.io keeps
+            **one** area per unit; living area (Wohnfläche) and commercial area
+            (Gewerbefläche) are special cases of it. `null` when the landlord has
+            not entered one. *(Added in 1.1.0.)*
+          example: 72.4
+        area_heated_m2:
+          type: [number, "null"]
+          description: |
+            Same value as `area`. Kept for compatibility within `/v1`; read
+            `area` instead.
+          example: 72.4
+        area_ww_m2:
+          type: [number, "null"]
+          description: |
+            Same value as `area`. Kept for compatibility within `/v1`; read
+            `area` instead. It does not tell whether the unit has hot water: a
+            hot-water meter among its measuring points does.
+          example: 72.4
+        valid_from:
+          type: [string, "null"]
+          format: date
+          description: |
+            First day the unit exists. `null` when no start is recorded: the
+            unit existed when messpunkt.io took over the property. A unit added
+            later (e.g. a further building section that goes into service) has
+            the day it applies from, possibly in the future. *(Added in 1.1.0.)*
+
+            Compare the units you know with this list to find new units: a
+            unit you have not seen, with a `valid_from`, was added on that day.
+          example: "2026-12-15"
+        valid_to:
+          type: [string, "null"]
+          format: date
+          description: |
+            Last day the unit exists (inclusive). `null` when the unit has no
+            end. An ended unit stays in the list with its history.
+            *(Added in 1.1.0.)*
+
+            `measuring_points` shows today's allocation: it is empty for a unit
+            that has not started yet or has ended. Its consumption is still
+            available for the days it existed.
+          example: null
         address:        { $ref: "#/components/schemas/Address" }
         measuring_points:
           type: array

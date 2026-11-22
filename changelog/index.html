@@ -96,7 +96,7 @@
     </header>
 
     <div class="preview-ribbon">
-      <span class="badge">V1 · 1.0.0</span>
+      <span class="badge">V1 · 1.1.0</span>
       <span>Generally available since 9 November 2026 — production live since 30 September 2026; access per customer organisation on request:
         <a href="mailto:kontakt@messpunkt.io?subject=Partner%20API%20-%20Integration">kontakt@messpunkt.io</a>
       </span>
@@ -105,6 +105,28 @@
     <main>
       <h1>Changelog</h1>
       <p class="lead">Release history of the messpunkt.io Partner API. We follow <a href="https://semver.org/" target="_blank" rel="noopener">Semantic Versioning</a> and use the category labels from <a href="https://keepachangelog.com/" target="_blank" rel="noopener">Keep a Changelog</a>.</p>
+
+      <section class="release">
+        <div class="release-header">
+          <span class="version">1.1.0</span>
+          <span class="date">2026-11-22</span>
+          <span class="status stable">Generally available</span>
+        </div>
+        <p>Additive, no breaking change. If your client works with 1.0.0, it works with 1.1.0 without a change.</p>
+        <div class="change-group added">
+          <h3>Added</h3>
+          <ul>
+            <li><strong><code>UsageUnit.valid_from</code> and <code>valid_to</code></strong> (date or <code>null</code>): the days a unit exists. <code>valid_from</code> is <code>null</code> when no start is recorded; a unit added later, e.g. a further building section, carries the day it applies from, possibly in the future. <code>valid_to</code> is the last day (inclusive) or <code>null</code>. Compare the units you know with <code>/usage-units</code> to find new ones and when they start.</li>
+            <li><strong><code>UsageUnit.area</code></strong>: the usable floor area (Nutzfläche) in m². messpunkt.io keeps one area per unit; living and commercial area are special cases of it.</li>
+          </ul>
+        </div>
+        <div class="change-group changed">
+          <h3>Changed</h3>
+          <ul>
+            <li><strong><code>area_heated_m2</code> and <code>area_ww_m2</code></strong> carry the same value as <code>area</code>. They stay within <code>/v1</code>; read <code>area</code> in new code. <code>area_ww_m2</code> never told whether a unit has hot water: a hot-water meter among its measuring points does.</li>
+          </ul>
+        </div>
+      </section>
 
       <section class="release">
         <div class="release-header">
@@ -476,7 +498,7 @@
     <footer class="site-footer">
       <div class="row">
         <div>
-          <strong>messpunkt.io Partner API</strong> · 1.0.0 · production live since 2026-09-30
+          <strong>messpunkt.io Partner API</strong> · 1.1.0 · production live since 2026-09-30
           <div class="muted">© 2026 messpunkt.io — <a href="mailto:kontakt@messpunkt.io">kontakt@messpunkt.io</a></div>
         </div>
         <div class="links">
