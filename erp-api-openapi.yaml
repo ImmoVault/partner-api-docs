@@ -318,7 +318,8 @@ info:
       `billable_value` are the device's values. In
       `/usage-units/{id}/consumption` each segment additionally carries
       `period_consumption.weighted_billable_value` = `billable_value` ×
-      `unit_share`. Bill a
+      `unit_share` (when the share changes inside the range, see
+      `weighted_billable_value`). Bill a
       unit with `weighted_billable_value`; summed over the units of a Sector
       it gives the Sector's consumption (up to rounding), so a shared
       measuring point is never counted twice.
@@ -2852,7 +2853,12 @@ components:
             queried UsageUnit**. Set only in `/usage-units/{id}/consumption`;
             equals `billable_value` for an unshared measuring point. Summed
             over the units of a shared sector it gives the sector's
-            consumption. Omitted when `billable_value` is `null`.
+            consumption. When the share changes inside the requested range,
+            each part of the consumption between two known values (baseline,
+            month ends, end value) counts with the share of its days (a
+            month: its share averaged day by day). The value can then differ
+            from `billable_value × unit_share`. Omitted when `billable_value`
+            is `null`.
             *(Added in rc.3 addendum.)*
           example: 20.043
 

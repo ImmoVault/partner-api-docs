@@ -116,7 +116,7 @@
         <div class="change-group changed">
           <h3>Changed</h3>
           <ul>
-            <li><strong><code>unit_share</code> when a share changes inside the range:</strong> it is the share averaged day by day over the requested range; each share counts for the days it applies. <code>weighted_billable_value</code> is <code>billable_value</code> × this <code>unit_share</code>. The overview no longer says this is the weighting of the residents' portal: the portal splits a change inside a month by the meter readings at the change.</li>
+            <li><strong>Share that changes inside the range:</strong> <code>unit_share</code> is the share averaged day by day over the requested range; each share counts for the days it applies. <code>weighted_billable_value</code> counts each part of the consumption between two known values (baseline, month ends, end value) with the share of its days, so it can differ from <code>billable_value</code> × <code>unit_share</code>. The overview no longer says this is the weighting of the residents' portal: the portal splits a change inside a month by the meter readings at the change.</li>
           </ul>
         </div>
       </section>
