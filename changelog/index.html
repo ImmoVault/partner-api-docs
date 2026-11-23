@@ -108,6 +108,21 @@
 
       <section class="release">
         <div class="release-header">
+          <span class="version">Documentation</span>
+          <span class="date">2026-11-23</span>
+          <span class="status stable">Generally available</span>
+        </div>
+        <p>No change to the contract (still <strong>1.1.0</strong>), no field, value or endpoint changes. The documentation now describes what the API already does.</p>
+        <div class="change-group changed">
+          <h3>Changed</h3>
+          <ul>
+            <li><strong><code>unit_share</code> when a share changes inside the range:</strong> it is the share averaged day by day over the requested range; each share counts for the days it applies. <code>weighted_billable_value</code> is <code>billable_value</code> × this <code>unit_share</code>. The overview no longer says this is the weighting of the residents' portal: the portal splits a change inside a month by the meter readings at the change.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="release">
+        <div class="release-header">
           <span class="version">1.1.0</span>
           <span class="date">2026-11-22</span>
           <span class="status stable">Generally available</span>

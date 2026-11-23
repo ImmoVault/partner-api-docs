@@ -318,7 +318,7 @@ info:
       `billable_value` are the device's values. In
       `/usage-units/{id}/consumption` each segment additionally carries
       `period_consumption.weighted_billable_value` = `billable_value` ×
-      `unit_share` — the same weighting the residents' portal uses. Bill a
+      `unit_share`. Bill a
       unit with `weighted_billable_value`; summed over the units of a Sector
       it gives the Sector's consumption (up to rounding), so a shared
       measuring point is never counted twice.
@@ -2671,7 +2671,10 @@ components:
           maximum: 1
           description: |
             Share of the queried UsageUnit in this measuring point's sector
-            (`1` when the unit does not share it). Set only in
+            (`1` when the unit does not share it). When the share changes
+            inside the requested range, `unit_share` is the share averaged
+            day by day over the range: each share counts for the days it
+            applies. Set only in
             `/usage-units/{id}/consumption`; absent in
             `/measuring-points/{id}/readings`. *(Added in rc.3 addendum.)*
           example: 1
